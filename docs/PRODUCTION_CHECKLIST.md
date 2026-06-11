@@ -14,7 +14,7 @@ Hoy el código es una plantilla fija (mock). Para que sea real:
 - [ ] **Obtener API key** y guardarla como variable de entorno (`OPENAI_API_KEY` o `ANTHROPIC_API_KEY`)
 - [ ] **Instalar SDK** — `npm install openai` o `npm install @anthropic-ai/sdk`
 - [ ] **Crear servicio LLM** — `src/tools/llm.ts` con función genérica que envíe prompts y reciba código
-- [ ] **Reemplazar `generateMockCode`** en `src/agents/implementer.ts` con llamada real al LLM
+- [ ] **Reemplazar `generateMockCode`** en los implementers de cada plataforma (`src/agents/flutter/implementer.ts`, `src/agents/ios/implementer.ts`, `src/agents/android/implementer.ts`) con llamada real al LLM
   - Enviar como contexto: spec tasks, acceptance criteria, código existente del repo, convenciones
   - Parsear la respuesta y extraer los archivos generados
 - [ ] **Reemplazar spec mock** en `src/agents/spec-author.ts` con llamada real al LLM
@@ -94,23 +94,43 @@ Hoy corre en localhost. Para que corra en un servidor:
 - [ ] **PostgreSQL remoto** — usar RDS (AWS), Cloud SQL (GCP), o managed Postgres
 - [ ] **Variables de entorno** — configurar secrets en el servidor (no en archivos)
 
-### Flutter en el Servidor
+### Toolchains por Plataforma en el Servidor
+
+**Flutter:**
 
 - [ ] **Instalar Flutter en el servidor** — necesario para `flutter test` y `flutter pub get`
   - Opción A: Docker image con Flutter pre-instalado (ej: `cirrusci/flutter`)
   - Opción B: Instalar Flutter en la VM/container
 - [ ] **Verificar que `flutter test` funciona** en el ambiente remoto
+
+**iOS/Swift:**
+
+- [ ] **Instalar Swift toolchain** — necesario para `swift test` y `swift build`
+  - En macOS: incluido con Xcode
+  - En Linux: instalar via swift.org
+- [ ] **SwiftLint** (opcional) — `brew install swiftlint` o descargar binario
+- [ ] **Verificar que `swift test` funciona** en el ambiente remoto
+
+**Android/Kotlin:**
+
+- [ ] **Instalar JDK 17+** — necesario para Gradle y compilación Kotlin
+- [ ] **Instalar Gradle** o usar el wrapper `./gradlew`
+- [ ] **Android SDK** (opcional, para builds completos)
+- [ ] **Verificar que `gradle test` funciona** en el ambiente remoto
+
+**Compartido:**
+
 - [ ] **Git credentials** — el servidor necesita poder clonar repos privados
   - SSH key o token de acceso configurado
 
 ### Opciones de Deploy
 
-| Opción | Complejidad | Costo | Recomendado para |
-|--------|------------|-------|------------------|
-| **VM simple** (EC2/GCE) | Baja | ~$30/mes | Proof of concept |
-| **Docker en VM** | Media | ~$30/mes | Staging |
-| **ECS/Cloud Run** | Media-Alta | ~$50/mes | Producción |
-| **Kubernetes** | Alta | ~$100+/mes | Escala grande |
+| Opción                  | Complejidad | Costo      | Recomendado para |
+| ----------------------- | ----------- | ---------- | ---------------- |
+| **VM simple** (EC2/GCE) | Baja        | ~$30/mes   | Proof of concept |
+| **Docker en VM**        | Media       | ~$30/mes   | Staging          |
+| **ECS/Cloud Run**       | Media-Alta  | ~$50/mes   | Producción       |
+| **Kubernetes**          | Alta        | ~$100+/mes | Escala grande    |
 
 ### Red y Seguridad
 
@@ -131,12 +151,12 @@ Hoy corre en localhost. Para que corra en un servidor:
 
 ## Resumen de Prioridad
 
-| # | Qué | Esfuerzo | Impacto | Prioridad |
-|---|-----|----------|---------|-----------|
-| 1 | **LLM para código real** | 3-5 días | Crítico — sin esto no hay valor real | 🔴 Alta |
-| 2 | **GitHub token para PRs** | 1 día | Crítico — sin esto no hay output visible | 🔴 Alta |
-| 3 | **Deploy básico** | 3-5 días | Necesario — sin esto solo corre local | 🟡 Media |
-| 4 | **Jira integration** | 2 días | Nice to have — se puede seguir con fullContext | 🟢 Baja |
+| #   | Qué                       | Esfuerzo | Impacto                                        | Prioridad |
+| --- | ------------------------- | -------- | ---------------------------------------------- | --------- |
+| 1   | **LLM para código real**  | 3-5 días | Crítico — sin esto no hay valor real           | 🔴 Alta   |
+| 2   | **GitHub token para PRs** | 1 día    | Crítico — sin esto no hay output visible       | 🔴 Alta   |
+| 3   | **Deploy básico**         | 3-5 días | Necesario — sin esto solo corre local          | 🟡 Media  |
+| 4   | **Jira integration**      | 2 días   | Nice to have — se puede seguir con fullContext | 🟢 Baja   |
 
 ### Ruta más rápida a "demo real":
 

@@ -23,6 +23,7 @@ GET /health
 ```
 
 **Response:**
+
 ```json
 {
   "status": "ok",
@@ -40,6 +41,7 @@ Content-Type: application/json
 ```
 
 **Request Body (Opción A - Contexto completo):**
+
 ```json
 {
   "fullContext": {
@@ -49,7 +51,7 @@ Content-Type: application/json
       "WHEN user opens home screen THEN display promotional banner carousel",
       "WHEN there are more than 3 promotions THEN show pagination dots"
     ],
-    "platform": "flutter",
+    "platform": "flutter", // "flutter" | "ios" | "android"
     "repo": "rpp-pyme-multiplatform",
     "module": "pay_multiplatform_home_web",
     "targetBranch": "develop",
@@ -59,6 +61,7 @@ Content-Type: application/json
 ```
 
 **Request Body (Opción B - Solo Jira ticket):**
+
 ```json
 {
   "jiraTicketId": "RPP-1234"
@@ -66,6 +69,7 @@ Content-Type: application/json
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "job": {
@@ -88,6 +92,7 @@ GET /jobs/:id
 ```
 
 **Response:**
+
 ```json
 {
   "job": {
@@ -108,9 +113,7 @@ GET /jobs/:id
         }
       ],
       "design": {
-        "affectedFiles": [
-          "packages/.../home_screen.dart"
-        ],
+        "affectedFiles": ["packages/.../home_screen.dart"],
         "newFiles": [
           "packages/.../promo_banner.dart",
           "packages/.../promo_banner_test.dart"
@@ -129,9 +132,7 @@ GET /jobs/:id
           "status": "pending"
         }
       ],
-      "risks": [
-        "May affect home screen performance"
-      ]
+      "risks": ["May affect home screen performance"]
     },
     "createdAt": "2024-01-15T10:30:00.000Z",
     "updatedAt": "2024-01-15T10:35:00.000Z"
@@ -148,9 +149,11 @@ GET /jobs
 ```
 
 **Query Parameters:**
+
 - `initiativeId` (optional) - Filtrar por iniciativa
 
 **Response:**
+
 ```json
 {
   "jobs": [
@@ -175,6 +178,7 @@ Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
   "approved": true,
@@ -183,6 +187,7 @@ Content-Type: application/json
 ```
 
 **Response (Aprobado):**
+
 ```json
 {
   "job": {
@@ -194,6 +199,7 @@ Content-Type: application/json
 ```
 
 **Response (Rechazado):**
+
 ```json
 {
   "job": {
@@ -213,10 +219,12 @@ POST /jobs/:id/retry
 ```
 
 **Notas:**
+
 - Solo funciona para jobs en estado `failed`
 - Reinicia el flujo desde `pending`
 
 **Response:**
+
 ```json
 {
   "job": {
@@ -231,18 +239,18 @@ POST /jobs/:id/retry
 
 ## 🔄 Estados de Job
 
-| Estado | Descripción | UI Sugerida |
-|--------|-------------|-------------|
-| `pending` | Iniciando | 🟡 Iniciando... |
-| `fetching_jira` | Obteniendo info de Jira | 🟡 Leyendo ticket... |
-| `spec_generating` | IA generando spec | 🟡 Generando spec... |
-| `spec_ready` | **Listo para revisión** | 🔵 Revisión requerida |
-| `spec_approved` | Aprobado, implementando | 🟡 Implementando... |
-| `implementing` | Escribiendo código | 🟡 Generando código... |
-| `reviewing` | Validando y creando PR | 🟡 Creando PR... |
-| `pr_created` | PR listo | 🟣 PR creado |
-| `done` | **Completado** | ✅ Completado |
-| `failed` | Error (retry disponible) | ❌ Error |
+| Estado            | Descripción              | UI Sugerida            |
+| ----------------- | ------------------------ | ---------------------- |
+| `pending`         | Iniciando                | 🟡 Iniciando...        |
+| `fetching_jira`   | Obteniendo info de Jira  | 🟡 Leyendo ticket...   |
+| `spec_generating` | IA generando spec        | 🟡 Generando spec...   |
+| `spec_ready`      | **Listo para revisión**  | 🔵 Revisión requerida  |
+| `spec_approved`   | Aprobado, implementando  | 🟡 Implementando...    |
+| `implementing`    | Escribiendo código       | 🟡 Generando código... |
+| `reviewing`       | Validando y creando PR   | 🟡 Creando PR...       |
+| `pr_created`      | PR listo                 | 🟣 PR creado           |
+| `done`            | **Completado**           | ✅ Completado          |
+| `failed`          | Error (retry disponible) | ❌ Error               |
 
 ---
 
@@ -311,11 +319,11 @@ curl -s http://localhost:3000/jobs/$JOB_ID | jq -r '.job.prUrl'
 
 ## 📊 Rate Limits
 
-| Endpoint | Limit | Window |
-|----------|-------|--------|
-| POST /jobs | 10 | por minuto |
-| GET /jobs/:id | 60 | por minuto |
-| POST /approve | 30 | por minuto |
+| Endpoint      | Limit | Window     |
+| ------------- | ----- | ---------- |
+| POST /jobs    | 10    | por minuto |
+| GET /jobs/:id | 60    | por minuto |
+| POST /approve | 30    | por minuto |
 
 ---
 
@@ -324,11 +332,13 @@ curl -s http://localhost:3000/jobs/$JOB_ID | jq -r '.job.prUrl'
 **Nota:** Actualmente la API no requiere autenticación.
 
 **Para producción:**
+
 - Agregar API Key en header: `X-API-Key: your-key`
 - O usar OAuth2/JWT
 
 ---
 
 **Documentación relacionada:**
+
 - [GAIA_INTEGRATION.md](./docs/GAIA_INTEGRATION.md) - Integración con Gaia
 - [ARCHITECTURE.md](./docs/ARCHITECTURE.md) - Arquitectura interna

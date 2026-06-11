@@ -51,7 +51,7 @@ En lugar de dejar la IA libre, le ponemos un **arnés** (harness):
 ```
 ┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐
 │   GAIA      │────→│  Code Harness    │────→│  REPO RAPPI     │
-│  Platform   │     │  (this service)  │     │  (Flutter/iOS)  │
+│  Platform   │     │  (this service)  │     │(Flutter/iOS/And)│
 └─────────────┘     └──────────────────┘     └─────────────────┘
                            │
           ┌────────────────┼────────────────┐
@@ -87,8 +87,11 @@ En lugar de dejar la IA libre, le ponemos un **arnés** (harness):
 # Verificar que tienes todo instalado
 node --version        # v18+
 psql --version        # 14+
-flutter --version     # 3.35+
-which melos           # opcional (solo para monorepos)
+flutter --version     # 3.35+ (para Flutter)
+swift --version       # 5.9+ (para iOS)
+xcodebuild -version   # Xcode 15+ (para iOS, opcional)
+java -version         # JDK 17+ (para Android, opcional)
+which melos           # opcional (solo para monorepos Flutter)
 ```
 
 ### Setup
@@ -124,23 +127,25 @@ npm run dev
 
 ## Demo Interactivo 🎬
 
+El demo soporta las 3 plataformas: **Flutter**, **iOS** y **Android**.
+
 ```bash
-# Ejecutar demo automático (todos los pasos)
-./scripts/demo.sh
+# Demo Flutter (default)
+./scripts/demo.sh flutter
 
-# O modo interactivo paso a paso
-./scripts/demo.sh interactive
+# Demo iOS/Swift
+./scripts/demo.sh ios
 
-# O verificar salud del sistema
-./scripts/demo.sh health
+# Demo Android/Kotlin
+./scripts/demo.sh android
 ```
 
 **El demo te muestra:**
 
-1. Cómo crear un job desde cero
+1. Cómo crear un job desde cero (para la plataforma elegida)
 2. Cómo se genera el spec automáticamente
 3. Dónde el humano debe aprobar
-4. Cómo se implementa el código
+4. Cómo se implementa el código con las herramientas de la plataforma
 5. Cómo se crea el PR en GitHub
 
 ---
@@ -271,7 +276,7 @@ curl -X POST http://localhost:3000/jobs/{jobId}/retry
      │    ┌─────────────▼──────────┐
      │    │   REVIEWING           │
      │    │   - Valida tests      │
-     │    │   - Dart analyze      │
+     │    │   - Lint (platform)   │
      │    │   - Crea PR GitHub    │
      │    │   - Comenta Jira      │
      │    └─────────────┬──────────┘
@@ -348,16 +353,19 @@ Los agentes están organizados por plataforma. El Leader usa `getAgentsForPlatfo
 
 **Pasos:**
 
-1. Verificar entorno Flutter (`flutter doctor`)
+1. Verificar entorno de la plataforma (Flutter: `flutter doctor`, iOS: `xcodebuild -version`, Android: `gradle --version`)
 2. Setup repo via shared `setupRepository` tool (clone from local path or GitHub)
 3. Crear branch (`feature/RPP-1234-nombre-de-la-feature`)
-4. Resolver dependencias: `melos bootstrap` (monorepos) o `flutter pub get` (single-package)
+4. Resolver dependencias por plataforma:
+   - **Flutter:** `melos bootstrap` (monorepos) o `flutter pub get` (single-package)
+   - **iOS:** `swift package resolve` (SPM)
+   - **Android:** `gradle dependencies` (Gradle)
 5. Para cada tarea en `tasks.json`:
    - Leer archivo existente (si es modify)
    - Generar/Modificar código (con LLM o mock)
    - Aplicar cambios
    - Marcar tarea como done
-6. Ejecutar `flutter test`
+6. Ejecutar tests por plataforma (`flutter test`, `swift test`, `gradle test`)
 7. Si pasan: commit y push
 8. Si fallan: reportar error y retry (máximo 3 veces)
 
@@ -374,8 +382,8 @@ Los agentes están organizados por plataforma. El Leader usa `getAgentsForPlatfo
 
 **Validaciones:**
 
-1. ✅ Tests pasan (`flutter test` exit code 0)
-2. ✅ Linting pasa (`dart analyze` sin errores)
+1. ✅ Tests pasan (`flutter test` / `swift test` / `gradle test` exit code 0)
+2. ✅ Linting pasa (`dart analyze` / `swiftlint` / `gradle lint`)
 3. ✅ Cantidad de archivos ≤ `maxFilesToTouch`
 4. ✅ Trazabilidad: todas las tareas del spec están done
 5. ✅ No hay archivos sospechosos (CI, secrets, etc.)

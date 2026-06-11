@@ -26,17 +26,23 @@ Necesitas tener instalado:
 
 - **Docker Desktop** — [Descargar aquí](https://www.docker.com/products/docker-desktop/)
 - **Node.js 18+** — [Descargar aquí](https://nodejs.org/)
-- **Flutter** — [Descargar aquí](https://docs.flutter.dev/get-started/install)
+- **Flutter** — [Descargar aquí](https://docs.flutter.dev/get-started/install) (para demo Flutter)
+- **Swift 5.9+** — Incluido con Xcode (para demo iOS)
+- **Java/JDK 17+** — (para demo Android, opcional)
 
 Si no estás seguro si ya los tienes, abre la Terminal y escribe:
 
 ```
 node --version
-flutter --version
 docker --version
+flutter --version   # para Flutter
+swift --version     # para iOS
+java -version       # para Android
 ```
 
 Si ves números de versión, ya los tienes instalados.
+
+> **Nota:** Solo necesitas las herramientas de la plataforma que quieras probar. Node.js y Docker son obligatorios.
 
 ---
 
@@ -50,8 +56,8 @@ Copia y pega este comando:
 docker start gaia-postgres 2>/dev/null || docker run -d \
   --name gaia-postgres \
   -e POSTGRES_DB=gaia_harness \
-  -e POSTGRES_USER=user \
-  -e POSTGRES_PASSWORD=pass \
+  -e POSTGRES_USER=gaia \
+  -e POSTGRES_PASSWORD=gaia \
   -p 5432:5432 \
   postgres:15
 ```
@@ -59,6 +65,7 @@ docker start gaia-postgres 2>/dev/null || docker run -d \
 > **¿Qué hace esto?** Levanta una base de datos donde el sistema guarda el progreso de cada job.
 
 Deberías ver algo como:
+
 ```
 abc123def456...  (un ID largo)
 ```
@@ -77,6 +84,7 @@ npm run dev
 ```
 
 Deberías ver:
+
 ```
 Database initialized
 Server running on port 3000
@@ -88,11 +96,30 @@ Deja esta terminal abierta. **No la cierres.** ✅
 
 ---
 
-## Paso 3: Crear un job (simular solicitud de producto)
+## Paso 3: Ejecutar el demo automático
+
+La forma más fácil es usar el **script de demo**, que hace todos los pasos automáticamente.
 
 Abre una **segunda terminal** (Cmd+N o Shell → New Window).
 
-Copia y pega este comando:
+```bash
+# Demo Flutter (default)
+./scripts/demo.sh flutter
+
+# Demo iOS/Swift
+./scripts/demo.sh ios
+
+# Demo Android/Kotlin
+./scripts/demo.sh android
+```
+
+El script crea el job, espera el spec, lo aprueba, monitorea la implementación y muestra el PR.
+
+> **Tip:** Si prefieres hacerlo manual paso a paso, sigue leyendo.
+
+### Paso 3b: Crear un job manualmente
+
+Si prefieres el control manual, copia y pega:
 
 ```bash
 curl -s -X POST http://localhost:3000/jobs \
@@ -114,18 +141,19 @@ curl -s -X POST http://localhost:3000/jobs \
   }' | python3 -m json.tool
 ```
 
-> **¿Qué hace esto?** Le dice al sistema: "Quiero un banner de promociones en la pantalla de inicio, con estas 3 reglas de negocio."
+> Cambia `"platform"` a `"ios"` y `"repo"` a `"demo-repo-ios"` para probar iOS, o `"android"` / `"demo-repo-android"` para Android.
 
 Deberías ver una respuesta con un `"id"` (un código largo). **Copia ese ID**, lo vas a necesitar.
 
 Ejemplo:
+
 ```json
 {
-    "job": {
-        "id": "e22105e6-eb14-4f7d-9873-d55ab835ca57",
-        "status": "pending",
-        "title": "Add promotional banner to home screen"
-    }
+  "job": {
+    "id": "e22105e6-eb14-4f7d-9873-d55ab835ca57",
+    "status": "pending",
+    "title": "Add promotional banner to home screen"
+  }
 }
 ```
 
@@ -175,6 +203,7 @@ El status debería cambiar a `"implementing"`. ✅
 ## Paso 6: Esperar a que termine
 
 El sistema ahora está:
+
 1. Clonando el repositorio
 2. Creando una rama nueva
 3. Escribiendo código
@@ -189,11 +218,11 @@ curl -s http://localhost:3000/jobs/TU_JOB_ID | python3 -m json.tool
 
 Los estados que verás en orden:
 
-| Status | Qué significa |
-|--------|--------------|
+| Status         | Qué significa                        |
+| -------------- | ------------------------------------ |
 | `implementing` | Escribiendo código y corriendo tests |
-| `reviewing` | Validando que todo esté bien |
-| `done` | Terminó exitosamente |
+| `reviewing`    | Validando que todo esté bien         |
+| `done`         | Terminó exitosamente                 |
 
 > **Tip:** Repite el comando cada 10 segundos hasta ver `"done"`.
 
@@ -239,21 +268,27 @@ Tú (Producto)                    Sistema (Harness)
 ## Si algo sale mal
 
 ### "Connection refused"
+
 El servidor no está corriendo. Vuelve al **Paso 2**.
 
 ### "Job not found"
+
 Verifica que copiaste bien el ID del job. Puedes ver todos los jobs con:
+
 ```bash
 curl -s http://localhost:3000/jobs | python3 -m json.tool
 ```
 
 ### Status "failed"
+
 Puedes reintentar con:
+
 ```bash
 curl -s -X POST http://localhost:3000/jobs/TU_JOB_ID/retry | python3 -m json.tool
 ```
 
 ### Para detener todo
+
 1. En la terminal del servidor: presiona **Ctrl+C**
 2. Para la base de datos: `docker stop gaia-postgres`
 
@@ -267,11 +302,15 @@ En esta demo el código es mock (plantilla fija). En producción se conectaría 
 **¿Crea un PR real en GitHub?**
 No en esta demo. Necesitaría un token de GitHub configurado. En producción crearía un PR real que un dev puede revisar.
 
+**¿Solo funciona con Flutter?**
+No. Soporta **Flutter**, **iOS/Swift** y **Android/Kotlin**. Cada plataforma tiene sus propios agentes especializados (SpecAuthor, Implementer, Reviewer) con herramientas nativas (`flutter test`, `swift test`, `gradle test`).
+
 **¿Puede tocar cualquier archivo del repo?**
 No. Tiene límites configurables (`maxFilesToTouch: 5`) y no puede tocar archivos de CI/CD, secrets, o infraestructura.
 
 **¿Qué pasa si no apruebo el spec?**
 Puedes rechazarlo con feedback y el sistema regenera el plan:
+
 ```bash
 curl -s -X POST http://localhost:3000/jobs/TU_JOB_ID/approve \
   -H "Content-Type: application/json" \

@@ -6,18 +6,19 @@
 
 ## 📋 Información del Ticket
 
-| Campo | Valor |
-|-------|-------|
-| **Ticket ID** | RPCO-37575 |
-| **Proyecto** | Gaia Code Harness |
-| **Fecha** | Junio 2026 |
-| **Estado** | ✅ Completado para MVP |
+| Campo         | Valor                  |
+| ------------- | ---------------------- |
+| **Ticket ID** | RPCO-37575             |
+| **Proyecto**  | Gaia Code Harness      |
+| **Fecha**     | Junio 2026             |
+| **Estado**    | ✅ Completado para MVP |
 
 ---
 
 ## 🎯 Objetivo Alcanzado
 
 Implementar un sistema de **Harness Engineering** que permita a Gaia Platform generar código automáticamente con:
+
 - ✅ Control humano (Human-in-the-loop)
 - ✅ Spec-Driven Development (SDD)
 - ✅ Multi-agent system
@@ -27,26 +28,33 @@ Implementar un sistema de **Harness Engineering** que permita a Gaia Platform ge
 
 ## 📦 Entregables
 
-### Código (14 archivos TypeScript)
+### Código (20+ archivos TypeScript)
+
 ```
 src/
-├── index.ts
-├── types/index.ts (464 líneas, documentado)
-├── db/index.ts (165 líneas)
-├── api/server.ts (52 líneas, documentado)
-├── api/routes/jobs.ts (144 líneas)
-├── agents/base.ts (documentado)
-├── agents/spec-author.ts
-├── agents/implementer.ts
-├── agents/reviewer.ts
-├── harness/leader.ts (246 líneas, 10 estados)
-├── harness/plugin-loader.ts (documentado)
-├── tools/file.ts (304 líneas)
-├── tools/git.ts (195 líneas)
-└── tools/test-runner.ts (238 líneas)
+├── index.ts                     # Entry point (carga dotenv)
+├── types/index.ts               # Type definitions
+├── db/index.ts                  # PostgreSQL CRUD
+├── api/server.ts                # Fastify server
+├── api/routes/jobs.ts           # 6 REST endpoints
+├── agents/
+│   ├── base.ts                  # Base agent class
+│   ├── registry.ts              # Platform agent registry
+│   ├── flutter/{spec-author,implementer,reviewer}.ts
+│   ├── ios/{spec-author,implementer,reviewer}.ts
+│   └── android/{spec-author,implementer,reviewer}.ts
+├── harness/leader.ts            # Orchestrador (10 estados)
+├── harness/plugin-loader.ts
+├── tools/file.ts                # File system ops
+├── tools/git.ts                 # Git + GitHub API
+├── tools/repo.ts                # Repo setup (shared)
+├── tools/test-runner.ts         # Flutter test runner
+├── tools/xcode-runner.ts        # Swift test, swiftlint
+└── tools/gradle-runner.ts       # Gradle test, lint
 ```
 
 ### Documentación (12 archivos)
+
 1. README.md (20+ páginas, 18 dudas)
 2. SETUP.md (8 páginas)
 3. SETUP_CHECKLIST.md
@@ -61,10 +69,12 @@ src/
 12. GUION_PRESENTACION.md (20 páginas)
 
 ### Scripts
-- `scripts/demo.sh` - Demo interactivo
+
+- `scripts/demo.sh` - Demo interactivo multi-plataforma (flutter|ios|android)
 - `scripts/present.sh` - Presentación
 
 ### Ejemplos
+
 - `examples/.gaia/gaia.json` - Manifest
 - `examples/.gaia/agents/flutter-spec-author.ts` - Agente Rappi Flutter
 
@@ -87,6 +97,7 @@ Gaia Platform → POST /jobs → Harness API
 ## ✅ Features Implementadas
 
 ### Core
+
 - [x] API REST con 6 endpoints
 - [x] PostgreSQL con 10 estados de job
 - [x] 3 Agentes con lifecycle completo
@@ -94,12 +105,16 @@ Gaia Platform → POST /jobs → Harness API
 - [x] Human-in-the-loop checkpoints
 
 ### Integraciones
+
 - [x] GitHub API (crear PRs)
 - [x] Jira API (comentar tickets)
 - [x] Flutter toolchain (melos, test, analyze)
+- [x] iOS/Swift toolchain (SPM, swift test, swiftlint)
+- [x] Android/Kotlin toolchain (Gradle, gradle test, lint)
 - [x] File system con patching
 
 ### Deploy
+
 - [x] Local development support
 - [x] AWS/GCP/Azure documentation
 - [x] Docker example
@@ -109,33 +124,37 @@ Gaia Platform → POST /jobs → Harness API
 
 ## 📊 Métricas
 
-| Métrica | Valor |
-|---------|-------|
-| Líneas de código TypeScript | ~2,500 |
-| Archivos fuente | 14 |
-| Documentos | 12 |
-| Páginas de documentación | ~100 |
-| Endpoints REST | 6 |
-| Estados de job | 10 |
-| Agentes | 3 + 1 base |
-| Dependencias | 18 paquetes |
-| Dudas documentadas | 18 |
+| Métrica                     | Valor                                      |
+| --------------------------- | ------------------------------------------ |
+| Líneas de código TypeScript | ~2,500                                     |
+| Archivos fuente             | 14                                         |
+| Documentos                  | 12                                         |
+| Páginas de documentación    | ~100                                       |
+| Endpoints REST              | 6                                          |
+| Estados de job              | 10                                         |
+| Agentes                     | 9 (3 por plataforma) + 1 base + 1 registry |
+| Plataformas                 | Flutter, iOS, Android                      |
+| Dependencias                | 19 paquetes                                |
+| Dudas documentadas          | 18                                         |
 
 ---
 
 ## 🚀 Estado de Funcionamiento
 
 ### ✅ Listo para:
+
 - Desarrollo local
 - Presentación al equipo
 - Testing manual
 - MVP funcional
 
 ### ⚠️ Necesita para producción:
+
 - Integración OpenAI/Anthropic (LLM real)
 - Integración MCP Jira (tickets reales)
 - Tests unitarios
 - Deploy a AWS
+- Soporte Backend (Node/Python)
 
 ---
 
@@ -161,11 +180,13 @@ Gaia Platform → POST /jobs → Harness API
 ## 🎤 Material para Presentación
 
 ### Guion
+
 - **Duración:** 20-25 minutos
 - **Slides:** 10 slides
-- **Demo:** Interactivo con `scripts/demo.sh`
+- **Demo:** Interactivo con `scripts/demo.sh flutter|ios|android`
 
 ### Puntos Clave
+
 1. El problema (5 min)
 2. La solución - Harness Engineering (5 min)
 3. Arquitectura y agentes (5 min)
@@ -173,6 +194,7 @@ Gaia Platform → POST /jobs → Harness API
 5. Roadmap y preguntas (5 min)
 
 ### Dudas para Discutir
+
 18 preguntas organizadas en README.md listas para debate
 
 ---
@@ -180,12 +202,14 @@ Gaia Platform → POST /jobs → Harness API
 ## 📚 Documentación Recomendada
 
 Para entender el proyecto:
+
 1. `README.md` - Overview completo
 2. `docs/ARCHITECTURE.md` - Arquitectura profunda
 3. `docs/GAIA_INTEGRATION.md` - Input/Output
 4. `docs/GUION_PRESENTACION.md` - Guion presentación
 
 Para implementar:
+
 1. `docs/SETUP.md` - Instalación
 2. `docs/DEPLOYMENT.md` - AWS/GCP
 3. `PLUGINS.md` - Custom agents

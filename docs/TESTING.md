@@ -15,8 +15,9 @@ curl http://localhost:3000/health
 ```
 
 **Esperado:**
+
 ```json
-{"status":"ok","timestamp":"2024-01-15T..."}
+{ "status": "ok", "timestamp": "2024-01-15T..." }
 ```
 
 ### 2. Crear un Job de Prueba
@@ -54,10 +55,17 @@ curl http://localhost:3000/jobs/$JOB_ID | jq .
 ### 4. Ejecutar Demo Completo
 
 ```bash
-./scripts/demo.sh
+# Flutter
+./scripts/demo.sh flutter
+
+# iOS
+./scripts/demo.sh ios
+
+# Android
+./scripts/demo.sh android
 ```
 
-**Esperado:** Script completa todo el flujo y muestra PR URL.
+**Esperado:** Script completa todo el flujo y muestra PR URL para la plataforma elegida.
 
 ---
 
@@ -69,28 +77,28 @@ curl http://localhost:3000/jobs/$JOB_ID | jq .
 
 ```typescript
 // Test directo del agente
-import { SpecAuthorAgent } from './src/agents/spec-author';
+import { SpecAuthorAgent } from "./src/agents/spec-author";
 
 const agent = new SpecAuthorAgent();
 const result = await agent.execute({
   job: {
-    id: 'test-123',
-    title: 'Test feature',
+    id: "test-123",
+    title: "Test feature",
     acceptanceCriteria: [
-      { id: '1', text: 'WHEN test THEN success', testable: true }
+      { id: "1", text: "WHEN test THEN success", testable: true },
     ],
-    platform: 'flutter',
-    repo: 'test-repo',
-    targetBranch: 'main',
+    platform: "flutter",
+    repo: "test-repo",
+    targetBranch: "main",
     maxFilesToTouch: 5,
     requireTests: true,
-    initiativeId: 'test',
-    status: 'pending',
+    initiativeId: "test",
+    status: "pending",
     progressLogs: [],
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   },
-  workspacePath: '/tmp/test'
+  workspacePath: "/tmp/test",
 });
 
 console.log(result.spec);
@@ -99,16 +107,19 @@ console.log(result.spec);
 #### ImplementerAgent
 
 Requiere:
-- Repo Flutter/Melos clonado
-- Flutter instalado
+
+- Repo de la plataforma clonado (Flutter/iOS/Android)
+- Herramientas de la plataforma instaladas (Flutter SDK, Swift, Gradle)
 - Git configurado
 
 #### ReviewerAgent
 
 Requiere:
+
 - Código implementado
-- Tests pasando
-- GitHub token configurado
+- Tests pasando (`flutter test` / `swift test` / `gradle test`)
+- Lint pasando (`dart analyze` / `swiftlint` / `gradle lint`)
+- GitHub token configurado (opcional, usa dry-run sin él)
 
 ---
 
@@ -117,16 +128,19 @@ Requiere:
 ### Colección de Requests
 
 #### Health Check
+
 ```bash
 curl http://localhost:3000/health
 ```
 
 #### Listar Jobs
+
 ```bash
 curl http://localhost:3000/jobs
 ```
 
 #### Crear Job (Contexto Completo)
+
 ```bash
 curl -X POST http://localhost:3000/jobs \
   -H "Content-Type: application/json" \
@@ -143,6 +157,7 @@ curl -X POST http://localhost:3000/jobs \
 ```
 
 #### Crear Job (Solo Jira)
+
 ```bash
 curl -X POST http://localhost:3000/jobs \
   -H "Content-Type: application/json" \
@@ -150,6 +165,7 @@ curl -X POST http://localhost:3000/jobs \
 ```
 
 #### Aprobar Spec
+
 ```bash
 curl -X POST http://localhost:3000/jobs/$JOB_ID/approve \
   -H "Content-Type: application/json" \
@@ -157,6 +173,7 @@ curl -X POST http://localhost:3000/jobs/$JOB_ID/approve \
 ```
 
 #### Rechazar Spec
+
 ```bash
 curl -X POST http://localhost:3000/jobs/$JOB_ID/approve \
   -H "Content-Type: application/json" \
@@ -164,6 +181,7 @@ curl -X POST http://localhost:3000/jobs/$JOB_ID/approve \
 ```
 
 #### Reintentar Job
+
 ```bash
 curl -X POST http://localhost:3000/jobs/$JOB_ID/retry
 ```
@@ -219,12 +237,15 @@ JOB_RESPONSE=$(curl -s -X POST $BASE_URL/jobs \
       "title": "Test job",
       "acceptanceCriteria": ["WHEN test THEN pass"],
       "platform": "flutter",
-      "repo": "test"
+      "repo": "demo-repo"
     }
   }')
 
 JOB_ID=$(echo $JOB_RESPONSE | jq -r '.job.id')
 echo "Created job: $JOB_ID"
+
+# Nota: cambiar platform a "ios"/"android" y repo a
+# "demo-repo-ios"/"demo-repo-android" para otras plataformas
 
 # 3. Wait for spec_ready
 echo "[3/6] Waiting for spec..."
@@ -285,15 +306,15 @@ echo "=== Test Complete ==="
 
 ## 📊 Métricas de Testing
 
-| Test | Tiempo Esperado | Status |
-|------|-----------------|--------|
-| Health check | < 1s | ⬜ |
-| Crear job | < 2s | ⬜ |
-| Generar spec | < 30s | ⬜ |
-| Aprobar spec | < 1s | ⬜ |
-| Implementar | < 60s | ⬜ |
-| Crear PR | < 10s | ⬜ |
-| **Total** | **< 2 min** | ⬜ |
+| Test         | Tiempo Esperado | Status |
+| ------------ | --------------- | ------ |
+| Health check | < 1s            | ⬜     |
+| Crear job    | < 2s            | ⬜     |
+| Generar spec | < 30s           | ⬜     |
+| Aprobar spec | < 1s            | ⬜     |
+| Implementar  | < 60s           | ⬜     |
+| Crear PR     | < 10s           | ⬜     |
+| **Total**    | **< 2 min**     | ⬜     |
 
 ---
 

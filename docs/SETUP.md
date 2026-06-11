@@ -10,7 +10,9 @@
 - **Node.js** 18+
 - **PostgreSQL** 14+
 - **Git**
-- **Flutter** (para testing con repos reales)
+- **Flutter** (para testing con repos Flutter)
+- **Swift 5.9+** (para testing con repos iOS, opcional)
+- **Java/JDK 17+** (para testing con repos Android, opcional)
 
 ---
 
@@ -121,11 +123,25 @@ Si quieres usar repos locales en lugar de clonar desde GitHub:
 # Crear directorio para repos locales
 mkdir -p ~/Desktop/repos
 
-# Crear un repo Flutter de demo
+# Crear repo Flutter de demo
 mkdir -p ~/Desktop/repos/demo-repo
 cd ~/Desktop/repos/demo-repo
 flutter create . --project-name demo_app
 git init && git checkout -b develop
+git add . && git commit -m "Initial commit"
+
+# Crear repo iOS de demo (SPM)
+mkdir -p ~/Desktop/repos/demo-repo-ios
+cd ~/Desktop/repos/demo-repo-ios
+git init && git checkout -b develop
+# Crear Package.swift, Sources/, Tests/ (ver scripts/demo.sh)
+git add . && git commit -m "Initial commit"
+
+# Crear repo Android de demo (Gradle Kotlin DSL)
+mkdir -p ~/Desktop/repos/demo-repo-android
+cd ~/Desktop/repos/demo-repo-android
+git init && git checkout -b develop
+# Crear build.gradle.kts, app/, settings.gradle.kts
 git add . && git commit -m "Initial commit"
 ```
 
@@ -188,7 +204,14 @@ curl http://localhost:3000/jobs
 ### Run Demo Script
 
 ```bash
-./scripts/demo.sh
+# Flutter (default)
+./scripts/demo.sh flutter
+
+# iOS/Swift
+./scripts/demo.sh ios
+
+# Android/Kotlin
+./scripts/demo.sh android
 ```
 
 ---
@@ -293,7 +316,7 @@ gaia-code-harness/
 - [ ] `npm run db:init` exitoso
 - [ ] `npm run build` sin errores
 - [ ] `curl http://localhost:3000/health` responde OK
-- [ ] Demo script funciona
+- [ ] Demo script funciona (`./scripts/demo.sh flutter`, `ios`, `android`)
 
 ---
 

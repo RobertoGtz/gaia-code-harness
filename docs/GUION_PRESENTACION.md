@@ -76,13 +76,15 @@
      │                         │                            │
 ```
 
-> Internamente hay 3 agentes, como 3 roles en un equipo:
+> Internamente hay 3 agentes por plataforma, como 3 roles en un equipo:
 >
 > - **SpecAuthor** — Es como un tech lead que lee los criterios y arma el plan
 > - **Implementer** — Es como un dev que ejecuta el plan: escribe código, corre tests
 > - **Reviewer** — Es como un code reviewer que valida todo y crea el PR
 >
-> Cada uno hace una sola cosa. Si algo falla, reintenta hasta 3 veces y si no puede, reporta el error."
+> Y esto funciona para **Flutter, iOS y Android**. Cada plataforma tiene sus propios agentes especializados con sus herramientas nativas (dart analyze, swiftlint, gradle lint).
+>
+> Cada agente hace una sola cosa. Si algo falla, reintenta hasta 3 veces y si no puede, reporta el error."
 
 ---
 
@@ -197,13 +199,14 @@ print(f'PR: {j.get(\"prUrl\",\"pending...\")}')"
 
 > "Esto es un MVP funcional. Qué tenemos y qué falta:
 
-| ✅ Funciona hoy                           | 🔜 Próximos pasos                                  |
-| ----------------------------------------- | -------------------------------------------------- |
-| Pipeline completo de spec → code → PR     | Generación real de código con LLM (GPT-4 / Claude) |
-| Checkpoint humano obligatorio             | Integración con Jira real (leer tickets)           |
-| Tests automáticos (flutter test)          | UI en Gaia para aprobar specs visualmente          |
-| Soporte monorepo (melos) y single-package | Deploy a staging                                   |
-| Dry-run sin GitHub token                  | Métricas de éxito por feature                      |
+| ✅ Funciona hoy                            | 🔜 Próximos pasos                                  |
+| ------------------------------------------ | -------------------------------------------------- |
+| Pipeline completo de spec → code → PR      | Generación real de código con LLM (GPT-4 / Claude) |
+| Checkpoint humano obligatorio              | Integración con Jira real (leer tickets)           |
+| Tests automáticos (flutter test)           | UI en Gaia para aprobar specs visualmente          |
+| Soporte monorepo (melos) y single-package  | Deploy a staging                                   |
+| **Multi-plataforma (Flutter/iOS/Android)** | Métricas de éxito por feature                      |
+| Dry-run sin GitHub token                   | Soporte Backend (Node/Python)                      |
 
 > Lo más importante que falta es **conectar un LLM real** para que el código generado sea funcional, no una plantilla. La infraestructura para recibirlo ya está lista.
 >
@@ -223,7 +226,7 @@ print(f'PR: {j.get(\"prUrl\",\"pending...\")}')"
 
 **Si preguntan: "¿Solo funciona con Flutter?"**
 
-> "Hoy sí, pero la arquitectura es extensible. Los agentes son plugins que se pueden especializar por plataforma: Flutter, iOS, Android, Backend."
+> "No, ya soporta **Flutter, iOS/Swift y Android/Kotlin**. Cada plataforma tiene agentes especializados con sus herramientas nativas. Puedes verlo en el demo: `./scripts/demo.sh ios` o `./scripts/demo.sh android`. La arquitectura permite agregar más plataformas fácilmente (ej: Backend)."
 
 **Si preguntan: "¿Cuánto tarda una feature real?"**
 
@@ -240,8 +243,8 @@ print(f'PR: {j.get(\"prUrl\",\"pending...\")}')"
 - [ ] Docker corriendo: `docker start gaia-postgres`
 - [ ] Servidor corriendo: `cd ~/Desktop/gaia-code-harness && npm run dev`
 - [ ] Workspace limpio: `rm -rf /tmp/gaia-workspace`
-- [ ] Demo repo existe: `ls ~/Desktop/repos/demo-repo`
-- [ ] Probar demo una vez antes de presentar
+- [ ] Demo repos existen: `ls ~/Desktop/repos/demo-repo ~/Desktop/repos/demo-repo-ios ~/Desktop/repos/demo-repo-android`
+- [ ] Probar demo para las 3 plataformas antes de presentar
 - [ ] Tener esta guía abierta como referencia
 
 ---
