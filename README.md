@@ -88,7 +88,7 @@ En lugar de dejar la IA libre, le ponemos un **arnés** (harness):
 node --version        # v18+
 psql --version        # 14+
 flutter --version     # 3.35+
-which melos           # debe existir
+which melos           # opcional (solo para monorepos)
 ```
 
 ### Setup
@@ -343,10 +343,10 @@ curl -X POST http://localhost:3000/jobs/{jobId}/retry
 
 **Pasos:**
 
-1. Verificar entorno Flutter (`flutter doctor`, `melos --version`)
-2. Clonar repo o usar copia local
+1. Verificar entorno Flutter (`flutter doctor`)
+2. Setup repo via shared `setupRepository` tool (clone from local path or GitHub)
 3. Crear branch (`feature/RPP-1234-nombre-de-la-feature`)
-4. Ejecutar `melos bootstrap`
+4. Resolver dependencias: `melos bootstrap` (monorepos) o `flutter pub get` (single-package)
 5. Para cada tarea en `tasks.json`:
    - Leer archivo existente (si es modify)
    - Generar/Modificar código (con LLM o mock)
@@ -530,8 +530,12 @@ POST https://gaia.internal/webhooks/harness/progress
 
 - [x] Arquitectura base con Fastify + PostgreSQL
 - [x] Agentes: SpecAuthor, Implementer, Reviewer
-- [x] GitHub integration (crear PRs)
-- [ ] Integrar LLM real (OpenAI/Anthropic)
+- [x] GitHub integration (crear PRs, dry-run si no hay token)
+- [x] Shared `setupRepository` tool (clone local git repos or from GitHub)
+- [x] Fallback de `melos bootstrap` a `flutter pub get` para repos no-monorepo
+- [x] Approve endpoint funciona sin body (defaults to approved)
+- [x] Demo E2E funcional con repo Flutter local
+- [ ] Integrar LLM real (OpenAI/Anthropic) para generación de código y specs
 - [ ] MCP Jira (leer tickets reales)
 - [ ] Tests con repo real de Rappi
 

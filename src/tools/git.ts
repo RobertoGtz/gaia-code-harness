@@ -193,7 +193,12 @@ export async function createGitHubPR(options: {
   
   const githubToken = process.env.GITHUB_TOKEN;
   if (!githubToken) {
-    throw new Error('GITHUB_TOKEN not set');
+    console.log('[GitHub] GITHUB_TOKEN not set - running in dry-run mode, PR not actually created');
+    return {
+      url: `https://github.com/${owner}/${repo}/pull/dry-run (not created - GITHUB_TOKEN missing)`,
+      id: 'dry-run',
+      number: 0,
+    };
   }
 
   try {

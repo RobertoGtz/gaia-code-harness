@@ -169,7 +169,7 @@ export async function setupJobRoutes(app: FastifyInstance) {
    */
   app.post('/jobs/:id/approve', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = request.body as ApproveSpecRequest;
+    const body = (request.body || { approved: true }) as ApproveSpecRequest;
     
     const job = await getJob(id);
     if (!job) {
@@ -182,7 +182,7 @@ export async function setupJobRoutes(app: FastifyInstance) {
       });
     }
     
-    if (!body.approved) {
+    if (body.approved === false) {
       await updateJobStatus(id, 'pending', { currentAgent: undefined });
       await addProgressLog(id, `Spec rejected by human: ${body.feedback || 'No feedback provided'}`);
       return { job: await getJob(id) };

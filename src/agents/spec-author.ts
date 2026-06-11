@@ -6,6 +6,7 @@
 import { BaseAgent } from './base';
 import { AgentContext, AgentResult, TechnicalSpec, ImplementationTask } from '../types';
 import { getDirectoryStructure, getRelevantFiles } from '../tools/file';
+import { setupRepository } from '../tools/repo';
 import * as path from 'path';
 
 /**
@@ -23,8 +24,19 @@ export class SpecAuthorAgent extends BaseAgent {
     this.log(`Generating spec for: ${job.title}`);
     
     try {
-      // 1. Explore repo structure
+      // 1. Setup repository (clone or copy from local)
       const repoPath = path.join(workspacePath, 'repo');
+      const setup = await setupRepository(job, repoPath);
+      if (!setup.success) {
+        return {
+          success: false,
+          output: '',
+          error: setup.error,
+        };
+      }
+      this.log(setup.output);
+      
+      // 2. Explore repo structure
       const structure = await getDirectoryStructure(repoPath, 3);
       this.log('Explored repo structure');
       

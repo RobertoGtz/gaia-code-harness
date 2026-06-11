@@ -59,6 +59,7 @@
 ## 🔄 Flujo de Datos
 
 ### 1. Creación de Job
+
 ```
 Gaia → POST /jobs → API → DB insert → Leader.orchestrateJob()
                                       ↓
@@ -66,6 +67,7 @@ Gaia → POST /jobs → API → DB insert → Leader.orchestrateJob()
 ```
 
 ### 2. Generación de Spec
+
 ```
 Leader → SpecAuthorAgent.execute()
            ↓
@@ -78,6 +80,7 @@ Leader → SpecAuthorAgent.execute()
 ```
 
 ### 3. Aprobación Humana
+
 ```
 Tech Lead → POST /jobs/:id/approve
               ↓
@@ -88,19 +91,22 @@ Tech Lead → POST /jobs/:id/approve
 ```
 
 ### 4. Implementación
+
 ```
 ImplementerAgent:
-  1. Verifica Flutter environment
-  2. Crea branch
-  3. melos bootstrap
-  4. Escribe/modifica archivos
-  5. Ejecuta tests
-  6. Commit & push
+  1. Setup repo (shared setupRepository tool)
+  2. Verifica Flutter environment
+  3. Crea branch
+  4. Dependencias: melos bootstrap || flutter pub get
+  5. Escribe/modifica archivos
+  6. Ejecuta tests
+  7. Commit & push
          ↓
   DB: status='reviewing'
 ```
 
 ### 5. Review y PR
+
 ```
 ReviewerAgent:
   1. dart analyze
@@ -125,35 +131,35 @@ CREATE TABLE code_generation_jobs (
   jira_ticket_id TEXT,
   jira_epic_id TEXT,
   initiative_id TEXT NOT NULL,
-  
+
   -- Requerimientos
   title TEXT NOT NULL,
   platform TEXT NOT NULL,  -- flutter | ios | android | backend
   repo TEXT NOT NULL,
   module TEXT,             -- ej: pay_multiplatform_home_web
   target_branch TEXT NOT NULL DEFAULT 'develop',
-  
+
   -- Contexto
   description TEXT,
   acceptance_criteria JSONB NOT NULL DEFAULT '[]',
   figma_url TEXT,
   technical_constraints JSONB DEFAULT '[]',
-  
+
   -- Límites
   max_files_to_touch INTEGER DEFAULT 5,
   require_tests BOOLEAN DEFAULT true,
-  
+
   -- Estado
   status TEXT NOT NULL DEFAULT 'pending',
   current_agent TEXT,
   progress_logs JSONB NOT NULL DEFAULT '[]',
-  
+
   -- Outputs
   spec JSONB,              -- TechnicalSpec generado
   branch_name TEXT,
   pr_url TEXT,
   pr_id TEXT,
-  
+
   -- Metadata
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -169,70 +175,89 @@ CREATE INDEX idx_jobs_initiative ON code_generation_jobs(initiative_id);
 ## 🧠 Agentes
 
 ### SpecAuthorAgent
+
 **Responsabilidad:** Generar especificación técnica desde requerimientos de producto
 
 **Input:**
+
 - Job con acceptance criteria
 - Path al repo
 
 **Output:**
+
 - TechnicalSpec (requirements, design, tasks, risks)
 - Archivos JSON guardados en workspace
 
 **Proceso:**
-1. Explora estructura del repo
-2. Identifica archivos relevantes (lib/, test/)
-3. Genera lista de tareas
-4. Identifica riesgos
-5. Guarda spec en disco
+
+1. Setup repo via shared `setupRepository` (clona desde path local o GitHub)
+2. Explora estructura del repo
+3. Identifica archivos relevantes (lib/, test/)
+4. Genera lista de tareas
+5. Identifica riesgos
+6. Guarda spec en disco
 
 ### ImplementerAgent
+
 **Responsabilidad:** Modificar código según la spec aprobada
 
 **Input:**
+
 - Job con spec aprobado
 - Workspace path
 
 **Output:**
+
 - Archivos modificados/creados
 - Branch en GitHub
 - Tests pasando
 
 **Proceso:**
+
 1. Verifica Flutter environment
-2. Setup: git init, create branch
-3. melos bootstrap
-4. Por cada task:
-   - Genera código (mock por ahora)
+2. Setup repo via shared `setupRepository` (clona desde path local o GitHub)
+3. Create branch
+4. Resolver dependencias:
+   - Si existe `melos.yaml` → `melos bootstrap`
+   - Si no → `flutter pub get`
+5. Por cada task:
+   - Genera código (mock por ahora, LLM en futuro)
    - Escribe archivo
-5. Ejecuta tests
-6. Commit & push
+6. Ejecuta `flutter test`
+7. Commit & push
 
 **Retry Logic:**
+
 - Si falla, reintenta hasta 3 veces
 - Cada retry incluye el error previo como contexto
 
 ### ReviewerAgent
+
 **Responsabilidad:** Validar implementación y crear PR
 
 **Input:**
+
 - Job con código implementado
 - Workspace path
 
 **Output:**
+
 - Validación exitosa/fallida
 - GitHub PR URL
 - Comentario en Jira (opcional)
 
 **Validaciones:**
+
 1. dart analyze - sin errores
 2. flutter test - todos pasan
 3. Número de archivos ≤ maxFilesToTouch
 4. Traceability: cada cambio linkea a spec
 
 **GitHub PR:**
+
 - Título: `[TICKET-123] Feature description`
 - Body: Checklist de requirements + design decisions
+- **Dry-run mode:** Si `GITHUB_TOKEN` no está configurado, retorna un PR mock sin llamar a la API de GitHub
 
 ---
 
@@ -282,10 +307,10 @@ Repo del proyecto
 
 ### Human-in-the-Loop
 
-| Checkpoint | Quién | Qué decide |
-|------------|-------|------------|
+| Checkpoint    | Quién     | Qué decide                    |
+| ------------- | --------- | ----------------------------- |
 | Spec approval | Tech Lead | ¿El spec técnico es correcto? |
-| PR review | Dev Team | ¿El código cumple estándares? |
+| PR review     | Dev Team  | ¿El código cumple estándares? |
 
 ### Límites Automáticos
 
@@ -297,6 +322,7 @@ Repo del proyecto
 ### Auditoría
 
 Todo se guarda en DB:
+
 - Cada cambio de estado
 - Cada log de progreso
 - Spec generado
@@ -308,16 +334,19 @@ Todo se guarda en DB:
 ## 📊 Escalabilidad
 
 ### Vertical (más recursos)
+
 - PostgreSQL puede escalar verticalmente
 - Leader procesa un job a la vez (por diseño)
 - Cada job es independiente
 
 ### Horizontal (más instancias)
+
 - Múltiples instancias del API server
 - Load balancer distribuye requests
 - Todos leen/escriben a la misma DB
 
 ### Async Processing
+
 - Leader corre async después de POST /jobs
 - Response inmediata al cliente
 - Polling para status updates
@@ -357,6 +386,7 @@ REPOS_BASE_PATH=/tmp/gaia-workspace
 ## 🚀 Deployment
 
 ### Local Development
+
 ```bash
 npm install
 npm run db:init
@@ -364,6 +394,7 @@ npm run dev
 ```
 
 ### Production (Docker)
+
 ```dockerfile
 FROM node:18-alpine
 WORKDIR /app
@@ -376,42 +407,47 @@ CMD ["npm", "start"]
 ```
 
 ### AWS ECS + RDS
+
 Ver `DEPLOYMENT.md` para detalles completos.
 
 ---
 
 ## 📈 Métricas
 
-| Métrica | Valor Actual | Target |
-|---------|--------------|--------|
-| Jobs/hour | 10 (estimado) | 50+ |
-| Success rate | 80% (estimado) | 95%+ |
-| Avg time | 5 min | 2 min |
-| Human checkpoints | 2 | 2 (mantener) |
+| Métrica           | Valor Actual   | Target       |
+| ----------------- | -------------- | ------------ |
+| Jobs/hour         | 10 (estimado)  | 50+          |
+| Success rate      | 80% (estimado) | 95%+         |
+| Avg time          | 5 min          | 2 min        |
+| Human checkpoints | 2              | 2 (mantener) |
 
 ---
 
 ## 🎯 Decisiones de Diseño
 
 ### ¿Por qué PostgreSQL y no SQLite?
+
 - Persistencia real entre reinicios
 - Concurrencia mejor manejada
 - Escalabilidad horizontal
 - Backups estándar
 
 ### ¿Por qué Fastify y no Express?
+
 - Mejor performance
 - Async/await nativo
 - Schema validation integrado
 - Menos overhead
 
 ### ¿Por qué state machine explícita?
+
 - Debugging más fácil
 - Recuperación de errores clara
 - Visibilidad del proceso
 - Testing más simple
 
 ### ¿Por qué human-in-the-loop?
+
 - Calidad > Velocidad
 - Responsabilidad humana
 - Reduce riesgo de errores
@@ -420,6 +456,7 @@ Ver `DEPLOYMENT.md` para detalles completos.
 ---
 
 **Documentación relacionada:**
+
 - [API.md](../API.md) - Referencia de endpoints
 - [DEPLOYMENT.md](./DEPLOYMENT.md) - Guía de deploy
 - [PLUGINS.md](../PLUGINS.md) - Sistema de plugins

@@ -184,6 +184,47 @@ export async function runMelosBootstrap(workingDir: string): Promise<TestRunResu
 }
 
 /**
+ * Run 'flutter pub get' to resolve dependencies for a single project.
+ * Used for non-monorepo repositories (no melos.yaml).
+ * 
+ * @param workingDir - Project root directory
+ * @returns Promise resolving to pub get results
+ * @example
+ * const result = await runFlutterPubGet('/project');
+ * if (result.passed) {
+ *   // Dependencies resolved
+ * }
+ */
+export async function runFlutterPubGet(workingDir: string): Promise<TestRunResult> {
+  const startTime = Date.now();
+
+  try {
+    const { stdout, stderr } = await execAsync('flutter pub get', {
+      cwd: workingDir,
+      timeout: 180000, // 3 minute timeout
+    });
+
+    return {
+      passed: true,
+      command: 'flutter pub get',
+      stdout,
+      stderr,
+      exitCode: 0,
+      duration: Date.now() - startTime,
+    };
+  } catch (error: any) {
+    return {
+      passed: false,
+      command: 'flutter pub get',
+      stdout: error.stdout || '',
+      stderr: error.stderr || '',
+      exitCode: error.code || 1,
+      duration: Date.now() - startTime,
+    };
+  }
+}
+
+/**
  * Verify that Flutter development environment is properly configured.
  * Checks: Flutter CLI installed, pubspec.yaml or melos.yaml exists.
  * Used by agents before attempting to build or test.

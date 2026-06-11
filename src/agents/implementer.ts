@@ -5,9 +5,10 @@
 
 import { BaseAgent } from './base';
 import { AgentContext, AgentResult, FileChange } from '../types';
-import { runMelosBootstrap, runFlutterTests, verifyFlutterEnvironment } from '../tools/test-runner';
-import { initGit, createBranch, generateBranchName, commitAndPush, cloneRepository } from '../tools/git';
-import { readFile, writeFile, copyDirectory, fileExists } from '../tools/file';
+import { runMelosBootstrap, runFlutterTests, runFlutterPubGet, verifyFlutterEnvironment } from '../tools/test-runner';
+import { initGit, createBranch, generateBranchName, commitAndPush } from '../tools/git';
+import { readFile, writeFile, fileExists } from '../tools/file';
+import { setupRepository } from '../tools/repo';
 import * as path from 'path';
 
 /**
@@ -27,10 +28,15 @@ export class ImplementerAgent extends BaseAgent {
     
     try {
       // 1. Setup repository (clone or copy from local)
-      const repoSetup = await this.setupRepository(job, repoPath);
+      const repoSetup = await setupRepository(job, repoPath);
       if (!repoSetup.success) {
-        return repoSetup;
+        return {
+          success: false,
+          output: '',
+          error: repoSetup.error,
+        };
       }
+      this.log(repoSetup.output);
       
       // 2. Verify Flutter environment
       const env = await verifyFlutterEnvironment(repoPath);
@@ -48,15 +54,28 @@ export class ImplementerAgent extends BaseAgent {
       await createBranch(git, branchName, job.targetBranch);
       this.log(`Created branch: ${branchName}`);
       
-      // 3. Run melos bootstrap
-      this.log('Running melos bootstrap...');
-      const bootstrapResult = await runMelosBootstrap(repoPath);
-      if (!bootstrapResult.passed) {
-        return {
-          success: false,
-          output: '',
-          error: `Melos bootstrap failed: ${bootstrapResult.stderr}`,
-        };
+      // 3. Resolve dependencies (melos for monorepos, pub get otherwise)
+      const isMonorepo = await fileExists(path.join(repoPath, 'melos.yaml'));
+      if (isMonorepo) {
+        this.log('Running melos bootstrap...');
+        const bootstrapResult = await runMelosBootstrap(repoPath);
+        if (!bootstrapResult.passed) {
+          return {
+            success: false,
+            output: '',
+            error: `Melos bootstrap failed: ${bootstrapResult.stderr}`,
+          };
+        }
+      } else {
+        this.log('No melos.yaml found, running flutter pub get...');
+        const pubGetResult = await runFlutterPubGet(repoPath);
+        if (!pubGetResult.passed) {
+          return {
+            success: false,
+            output: '',
+            error: `flutter pub get failed: ${pubGetResult.stderr}`,
+          };
+        }
       }
       
       // 4. Implement each task from spec
@@ -141,62 +160,6 @@ export class ImplementerAgent extends BaseAgent {
         success: false,
         output: '',
         error: `Implementation failed: ${error}`,
-      };
-    }
-  }
-
-  /**
-   * Setup the repository for implementation.
-   * First checks if LOCAL_REPOS_PATH is configured and copies from there.
-   * If not, clones from remote GitHub repository.
-   * 
-   * @param job - The job with repo information
-   * @param repoPath - Target path for the repository
-   * @returns AgentResult indicating success or failure
-   * @example
-   * const setup = await this.setupRepository(job, '/workspace/job-123/repo');
-   * if (!setup.success) return setup;
-   */
-  private async setupRepository(job: AgentContext['job'], repoPath: string): Promise<AgentResult> {
-    // Check if repo already exists
-    if (await fileExists(repoPath)) {
-      this.log('Repository already exists, using existing');
-      return { success: true, output: 'Using existing repository' };
-    }
-    
-    // Check if LOCAL_REPOS_PATH is configured
-    const localReposPath = process.env.LOCAL_REPOS_PATH;
-    if (localReposPath) {
-      const localRepo = path.join(localReposPath, job.repo);
-      if (await fileExists(localRepo)) {
-        this.log(`Copying from LOCAL_REPOS_PATH: ${localRepo}`);
-        try {
-          await copyDirectory(localRepo, repoPath);
-          this.log('Repository copied successfully');
-          return { success: true, output: 'Repository copied from local path' };
-        } catch (error) {
-          return {
-            success: false,
-            output: '',
-            error: `Failed to copy from LOCAL_REPOS_PATH: ${error}`,
-          };
-        }
-      }
-    }
-    
-    // Fallback: clone from remote
-    this.log(`Cloning repository from GitHub: ${job.repo}`);
-    try {
-      const owner = process.env.GITHUB_OWNER || 'rappi';
-      const repoUrl = `https://github.com/${owner}/${job.repo}.git`;
-      await cloneRepository(repoUrl, repoPath, job.targetBranch);
-      this.log('Repository cloned successfully');
-      return { success: true, output: 'Repository cloned from GitHub' };
-    } catch (error) {
-      return {
-        success: false,
-        output: '',
-        error: `Failed to clone repository: ${error}`,
       };
     }
   }

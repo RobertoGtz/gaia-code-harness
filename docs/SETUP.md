@@ -7,7 +7,7 @@
 
 ## 📋 Requisitos Previos
 
-- **Node.js** 18+ 
+- **Node.js** 18+
 - **PostgreSQL** 14+
 - **Git**
 - **Flutter** (para testing con repos reales)
@@ -41,6 +41,7 @@ cp .env.example .env
 ```
 
 **Mínimo necesario para probar:**
+
 ```bash
 PORT=3000
 DATABASE_URL=postgresql://localhost:5432/gaia_harness
@@ -60,6 +61,7 @@ npm start
 ```
 
 O en modo desarrollo (con auto-reload):
+
 ```bash
 npm run dev
 ```
@@ -71,8 +73,9 @@ curl http://localhost:3000/health
 ```
 
 Debería responder:
+
 ```json
-{"status":"ok","timestamp":"2024-01-15T..."}
+{ "status": "ok", "timestamp": "2024-01-15T..." }
 ```
 
 ---
@@ -92,7 +95,7 @@ brew services start postgresql
 psql -c "CREATE DATABASE gaia_harness;"
 ```
 
-#### Opción B: Docker
+#### Opción B: Docker (Recomendado para demo)
 
 ```bash
 docker run -d \
@@ -103,6 +106,36 @@ docker run -d \
   -p 5432:5432 \
   postgres:15
 ```
+
+Con Docker, usa este `DATABASE_URL` en `.env`:
+
+```
+DATABASE_URL=postgresql://user:pass@localhost:5432/gaia_harness
+```
+
+### Local Repos Path (Para demo sin GitHub)
+
+Si quieres usar repos locales en lugar de clonar desde GitHub:
+
+```bash
+# Crear directorio para repos locales
+mkdir -p ~/Desktop/repos
+
+# Crear un repo Flutter de demo
+mkdir -p ~/Desktop/repos/demo-repo
+cd ~/Desktop/repos/demo-repo
+flutter create . --project-name demo_app
+git init && git checkout -b develop
+git add . && git commit -m "Initial commit"
+```
+
+Configurar en `.env`:
+
+```
+LOCAL_REPOS_PATH=/Users/tu-usuario/Desktop/repos
+```
+
+El harness clonará desde el path local (preservando `.git`) en vez de intentar clonar desde GitHub.
 
 ### GitHub Token (Opcional para PRs)
 
@@ -207,8 +240,16 @@ gaia-code-harness/
 │   ├── db/                   # PostgreSQL
 │   ├── api/                  # REST API
 │   ├── agents/               # 3 agentes
-│   ├── harness/              # Orchestrator
-│   └── tools/                # Utilidades
+│   │   ├── base.ts           # BaseAgent abstract class
+│   │   ├── spec-author.ts    # Genera specs desde acceptance criteria
+│   │   ├── implementer.ts    # Implementa código según spec
+│   │   └── reviewer.ts       # Valida y crea PR
+│   ├── harness/              # Orchestrator (Leader)
+│   └── tools/                # Utilidades compartidas
+│       ├── file.ts           # Operaciones de archivos
+│       ├── git.ts            # Git + GitHub API (con dry-run)
+│       ├── repo.ts           # Setup de repositorios (shared)
+│       └── test-runner.ts    # Flutter test, dart analyze, pub get
 ├── docs/                     # Documentación
 ├── scripts/                  # Demo & presentación
 ├── package.json             # Dependencias
@@ -221,12 +262,14 @@ gaia-code-harness/
 ## 🎯 Próximos Pasos
 
 1. **Verificar setup:**
+
    ```bash
    npm run build
    npm start
    ```
 
 2. **Correr demo:**
+
    ```bash
    ./scripts/demo.sh
    ```
