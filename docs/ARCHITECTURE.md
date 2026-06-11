@@ -36,10 +36,19 @@
 └──────────┬─────────────────┬─────────────────┬──────────────────────────────┘
            │                 │                 │
            ▼                 ▼                 ▼
-┌──────────────┐  ┌────────────────┐  ┌────────────────┐
-│ SpecAuthor   │  │  Implementer   │  │   Reviewer     │
-│   Agent      │  │     Agent      │  │     Agent      │
-└──────────────┘  └────────────────┘  └────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                   AGENT REGISTRY                             │
+│            getAgentsForPlatform(job.platform)                 │
+├──────────────┬──────────────────┬────────────────────────────┤
+│   flutter/   │      ios/        │       android/             │
+│  SpecAuthor  │   SpecAuthor     │     SpecAuthor             │
+│  Implementer │   Implementer    │     Implementer            │
+│  Reviewer    │   Reviewer       │     Reviewer               │
+├──────────────┼──────────────────┼────────────────────────────┤
+│ flutter test │  swift test      │ gradle test                │
+│ dart analyze │  swiftlint       │ lintDebug                  │
+│ melos / pub  │  xcodebuild      │ ktlintCheck                │
+└──────────────┴──────────────────┴────────────────────────────┘
         │                  │                  │
         ▼                  ▼                  ▼
   Genera spec          Escribe código      Valida + Crea PR
@@ -93,13 +102,16 @@ Tech Lead → POST /jobs/:id/approve
 ### 4. Implementación
 
 ```
-ImplementerAgent:
+ImplementerAgent (seleccionado por platform):
   1. Setup repo (shared setupRepository tool)
-  2. Verifica Flutter environment
+  2. Verifica environment (Flutter / Xcode / Gradle)
   3. Crea branch
-  4. Dependencias: melos bootstrap || flutter pub get
+  4. Resuelve dependencias:
+     - Flutter: melos bootstrap || flutter pub get
+     - iOS:    swift package resolve
+     - Android: gradle dependencies
   5. Escribe/modifica archivos
-  6. Ejecuta tests
+  6. Ejecuta tests (flutter test / swift test / gradle test)
   7. Commit & push
          ↓
   DB: status='reviewing'
@@ -108,9 +120,15 @@ ImplementerAgent:
 ### 5. Review y PR
 
 ```
-ReviewerAgent:
-  1. dart analyze
-  2. flutter test
+ReviewerAgent (seleccionado por platform):
+  1. Lint:
+     - Flutter: dart analyze
+     - iOS:    swiftlint
+     - Android: lintDebug + ktlintCheck
+  2. Tests:
+     - Flutter: flutter test
+     - iOS:    swift test / xcodebuild test
+     - Android: gradle testDebugUnitTest
   3. Verifica cambios vs spec
   4. Crea GitHub PR
   5. Comenta en Jira (opcional)
@@ -282,6 +300,97 @@ Para agregar una plataforma nueva:
 - Body: Checklist de requirements + design decisions
 - **Dry-run mode:** Si `GITHUB_TOKEN` no está configurado, retorna un PR mock sin llamar a la API de GitHub
 
+### IosSpecAuthorAgent
+
+**Responsabilidad:** Generar especificación técnica para proyectos iOS/Swift
+
+**Proceso:**
+
+1. Setup repo via shared `setupRepository`
+2. Explora estructura del proyecto (Sources/, Tests/, Package.swift, .xcodeproj)
+3. Identifica archivos Swift relevantes
+4. Genera spec con patrones iOS: MVVM, UIKit/SwiftUI, Coordinators
+5. Guarda spec en disco
+
+### IosImplementerAgent
+
+**Responsabilidad:** Modificar código Swift según la spec aprobada
+
+**Proceso:**
+
+1. Verifica iOS environment (swift, xcodebuild)
+2. Setup repo via shared `setupRepository`
+3. Create branch
+4. Resolver dependencias: `swift package resolve` (SPM)
+5. Genera código Swift (mock por ahora, LLM en futuro)
+6. Ejecuta `swift test` o `xcodebuild test`
+7. Commit & push
+
+**Toolchain:** `src/tools/xcode-runner.ts`
+
+- `runSwiftTests()` — swift test o xcodebuild test
+- `runSwiftLint()` — swiftlint lint
+- `runXcodeBuild()` — xcodebuild build
+- `runSwiftPackageResolve()` — swift package resolve
+- `verifyIosEnvironment()` — verifica swift, xcodebuild, project files
+
+### IosReviewerAgent
+
+**Responsabilidad:** Validar implementación iOS y crear PR
+
+**Validaciones:**
+
+1. swiftlint - sin warnings
+2. swift test / xcodebuild test - todos pasan
+3. Número de archivos ≤ maxFilesToTouch
+4. Traceability: cada cambio linkea a spec
+
+### AndroidSpecAuthorAgent
+
+**Responsabilidad:** Generar especificación técnica para proyectos Android/Kotlin
+
+**Proceso:**
+
+1. Setup repo via shared `setupRepository`
+2. Explora estructura Gradle (app/, feature modules, build.gradle.kts)
+3. Identifica archivos Kotlin relevantes
+4. Genera spec con patrones Android: MVVM, ViewModel, View Binding
+5. Guarda spec en disco
+
+### AndroidImplementerAgent
+
+**Responsabilidad:** Modificar código Kotlin según la spec aprobada
+
+**Proceso:**
+
+1. Verifica Android environment (java, gradle/gradlew)
+2. Setup repo via shared `setupRepository`
+3. Create branch
+4. Resolver dependencias: `./gradlew dependencies`
+5. Genera código Kotlin + XML layouts (mock por ahora)
+6. Ejecuta `./gradlew testDebugUnitTest`
+7. Commit & push
+
+**Toolchain:** `src/tools/gradle-runner.ts`
+
+- `runGradleTests()` — testDebugUnitTest (soporta módulos)
+- `runAndroidLint()` — lintDebug
+- `runKtlint()` — ktlintCheck
+- `runGradleBuild()` — assembleDebug
+- `runGradleSync()` — dependencies
+- `verifyAndroidEnvironment()` — verifica java, gradlew, build.gradle
+
+### AndroidReviewerAgent
+
+**Responsabilidad:** Validar implementación Android y crear PR
+
+**Validaciones:**
+
+1. lintDebug - sin errores
+2. gradle testDebugUnitTest - todos pasan
+3. Número de archivos ≤ maxFilesToTouch
+4. Traceability: cada cambio linkea a spec
+
 ---
 
 ## 🔌 Plugin System
@@ -339,8 +448,8 @@ Repo del proyecto
 
 - `maxFilesToTouch`: Previene cambios masivos no revisables
 - `requireTests`: Fuerza tests para cada feature
-- Dart analyze: Código limpio obligatorio
-- Flutter test: Tests pasando obligatorio
+- Lint obligatorio: dart analyze (Flutter) / swiftlint (iOS) / lintDebug (Android)
+- Tests obligatorios: flutter test / swift test / gradle test
 
 ### Auditoría
 
