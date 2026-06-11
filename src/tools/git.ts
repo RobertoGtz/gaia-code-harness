@@ -84,7 +84,14 @@ export async function createBranch(
   branchName: string,
   fromBranch: string
 ): Promise<void> {
-  await git.checkoutBranch(branchName, fromBranch);
+  // Ensure we're on the source branch first
+  await git.checkout(fromBranch);
+  // Delete existing branch if it exists (from previous runs)
+  try {
+    await git.deleteLocalBranch(branchName, true);
+  } catch { /* branch didn't exist, that's fine */ }
+  // Create and checkout the new branch
+  await git.checkoutLocalBranch(branchName);
 }
 
 /**
@@ -112,7 +119,7 @@ export async function commitAndPush(
   await git.add(files);
   await git.commit(message);
   if (branch) {
-    await git.push('origin', branch);
+    await git.push('origin', branch, ['--force']);
   }
 }
 

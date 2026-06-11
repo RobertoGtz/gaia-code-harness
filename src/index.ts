@@ -3,6 +3,7 @@
  * @description Initializes and starts the HTTP server
  */
 
+import 'dotenv/config';
 import { startServer } from './api/server';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
