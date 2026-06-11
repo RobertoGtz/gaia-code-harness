@@ -239,11 +239,13 @@ gaia-code-harness/
 │   ├── types/                # TypeScript types
 │   ├── db/                   # PostgreSQL
 │   ├── api/                  # REST API
-│   ├── agents/               # 3 agentes
+│   ├── agents/               # Agentes por plataforma
 │   │   ├── base.ts           # BaseAgent abstract class
-│   │   ├── spec-author.ts    # Genera specs desde acceptance criteria
-│   │   ├── implementer.ts    # Implementa código según spec
-│   │   └── reviewer.ts       # Valida y crea PR
+│   │   ├── registry.ts       # Factory: selecciona agentes según platform
+│   │   └── flutter/          # Agentes Flutter/Dart
+│   │       ├── spec-author.ts    # FlutterSpecAuthorAgent
+│   │       ├── implementer.ts    # FlutterImplementerAgent
+│   │       └── reviewer.ts       # FlutterReviewerAgent
 │   ├── harness/              # Orchestrator (Leader)
 │   └── tools/                # Utilidades compartidas
 │       ├── file.ts           # Operaciones de archivos

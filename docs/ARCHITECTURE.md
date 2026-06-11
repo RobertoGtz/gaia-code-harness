@@ -174,7 +174,30 @@ CREATE INDEX idx_jobs_initiative ON code_generation_jobs(initiative_id);
 
 ## 🧠 Agentes
 
-### SpecAuthorAgent
+### Arquitectura Multi-Plataforma
+
+Los agentes están organizados por plataforma en `src/agents/{platform}/`. El Leader usa el **Agent Registry** (`src/agents/registry.ts`) para obtener los agentes correctos según `job.platform`:
+
+```typescript
+const agents = getAgentsForPlatform(job.platform); // 'flutter', 'ios', etc.
+await agents.specAuthor.execute(context);
+await agents.implementer.execute(context);
+await agents.reviewer.execute(context);
+```
+
+**Plataformas registradas:**
+
+- `flutter` / `flutter_web` → `src/agents/flutter/` (implementado)
+- `ios` → `src/agents/ios/` (pendiente)
+- `android` → `src/agents/android/` (pendiente)
+
+Para agregar una plataforma nueva:
+
+1. Crear directorio `src/agents/{platform}/` con `spec-author.ts`, `implementer.ts`, `reviewer.ts`
+2. Registrar en `src/agents/registry.ts`
+3. El Leader lo usa automáticamente
+
+### FlutterSpecAuthorAgent
 
 **Responsabilidad:** Generar especificación técnica desde requerimientos de producto
 
@@ -197,9 +220,9 @@ CREATE INDEX idx_jobs_initiative ON code_generation_jobs(initiative_id);
 5. Identifica riesgos
 6. Guarda spec en disco
 
-### ImplementerAgent
+### FlutterImplementerAgent
 
-**Responsabilidad:** Modificar código según la spec aprobada
+**Responsabilidad:** Modificar código Flutter/Dart según la spec aprobada
 
 **Input:**
 
@@ -231,9 +254,9 @@ CREATE INDEX idx_jobs_initiative ON code_generation_jobs(initiative_id);
 - Si falla, reintenta hasta 3 veces
 - Cada retry incluye el error previo como contexto
 
-### ReviewerAgent
+### FlutterReviewerAgent
 
-**Responsabilidad:** Validar implementación y crear PR
+**Responsabilidad:** Validar implementación Flutter y crear PR
 
 **Input:**
 

@@ -291,6 +291,11 @@ curl -X POST http://localhost:3000/jobs/{jobId}/retry
 
 ## Agentes (El Corazón del Sistema)
 
+Los agentes están organizados por plataforma. El Leader usa `getAgentsForPlatform(job.platform)` para seleccionar automáticamente los agentes correctos.
+
+**Plataformas soportadas:** `flutter`, `flutter_web`
+**Preparado para:** `ios`, `android`, `backend`
+
 ### 🤖 SpecAuthor
 
 **Propósito:** Transformar criterios de aceptación de producto en especificación técnica ejecutable.
@@ -535,6 +540,7 @@ POST https://gaia.internal/webhooks/harness/progress
 - [x] Fallback de `melos bootstrap` a `flutter pub get` para repos no-monorepo
 - [x] Approve endpoint funciona sin body (defaults to approved)
 - [x] Demo E2E funcional con repo Flutter local
+- [x] Arquitectura multi-plataforma (agent registry + agentes por plataforma)
 - [ ] Integrar LLM real (OpenAI/Anthropic) para generación de código y specs
 - [ ] MCP Jira (leer tickets reales)
 - [ ] Tests con repo real de Rappi
@@ -545,9 +551,9 @@ POST https://gaia.internal/webhooks/harness/progress
 - [ ] WebSocket para UI en tiempo real
 - [ ] Caché de análisis de repos
 - [ ] Queue system (BullMQ + Redis)
-- [ ] Soporte iOS nativo (Swift/Xcode)
-- [ ] Soporte Android nativo (Kotlin)
-- [ ] Soporte Backend (Node/Python/Go)
+- [ ] Agentes iOS (Swift/Xcode) — agregar `src/agents/ios/`
+- [ ] Agentes Android (Kotlin) — agregar `src/agents/android/`
+- [ ] Agentes Backend (Node/Python/Go) — agregar `src/agents/backend/`
 
 ### Baja Prioridad
 
