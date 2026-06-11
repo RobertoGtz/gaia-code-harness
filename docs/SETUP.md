@@ -242,16 +242,17 @@ gaia-code-harness/
 │   ├── agents/               # Agentes por plataforma
 │   │   ├── base.ts           # BaseAgent abstract class
 │   │   ├── registry.ts       # Factory: selecciona agentes según platform
-│   │   └── flutter/          # Agentes Flutter/Dart
-│   │       ├── spec-author.ts    # FlutterSpecAuthorAgent
-│   │       ├── implementer.ts    # FlutterImplementerAgent
-│   │       └── reviewer.ts       # FlutterReviewerAgent
+│   │   ├── flutter/          # Agentes Flutter/Dart
+│   │   ├── ios/              # Agentes iOS/Swift
+│   │   └── android/          # Agentes Android/Kotlin
 │   ├── harness/              # Orchestrator (Leader)
 │   └── tools/                # Utilidades compartidas
 │       ├── file.ts           # Operaciones de archivos
 │       ├── git.ts            # Git + GitHub API (con dry-run)
 │       ├── repo.ts           # Setup de repositorios (shared)
-│       └── test-runner.ts    # Flutter test, dart analyze, pub get
+│       ├── test-runner.ts    # Flutter test, dart analyze, pub get
+│       ├── xcode-runner.ts   # swift test, swiftlint, xcodebuild
+│       └── gradle-runner.ts  # gradle test, lint, build
 ├── docs/                     # Documentación
 ├── scripts/                  # Demo & presentación
 ├── package.json             # Dependencias

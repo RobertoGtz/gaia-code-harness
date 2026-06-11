@@ -7,6 +7,8 @@
 import { BaseAgent } from './base';
 import { Platform } from '../types';
 import { FlutterSpecAuthorAgent, FlutterImplementerAgent, FlutterReviewerAgent } from './flutter';
+import { IosSpecAuthorAgent, IosImplementerAgent, IosReviewerAgent } from './ios';
+import { AndroidSpecAuthorAgent, AndroidImplementerAgent, AndroidReviewerAgent } from './android';
 
 /**
  * Set of agents for a specific platform.
@@ -32,16 +34,16 @@ const platformRegistry: Record<string, () => PlatformAgents> = {
     implementer: new FlutterImplementerAgent(),
     reviewer: new FlutterReviewerAgent(),
   }),
-  // ios: () => ({
-  //   specAuthor: new IosSpecAuthorAgent(),
-  //   implementer: new IosImplementerAgent(),
-  //   reviewer: new IosReviewerAgent(),
-  // }),
-  // android: () => ({
-  //   specAuthor: new AndroidSpecAuthorAgent(),
-  //   implementer: new AndroidImplementerAgent(),
-  //   reviewer: new AndroidReviewerAgent(),
-  // }),
+  ios: () => ({
+    specAuthor: new IosSpecAuthorAgent(),
+    implementer: new IosImplementerAgent(),
+    reviewer: new IosReviewerAgent(),
+  }),
+  android: () => ({
+    specAuthor: new AndroidSpecAuthorAgent(),
+    implementer: new AndroidImplementerAgent(),
+    reviewer: new AndroidReviewerAgent(),
+  }),
 };
 
 /**

@@ -188,8 +188,8 @@ await agents.reviewer.execute(context);
 **Plataformas registradas:**
 
 - `flutter` / `flutter_web` → `src/agents/flutter/` (implementado)
-- `ios` → `src/agents/ios/` (pendiente)
-- `android` → `src/agents/android/` (pendiente)
+- `ios` → `src/agents/ios/` (implementado)
+- `android` → `src/agents/android/` (implementado)
 
 Para agregar una plataforma nueva:
 

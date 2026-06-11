@@ -293,8 +293,8 @@ curl -X POST http://localhost:3000/jobs/{jobId}/retry
 
 Los agentes están organizados por plataforma. El Leader usa `getAgentsForPlatform(job.platform)` para seleccionar automáticamente los agentes correctos.
 
-**Plataformas soportadas:** `flutter`, `flutter_web`
-**Preparado para:** `ios`, `android`, `backend`
+**Plataformas soportadas:** `flutter`, `flutter_web`, `ios`, `android`
+**Preparado para:** `backend`
 
 ### 🤖 SpecAuthor
 
@@ -551,8 +551,8 @@ POST https://gaia.internal/webhooks/harness/progress
 - [ ] WebSocket para UI en tiempo real
 - [ ] Caché de análisis de repos
 - [ ] Queue system (BullMQ + Redis)
-- [ ] Agentes iOS (Swift/Xcode) — agregar `src/agents/ios/`
-- [ ] Agentes Android (Kotlin) — agregar `src/agents/android/`
+- [x] Agentes iOS (Swift/Xcode) — `src/agents/ios/` + `src/tools/xcode-runner.ts`
+- [x] Agentes Android (Kotlin) — `src/agents/android/` + `src/tools/gradle-runner.ts`
 - [ ] Agentes Backend (Node/Python/Go) — agregar `src/agents/backend/`
 
 ### Baja Prioridad
