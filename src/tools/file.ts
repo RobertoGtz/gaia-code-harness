@@ -70,14 +70,14 @@ export async function writeFile(filePath: string, content: string): Promise<void
  * Supports wildcards (*, **) and minimatch patterns.
  * 
  * @param dir - Directory to search within
- * @param pattern - Glob pattern (e.g., '**/*.dart', '*.ts')
+ * @param pattern - Glob pattern (e.g., '**\/*.dart', '*.ts')
  * @param options - Search configuration
  * @param options.recursive - Whether to search subdirectories (default: true)
  * @param options.excludeDirs - Directories to skip (default: ['node_modules', '.git'])
  * @param options.maxResults - Maximum files to return (default: 100)
  * @returns Promise resolving to array of matching files
  * @example
- * const dartFiles = await searchFiles('/project', '**/*.dart', {
+ * const dartFiles = await searchFiles('/project', '**\/*.dart', {
  *   excludeDirs: ['.dart_tool', 'build'],
  *   maxResults: 50
  * });

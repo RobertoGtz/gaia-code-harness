@@ -29,6 +29,8 @@ export interface TestOptions {
 export interface TestRunResult {
   /** Whether all tests passed */
   passed: boolean;
+  /** The command that was executed */
+  command: string;
   /** Standard output from the test command */
   stdout: string;
   /** Standard error from the test command */
@@ -80,6 +82,7 @@ export async function runFlutterTests(options: TestOptions): Promise<TestRunResu
 
     return {
       passed: true,
+      command: 'flutter test',
       stdout,
       stderr,
       exitCode: 0,
@@ -88,6 +91,7 @@ export async function runFlutterTests(options: TestOptions): Promise<TestRunResu
   } catch (error: any) {
     return {
       passed: false,
+      command: 'flutter test',
       stdout: error.stdout || '',
       stderr: error.stderr || '',
       exitCode: error.code || 1,
@@ -119,6 +123,7 @@ export async function runDartAnalyze(workingDir: string): Promise<TestRunResult>
 
     return {
       passed: true,
+      command: 'dart analyze',
       stdout,
       stderr,
       exitCode: 0,
@@ -127,6 +132,7 @@ export async function runDartAnalyze(workingDir: string): Promise<TestRunResult>
   } catch (error: any) {
     return {
       passed: false,
+      command: 'dart analyze',
       stdout: error.stdout || '',
       stderr: error.stderr || '',
       exitCode: error.code || 1,
@@ -159,6 +165,7 @@ export async function runMelosBootstrap(workingDir: string): Promise<TestRunResu
 
     return {
       passed: true,
+      command: 'melos bootstrap',
       stdout,
       stderr,
       exitCode: 0,
@@ -167,6 +174,7 @@ export async function runMelosBootstrap(workingDir: string): Promise<TestRunResu
   } catch (error: any) {
     return {
       passed: false,
+      command: 'melos bootstrap',
       stdout: error.stdout || '',
       stderr: error.stderr || '',
       exitCode: error.code || 1,
