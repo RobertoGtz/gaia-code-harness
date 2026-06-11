@@ -5,9 +5,7 @@
  */
 
 import { getJob, updateJobStatus, addProgressLog } from '../db';
-import { SpecAuthorAgent } from '../agents/spec-author';
-import { ImplementerAgent } from '../agents/implementer';
-import { ReviewerAgent } from '../agents/reviewer';
+import { getAgentsForPlatform } from '../agents/registry';
 import { AgentContext, JobStatus, CodeGenerationJob } from '../types';
 import * as path from 'path';
 
@@ -161,8 +159,8 @@ async function handleSpecGenerating(job: CodeGenerationJob): Promise<void> {
     workspacePath,
   };
 
-  const specAuthor = new SpecAuthorAgent();
-  const result = await specAuthor.execute(context);
+  const agents = getAgentsForPlatform(job.platform);
+  const result = await agents.specAuthor.execute(context);
 
   if (!result.success) {
     throw new Error(`SpecAuthor failed: ${result.error}`);
@@ -201,8 +199,8 @@ async function handleImplementing(job: CodeGenerationJob): Promise<void> {
     workspacePath,
   };
 
-  const implementer = new ImplementerAgent();
-  const result = await implementer.execute(context);
+  const agents = getAgentsForPlatform(job.platform);
+  const result = await agents.implementer.execute(context);
 
   if (!result.success) {
     const retryCount = job.progressLogs.filter(l => l.includes('Implementation retry')).length;
@@ -259,8 +257,8 @@ async function handleReviewing(job: CodeGenerationJob): Promise<void> {
     workspacePath,
   };
 
-  const reviewer = new ReviewerAgent();
-  const result = await reviewer.execute(context);
+  const agents = getAgentsForPlatform(job.platform);
+  const result = await agents.reviewer.execute(context);
 
   if (!result.success) {
     // Si falló review, puede ser:
