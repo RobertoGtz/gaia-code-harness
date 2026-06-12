@@ -7,6 +7,7 @@ import { BaseAgent } from '../base';
 import { AgentContext, AgentResult, TechnicalSpec, ImplementationTask } from '../../types';
 import { getDirectoryStructure } from '../../tools/file';
 import { setupRepository } from '../../tools/repo';
+import { callLLM, extractJSON } from '../../tools/llm';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 
@@ -34,15 +35,16 @@ export class IosSpecAuthorAgent extends BaseAgent {
       this.log(setup.output);
       
       // 2. Explore repo structure
-      await getDirectoryStructure(repoPath, 3);
+      const structureFiles = await getDirectoryStructure(repoPath, 3);
+      const structure = structureFiles.map(f => f.relativePath).join('\n');
       this.log('Explored repo structure');
       
       // 3. Find relevant Swift files
       const relevantFiles = await this.findSwiftFiles(repoPath, job.module);
       this.log(`Found ${relevantFiles.sources.length} source files, ${relevantFiles.tests.length} test files`);
       
-      // 4. Generate spec
-      const spec = this.generateSpec(job, relevantFiles);
+      // 4. Generate spec (LLM or fallback to mock)
+      const spec = await this.generateSpec(job, relevantFiles, structure);
       
       // 5. Save spec to disk
       await this.saveSpec(workspacePath, spec, job.id);
@@ -106,69 +108,81 @@ export class IosSpecAuthorAgent extends BaseAgent {
     }
   }
 
-  private generateSpec(
+  private async generateSpec(
     job: AgentContext['job'],
-    relevantFiles: { sources: string[]; tests: string[]; hasPackageSwift: boolean }
-  ): TechnicalSpec {
+    relevantFiles: { sources: string[]; tests: string[]; hasPackageSwift: boolean },
+    repoStructure: string
+  ): Promise<TechnicalSpec> {
+    const criteria = job.acceptanceCriteria.map((ac) => `- ${ac.text}`).join('\n');
+    const sourceFiles = relevantFiles.sources.slice(0, 20).join('\n');
+
+    const prompt = `You are an iOS tech lead. Given the following feature request and repository context, generate a technical specification in JSON.
+
+Feature: ${job.title}
+Description: ${job.description || ''}
+Acceptance Criteria:
+${criteria}
+
+Repository structure (top 3 levels):
+${repoStructure}
+
+Relevant Swift files:
+${sourceFiles}
+${job.module ? `\nTarget module: ${job.module}` : ''}
+
+Respond with ONLY a JSON object matching this TypeScript type:
+{
+  requirements: Array<{ id: string; content: string; sourceAcId: string }>,
+  design: {
+    affectedFiles: string[],
+    newFiles: string[],
+    architectureDecisions: string[],
+    uiComponents: string[]
+  },
+  tasks: Array<{
+    id: string; description: string; filePath: string;
+    type: 'create' | 'modify' | 'test'; status: 'pending'; dependsOn?: string[]
+  }>,
+  risks: string[]
+}`;
+
+    try {
+      const response = await callLLM([
+        { role: 'system', content: 'You are an expert iOS/Swift architect. Always respond with valid JSON only.' },
+        { role: 'user', content: prompt },
+      ]);
+      this.log(`Spec generated via ${response.provider} (${response.model})`);
+      return extractJSON<TechnicalSpec>(response.text);
+    } catch (err) {
+      this.log(`LLM call failed, using fallback spec: ${err}`);
+      return this.fallbackSpec(job);
+    }
+  }
+
+  private fallbackSpec(job: AgentContext['job']): TechnicalSpec {
     const requirements = job.acceptanceCriteria.map((ac, i) => ({
       id: `req-${i}`,
       content: ac.text,
       sourceAcId: ac.id,
     }));
-
     const modulePath = job.module || 'App';
-    const affectedFiles = [
-      `Sources/${modulePath}/Screens/HomeViewController.swift`,
-      `Sources/${modulePath}/Views/PromoBannerView.swift`,
-    ];
     const newFiles = [
       `Sources/${modulePath}/Views/PromoBannerView.swift`,
       `Tests/${modulePath}Tests/PromoBannerViewTests.swift`,
     ];
-
-    const tasks: ImplementationTask[] = [
-      {
-        id: 'task-1',
-        description: 'Create PromoBannerView UIView subclass',
-        filePath: newFiles[0],
-        type: 'create',
-        status: 'pending',
-      },
-      {
-        id: 'task-2',
-        description: 'Integrate PromoBannerView in HomeViewController',
-        filePath: affectedFiles[0],
-        type: 'modify',
-        status: 'pending',
-        dependsOn: ['task-1'],
-      },
-      {
-        id: 'task-3',
-        description: 'Add XCTest tests for PromoBannerView',
-        filePath: newFiles[1],
-        type: 'test',
-        status: 'pending',
-        dependsOn: ['task-1'],
-      },
-    ];
-
     return {
       requirements,
       design: {
-        affectedFiles,
+        affectedFiles: [`Sources/${modulePath}/Screens/HomeViewController.swift`],
         newFiles,
-        architectureDecisions: [
-          'Use UICollectionView for horizontal banner carousel',
-          'Follow MVVM pattern with Combine bindings',
-          'Integrate with existing navigation coordinator',
-        ],
-        uiComponents: ['PromoBannerView', 'PromoBannerCell'],
+        architectureDecisions: ['Use UICollectionView for horizontal banner carousel'],
+        uiComponents: ['PromoBannerView'],
       },
-      tasks,
-      risks: [
-        'May require UICollectionViewCompositionalLayout (iOS 13+)',
-        'Image caching strategy needed for performance',
+      tasks: [
+        { id: 'task-1', description: 'Create PromoBannerView', filePath: newFiles[0], type: 'create', status: 'pending' },
+        { id: 'task-2', description: 'Add XCTest tests', filePath: newFiles[1], type: 'test', status: 'pending', dependsOn: ['task-1'] },
       ],
+      risks: ['May require UICollectionViewCompositionalLayout (iOS 13+)'],
     };
   }
 

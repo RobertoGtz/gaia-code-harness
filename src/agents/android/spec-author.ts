@@ -7,6 +7,7 @@ import { BaseAgent } from '../base';
 import { AgentContext, AgentResult, TechnicalSpec, ImplementationTask } from '../../types';
 import { getDirectoryStructure } from '../../tools/file';
 import { setupRepository } from '../../tools/repo';
+import { callLLM, extractJSON } from '../../tools/llm';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 
@@ -34,15 +35,16 @@ export class AndroidSpecAuthorAgent extends BaseAgent {
       this.log(setup.output);
       
       // 2. Explore repo structure
-      await getDirectoryStructure(repoPath, 3);
+      const structureFiles = await getDirectoryStructure(repoPath, 3);
+      const structure = structureFiles.map(f => f.relativePath).join('\n');
       this.log('Explored repo structure');
       
       // 3. Find relevant Kotlin files
       const relevantFiles = await this.findKotlinFiles(repoPath, job.module);
       this.log(`Found ${relevantFiles.sources.length} source files, ${relevantFiles.tests.length} test files`);
       
-      // 4. Generate spec
-      const spec = this.generateSpec(job, relevantFiles);
+      // 4. Generate spec (LLM or fallback to mock)
+      const spec = await this.generateSpec(job, relevantFiles, structure);
       
       // 5. Save spec to disk
       await this.saveSpec(workspacePath, spec, job.id);
@@ -99,9 +101,59 @@ export class AndroidSpecAuthorAgent extends BaseAgent {
     }
   }
 
-  private generateSpec(
+  private async generateSpec(
     job: AgentContext['job'],
-    relevantFiles: { sources: string[]; tests: string[]; hasBuildGradle: boolean }
+    relevantFiles: { sources: string[]; tests: string[]; hasBuildGradle: boolean },
+    repoStructure: string
+  ): Promise<TechnicalSpec> {
+    const criteria = job.acceptanceCriteria.map((ac) => `- ${ac.text}`).join('\n');
+    const sourceFiles = relevantFiles.sources.slice(0, 20).join('\n');
+
+    const prompt = `You are an Android tech lead. Given the following feature request and repository context, generate a technical specification in JSON.
+
+Feature: ${job.title}
+Description: ${job.description || ''}
+Acceptance Criteria:
+${criteria}
+
+Repository structure (top 3 levels):
+${repoStructure}
+
+Relevant Kotlin files:
+${sourceFiles}
+${job.module ? `\nTarget module: ${job.module}` : ''}
+
+Respond with ONLY a JSON object matching this TypeScript type:
+{
+  requirements: Array<{ id: string; content: string; sourceAcId: string }>,
+  design: {
+    affectedFiles: string[],
+    newFiles: string[],
+    architectureDecisions: string[],
+    uiComponents: string[]
+  },
+  tasks: Array<{
+    id: string; description: string; filePath: string;
+    type: 'create' | 'modify' | 'test'; status: 'pending'; dependsOn?: string[]
+  }>,
+  risks: string[]
+}`;
+
+    try {
+      const response = await callLLM([
+        { role: 'system', content: 'You are an expert Android/Kotlin architect. Always respond with valid JSON only.' },
+        { role: 'user', content: prompt },
+      ]);
+      this.log(`Spec generated via ${response.provider} (${response.model})`);
+      return extractJSON<TechnicalSpec>(response.text);
+    } catch (err) {
+      this.log(`LLM call failed, using fallback spec: ${err}`);
+      return this.fallbackSpec(job);
+    }
+  }
+
+  private fallbackSpec(
+    job: AgentContext['job']
   ): TechnicalSpec {
     const requirements = job.acceptanceCriteria.map((ac, i) => ({
       id: `req-${i}`,
@@ -163,15 +215,11 @@ export class AndroidSpecAuthorAgent extends BaseAgent {
         architectureDecisions: [
           'Use RecyclerView with horizontal LinearLayoutManager for carousel',
           'Follow MVVM pattern with ViewModel + LiveData/StateFlow',
-          'Use View Binding for type-safe view access',
         ],
-        uiComponents: ['PromoBannerView', 'PromoBannerAdapter', 'PromoBannerViewHolder'],
+        uiComponents: ['PromoBannerView', 'PromoBannerAdapter'],
       },
       tasks,
-      risks: [
-        'RecyclerView may need SnapHelper for carousel behavior',
-        'Image loading library (Glide/Coil) must be configured',
-      ],
+      risks: ['RecyclerView may need SnapHelper for carousel behavior'],
     };
   }
 

@@ -9,6 +9,7 @@ import { runSwiftTests, runSwiftPackageResolve, verifyIosEnvironment } from '../
 import { initGit, createBranch, generateBranchName, commitAndPush } from '../../tools/git';
 import { readFile, writeFile, fileExists } from '../../tools/file';
 import { setupRepository } from '../../tools/repo';
+import { callLLM } from '../../tools/llm';
 import * as path from 'path';
 
 /**
@@ -68,7 +69,7 @@ export class IosImplementerAgent extends BaseAgent {
         
         if (task.type === 'create' && task.filePath) {
           const filePath = path.join(repoPath, task.filePath);
-          const content = this.generateMockSwiftCode(task);
+          const content = await this.generateCode(task, 'swift', job.title);
           await writeFile(filePath, content);
           
           changes.push({
@@ -120,56 +121,35 @@ export class IosImplementerAgent extends BaseAgent {
     }
   }
 
-  private generateMockSwiftCode(task: { description: string; filePath?: string }): string {
-    if (task.filePath?.includes('Tests')) {
-      return `import XCTest
+  private async generateCode(
+    task: { description: string; filePath?: string },
+    lang: string,
+    featureTitle: string
+  ): Promise<string> {
+    const isTest = task.filePath?.includes('Tests') || task.filePath?.includes('Test');
+    const systemPrompt = `You are an expert iOS/Swift developer. Generate production-quality ${lang} code. Respond with ONLY the file contents, no markdown fences, no explanations.`;
+    const userPrompt = `Feature: ${featureTitle}
+Task: ${task.description}
+File: ${task.filePath || 'Sources/App/Feature.swift'}
+${isTest ? 'Generate a complete XCTest test file.' : 'Generate the implementation file.'}`;
+
+    try {
+      const response = await callLLM([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ]);
+      return response.text.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '');
+    } catch {
+      return isTest
+        ? `import XCTest
 @testable import App
-
-final class PromoBannerViewTests: XCTestCase {
-    func testPromoBannerDisplaysPromotions() {
-        let view = PromoBannerView()
-        view.promotions = ["Promo 1", "Promo 2"]
-        XCTAssertEqual(view.promotions.count, 2)
-    }
+final class PlaceholderTests: XCTestCase {
+    func testPlaceholder() { XCTAssertTrue(true) }
 }
+`
+        : `import Foundation
+// TODO: implement ${task.description}
 `;
     }
-    
-    return `import UIKit
-
-final class PromoBannerView: UIView {
-    var promotions: [String] = [] {
-        didSet { updateUI() }
-    }
-
-    private let titleLabel: UILabel = {
-        let label = UILabel()
-        label.text = "Promo Banner"
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        setupUI()
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    private func setupUI() {
-        addSubview(titleLabel)
-        NSLayoutConstraint.activate([
-            titleLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
-            titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-        ])
-    }
-
-    private func updateUI() {
-        titleLabel.text = promotions.first ?? "No promotions"
-    }
-}
-`;
   }
 }

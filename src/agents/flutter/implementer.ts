@@ -9,6 +9,7 @@ import { runMelosBootstrap, runFlutterTests, runFlutterPubGet, verifyFlutterEnvi
 import { initGit, createBranch, generateBranchName, commitAndPush } from '../../tools/git';
 import { readFile, writeFile, fileExists } from '../../tools/file';
 import { setupRepository } from '../../tools/repo';
+import { callLLM } from '../../tools/llm';
 import * as path from 'path';
 
 /**
@@ -95,7 +96,7 @@ export class FlutterImplementerAgent extends BaseAgent {
         
         if (task.type === 'create' && task.filePath) {
           const filePath = path.join(repoPath, task.filePath);
-          const content = this.generateMockCode(task);
+          const content = await this.generateCode(task, 'dart', job.title);
           await writeFile(filePath, content);
           
           changes.push({
@@ -164,40 +165,32 @@ export class FlutterImplementerAgent extends BaseAgent {
     }
   }
 
-  private generateMockCode(task: { description: string; filePath?: string }): string {
-    if (task.filePath?.includes('_test.dart')) {
-      return `
-import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/material.dart';
+  private async generateCode(
+    task: { description: string; filePath?: string },
+    lang: string,
+    featureTitle: string
+  ): Promise<string> {
+    const isTest = task.filePath?.includes('_test') || task.filePath?.includes('test_');
+    const systemPrompt = `You are an expert Flutter/Dart developer. Generate production-quality ${lang} code. Respond with ONLY the file contents, no markdown fences, no explanations.`;
+    const userPrompt = `Feature: ${featureTitle}
+Task: ${task.description}
+File: ${task.filePath || 'lib/feature.dart'}
+${isTest ? 'Generate a complete test file.' : 'Generate the implementation file.'}`;
 
-void main() {
-  group('PromoBanner', () {
-    test('should display promotions', () {
-      expect(true, true);
-    });
-  });
-}
+    try {
+      const response = await callLLM([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ]);
+      return response.text.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '');
+    } catch {
+      return isTest
+        ? `import 'package:flutter_test/flutter_test.dart';
+void main() { test('placeholder', () { expect(true, true); }); }
+`
+        : `import 'package:flutter/material.dart';
+// TODO: implement ${task.description}
 `;
     }
-    
-    return `
-import 'package:flutter/material.dart';
-
-class PromoBanner extends StatelessWidget {
-  final List<String> promotions;
-  
-  const PromoBanner({
-    Key? key,
-    required this.promotions,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      child: Text('Promo Banner'),
-    );
-  }
-}
-`;
   }
 }

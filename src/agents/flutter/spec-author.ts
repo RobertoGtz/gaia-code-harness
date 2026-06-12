@@ -7,6 +7,7 @@ import { BaseAgent } from '../base';
 import { AgentContext, AgentResult, TechnicalSpec, ImplementationTask } from '../../types';
 import { getDirectoryStructure, getRelevantFiles } from '../../tools/file';
 import { setupRepository } from '../../tools/repo';
+import { callLLM, extractJSON } from '../../tools/llm';
 import * as path from 'path';
 
 /**
@@ -37,15 +38,16 @@ export class FlutterSpecAuthorAgent extends BaseAgent {
       this.log(setup.output);
       
       // 2. Explore repo structure
-      const structure = await getDirectoryStructure(repoPath, 3);
+      const structureFiles = await getDirectoryStructure(repoPath, 3);
+      const structure = structureFiles.map(f => f.relativePath).join('\n');
       this.log('Explored repo structure');
       
       // 3. Find relevant files (Flutter-specific: lib/, test/, pubspec.yaml)
       const relevantFiles = await getRelevantFiles(repoPath, job.module);
       this.log(`Found ${relevantFiles.lib.length} lib files, ${relevantFiles.test.length} test files`);
       
-      // 4. Generate spec
-      const spec = this.generateSpec(job, relevantFiles);
+      // 4. Generate spec (LLM or fallback to mock)
+      const spec = await this.generateSpec(job, relevantFiles, structure);
       
       // 5. Save spec to disk for external memory
       await this.saveSpec(workspacePath, spec, job.id);
@@ -65,76 +67,85 @@ export class FlutterSpecAuthorAgent extends BaseAgent {
     }
   }
 
-  private generateSpec(
+  private async generateSpec(
     job: AgentContext['job'],
-    relevantFiles: { lib: string[]; test: string[]; pubspec: boolean }
-  ): TechnicalSpec {
+    relevantFiles: { lib: string[]; test: string[]; pubspec: boolean },
+    repoStructure: string
+  ): Promise<TechnicalSpec> {
+    const criteria = job.acceptanceCriteria.map((ac) => `- ${ac.text}`).join('\n');
+    const libFiles = relevantFiles.lib.slice(0, 20).join('\n');
+
+    const prompt = `You are a Flutter tech lead. Given the following feature request and repository context, generate a technical specification in JSON.
+
+Feature: ${job.title}
+Description: ${job.description || ''}
+Acceptance Criteria:
+${criteria}
+
+Repository structure (top 3 levels):
+${repoStructure}
+
+Relevant Dart files:
+${libFiles}
+${job.module ? `\nTarget module: ${job.module}` : ''}
+
+Respond with ONLY a JSON object (no markdown prose) matching this TypeScript type:
+{
+  requirements: Array<{ id: string; content: string; sourceAcId: string }>,
+  design: {
+    affectedFiles: string[],
+    newFiles: string[],
+    architectureDecisions: string[],
+    uiComponents: string[]
+  },
+  tasks: Array<{
+    id: string;
+    description: string;
+    filePath: string;
+    type: 'create' | 'modify' | 'test';
+    status: 'pending';
+    dependsOn?: string[]
+  }>,
+  risks: string[]
+}`;
+
+    try {
+      const response = await callLLM([
+        { role: 'system', content: 'You are an expert Flutter architect. Always respond with valid JSON only.' },
+        { role: 'user', content: prompt },
+      ]);
+      this.log(`Spec generated via ${response.provider} (${response.model})`);
+      return extractJSON<TechnicalSpec>(response.text);
+    } catch (err) {
+      this.log(`LLM call failed, using fallback spec: ${err}`);
+      return this.fallbackSpec(job);
+    }
+  }
+
+  private fallbackSpec(job: AgentContext['job']): TechnicalSpec {
     const requirements = job.acceptanceCriteria.map((ac, i) => ({
       id: `req-${i}`,
       content: ac.text,
       sourceAcId: ac.id,
     }));
-    
-    const affectedFiles: string[] = [];
-    const newFiles: string[] = [];
-    
-    if (job.module) {
-      const basePath = `packages/features/${job.module}`;
-      
-      affectedFiles.push(
-        `${basePath}/lib/src/presentation/screens/home_screen.dart`,
-        `${basePath}/lib/src/presentation/widgets/promo_banner.dart`
-      );
-      
-      newFiles.push(
-        `${basePath}/lib/src/presentation/widgets/promo_banner.dart`,
-        `${basePath}/test/widgets/promo_banner_test.dart`
-      );
-    }
-    
-    const tasks: ImplementationTask[] = [
-      {
-        id: 'task-1',
-        description: 'Create PromoBanner widget with carousel support',
-        filePath: newFiles[0],
-        type: 'create',
-        status: 'pending',
-      },
-      {
-        id: 'task-2',
-        description: 'Integrate PromoBanner in HomeScreen',
-        filePath: affectedFiles[0],
-        type: 'modify',
-        status: 'pending',
-        dependsOn: ['task-1'],
-      },
-      {
-        id: 'task-3',
-        description: 'Add tests for PromoBanner',
-        filePath: newFiles[1],
-        type: 'test',
-        status: 'pending',
-        dependsOn: ['task-1'],
-      },
+    const basePath = job.module ? `packages/features/${job.module}` : 'lib';
+    const newFiles = [
+      `${basePath}/lib/src/presentation/widgets/promo_banner.dart`,
+      `${basePath}/test/widgets/promo_banner_test.dart`,
     ];
-    
     return {
       requirements,
       design: {
-        affectedFiles,
+        affectedFiles: [`${basePath}/lib/src/presentation/screens/home_screen.dart`],
         newFiles,
-        architectureDecisions: [
-          'Create reusable widget for promotional banners',
-          'Use PageView for carousel when >3 promos',
-          'Integrate with existing navigation system',
-        ],
-        uiComponents: ['PromoBanner', 'PromoCarousel'],
+        architectureDecisions: ['Create reusable widget for promotional banners'],
+        uiComponents: ['PromoBanner'],
       },
-      tasks,
-      risks: [
-        'May affect home screen performance with many images',
-        'Requires backend integration for promotions',
+      tasks: [
+        { id: 'task-1', description: 'Create PromoBanner widget', filePath: newFiles[0], type: 'create', status: 'pending' },
+        { id: 'task-2', description: 'Add widget tests', filePath: newFiles[1], type: 'test', status: 'pending', dependsOn: ['task-1'] },
       ],
+      risks: ['Requires backend integration for promotions'],
     };
   }
 
