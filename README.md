@@ -89,18 +89,18 @@
 
 ### Job Lifecycle
 
-| Status | Description |
-|---|---|
-| `pending` | Job received, queued for processing |
-| `fetching_jira` | Fetching additional context from Jira |
-| `spec_generating` | SpecAuthor analysing repo and generating plan |
-| `spec_ready` | **⏸ Awaiting human approval** |
-| `spec_approved` | Tech lead approved — implementation begins |
-| `implementing` | Implementer writing code, running tests, committing |
-| `reviewing` | Reviewer running lint, tests, creating PR |
-| `pr_created` | Pull Request created on GitHub |
-| `done` | Job complete ✅ |
-| `failed` | Terminal error — retry available |
+| Status            | Description                                         |
+| ----------------- | --------------------------------------------------- |
+| `pending`         | Job received, queued for processing                 |
+| `fetching_jira`   | Fetching additional context from Jira               |
+| `spec_generating` | SpecAuthor analysing repo and generating plan       |
+| `spec_ready`      | **⏸ Awaiting human approval**                       |
+| `spec_approved`   | Tech lead approved — implementation begins          |
+| `implementing`    | Implementer writing code, running tests, committing |
+| `reviewing`       | Reviewer running lint, tests, creating PR           |
+| `pr_created`      | Pull Request created on GitHub                      |
+| `done`            | Job complete ✅                                     |
+| `failed`          | Terminal error — retry available                    |
 
 ---
 
@@ -153,13 +153,13 @@ gaia-code-harness/
 
 ## Prerequisites
 
-| Requirement | Version | Notes |
-|---|---|---|
-| Node.js | ≥ 18.0.0 | Always required |
-| PostgreSQL | 15+ | Via Docker or local install |
-| Flutter SDK | ≥ 3.x | For Flutter jobs |
-| Xcode + Swift | ≥ 5.9 | For iOS jobs (macOS only) |
-| Java JDK + Gradle | JDK 17+ | For Android jobs |
+| Requirement       | Version  | Notes                       |
+| ----------------- | -------- | --------------------------- |
+| Node.js           | ≥ 18.0.0 | Always required             |
+| PostgreSQL        | 15+      | Via Docker or local install |
+| Flutter SDK       | ≥ 3.x    | For Flutter jobs            |
+| Xcode + Swift     | ≥ 5.9    | For iOS jobs (macOS only)   |
+| Java JDK + Gradle | JDK 17+  | For Android jobs            |
 
 > You only need the SDK for the platform you intend to run. Node.js and PostgreSQL are always required.
 
@@ -360,7 +360,12 @@ Create a new code generation job.
 
 ```json
 {
-  "job": { "id": "uuid", "status": "pending", "title": "...", "platform": "flutter" }
+  "job": {
+    "id": "uuid",
+    "status": "pending",
+    "title": "...",
+    "platform": "flutter"
+  }
 }
 ```
 
@@ -399,30 +404,30 @@ List all jobs. Optional query param: `?initiativeId=init-123`
 
 ### Flutter
 
-| Tool | Purpose |
-|---|---|
+| Tool                                  | Purpose               |
+| ------------------------------------- | --------------------- |
 | `flutter pub get` / `melos bootstrap` | Dependency resolution |
-| `flutter test` | Unit and widget tests |
-| `dart analyze` | Static analysis |
+| `flutter test`                        | Unit and widget tests |
+| `dart analyze`                        | Static analysis       |
 
 ### iOS / Swift
 
-| Tool | Purpose |
-|---|---|
-| `swift package resolve` | SPM dependency resolution |
-| `swift test` / `xcodebuild test` | Unit tests |
-| `swiftlint` | Lint and style enforcement |
-| `xcodebuild build` | Full project build |
+| Tool                             | Purpose                    |
+| -------------------------------- | -------------------------- |
+| `swift package resolve`          | SPM dependency resolution  |
+| `swift test` / `xcodebuild test` | Unit tests                 |
+| `swiftlint`                      | Lint and style enforcement |
+| `xcodebuild build`               | Full project build         |
 
 ### Android / Kotlin
 
-| Tool | Purpose |
-|---|---|
-| `./gradlew dependencies` | Dependency sync |
-| `./gradlew testDebugUnitTest` | Unit tests |
-| `./gradlew lintDebug` | Android lint |
-| `./gradlew ktlintCheck` | Kotlin style enforcement |
-| `./gradlew assembleDebug` | Debug build |
+| Tool                          | Purpose                  |
+| ----------------------------- | ------------------------ |
+| `./gradlew dependencies`      | Dependency sync          |
+| `./gradlew testDebugUnitTest` | Unit tests               |
+| `./gradlew lintDebug`         | Android lint             |
+| `./gradlew ktlintCheck`       | Kotlin style enforcement |
+| `./gradlew assembleDebug`     | Debug build              |
 
 ---
 
@@ -430,10 +435,10 @@ List all jobs. Optional query param: `?initiativeId=init-123`
 
 ### Human Checkpoints
 
-| Checkpoint | Who | Decision |
-|---|---|---|
+| Checkpoint    | Who       | Decision                                |
+| ------------- | --------- | --------------------------------------- |
 | Spec approval | Tech Lead | Is the technical plan correct and safe? |
-| PR review | Dev Team | Does the code meet quality standards? |
+| PR review     | Dev Team  | Does the code meet quality standards?   |
 
 ### Automatic Safeguards
 
@@ -455,32 +460,90 @@ List all jobs. Optional query param: `?initiativeId=init-123`
 
 ## Plugin System
 
-Repos can override default agents by adding a `.gaia/` directory at their root:
+Any repo can provide project-specific rules and configuration by adding a `.gaia/` directory at its root. The harness loads these files automatically before running any agent.
 
 ```
 your-repo/
 └── .gaia/
-    ├── gaia.json
-    └── agents/
+    ├── gaia.json       ← structured config (paths, limits, forbidden files)
+    ├── RULES.md        ← prose rules injected directly into every LLM prompt
+    └── agents/         ← optional: override default agents with custom implementations
         ├── flutter-spec-author.ts
         └── flutter-implementer.ts
 ```
 
-**`gaia.json` example:**
+### `gaia.json` — structured configuration
+
+Controls the agent's behavior: how many files it can touch, where to put new files, and what it must never modify.
 
 ```json
 {
   "name": "my-flutter-app",
+  "platform": "flutter",
   "version": "1.0.0",
   "config": {
-    "maxFilesToTouch": 10,
+    "maxFilesToTouch": 6,
+    "requireTests": true,
+    "targetBranch": "develop",
+    "architecture": "clean_mvvm",
     "patterns": {
-      "component": "lib/src/presentation/widgets/{name}.dart",
-      "test": "test/widgets/{name}_test.dart"
-    }
+      "screen": "lib/src/presentation/screens/{name}_screen.dart",
+      "viewmodel": "lib/src/presentation/viewmodels/{name}_viewmodel.dart",
+      "test": "test/{feature}/{name}_test.dart"
+    },
+    "naming": {
+      "classes": "PascalCase",
+      "files": "snake_case",
+      "variables": "camelCase"
+    },
+    "forbidden": ["lib/main.dart", "pubspec.yaml", "android/", "ios/"]
   }
 }
 ```
+
+### `RULES.md` — prose rules for the LLM
+
+Written in plain Markdown. The harness injects the full content of this file into the system prompt of every agent (SpecAuthor, Implementer, Reviewer). This is the best place to define architecture decisions, coding conventions, and test requirements in human-readable form.
+
+```markdown
+# Gaia Agent Rules — my-flutter-app
+
+## Architecture
+
+This project follows Clean Architecture with MVVM...
+
+## Code Rules
+
+- Use Riverpod for state management — never setState at screen level
+- No hardcoded strings — use AppStrings constants
+  ...
+
+## Test Rules
+
+- Every screen must have a widget test
+- Tests must cover: happy path, empty state, error state
+  ...
+
+## What NOT to do
+
+- Do not modify lib/main.dart
+- Do not add packages to pubspec.yaml without explicit task
+```
+
+> **Tip:** `RULES.md` is rendered beautifully on GitHub, making it easy for the team to read and maintain without touching JSON.
+
+### Agent override (optional)
+
+To fully replace a default agent with a custom implementation, place a TypeScript file in `.gaia/agents/`:
+
+| File                        | Overrides                          |
+| --------------------------- | ---------------------------------- |
+| `{platform}-spec-author.ts` | SpecAuthor for that platform       |
+| `{platform}-implementer.ts` | Implementer for that platform      |
+| `{platform}-reviewer.ts`    | Reviewer for that platform         |
+| `spec-author.ts`            | Generic SpecAuthor (all platforms) |
+
+The loader checks for platform-specific files first, then generic, then falls back to the built-in default.
 
 ---
 
@@ -519,33 +582,33 @@ docker run -p 3000:3000 --env-file .env gaia-code-harness
 
 ## Environment Variables Reference
 
-| Variable | Required | Description |
-|---|---|---|
-| `DATABASE_URL` | ✅ | PostgreSQL connection string |
-| `GITHUB_TOKEN` | ✅ | GitHub PAT with `repo` scope |
-| `GITHUB_OWNER` | ✅ | GitHub org or user name |
-| `OPENAI_API_KEY` | ⚠️ | Required for OpenAI-based agents |
-| `ANTHROPIC_API_KEY` | ⚠️ | Required for Claude-based agents |
-| `JIRA_BASE_URL` | Optional | e.g. `https://your-org.atlassian.net` |
-| `JIRA_EMAIL` | Optional | Jira user email |
-| `JIRA_API_TOKEN` | Optional | Jira API token |
-| `LOCAL_REPOS_PATH` | Optional | Local path to repos for faster cloning in demo |
-| `REPOS_BASE_PATH` | Optional | Workspace scratch dir (default `/tmp/gaia-workspace`) |
-| `PORT` | Optional | Server port (default `3000`) |
+| Variable            | Required | Description                                           |
+| ------------------- | -------- | ----------------------------------------------------- |
+| `DATABASE_URL`      | ✅       | PostgreSQL connection string                          |
+| `GITHUB_TOKEN`      | ✅       | GitHub PAT with `repo` scope                          |
+| `GITHUB_OWNER`      | ✅       | GitHub org or user name                               |
+| `OPENAI_API_KEY`    | ⚠️       | Required for OpenAI-based agents                      |
+| `ANTHROPIC_API_KEY` | ⚠️       | Required for Claude-based agents                      |
+| `JIRA_BASE_URL`     | Optional | e.g. `https://your-org.atlassian.net`                 |
+| `JIRA_EMAIL`        | Optional | Jira user email                                       |
+| `JIRA_API_TOKEN`    | Optional | Jira API token                                        |
+| `LOCAL_REPOS_PATH`  | Optional | Local path to repos for faster cloning in demo        |
+| `REPOS_BASE_PATH`   | Optional | Workspace scratch dir (default `/tmp/gaia-workspace`) |
+| `PORT`              | Optional | Server port (default `3000`)                          |
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Runtime | Node.js 18+ / TypeScript 5.3 |
-| HTTP Server | Fastify 4 |
-| Database | PostgreSQL 15 via `pg` |
-| Git operations | simple-git |
-| LLM | OpenAI SDK · Anthropic SDK |
-| Validation | Zod |
-| HTTP client | Axios |
+| Layer          | Technology                   |
+| -------------- | ---------------------------- |
+| Runtime        | Node.js 18+ / TypeScript 5.3 |
+| HTTP Server    | Fastify 4                    |
+| Database       | PostgreSQL 15 via `pg`       |
+| Git operations | simple-git                   |
+| LLM            | OpenAI SDK · Anthropic SDK   |
+| Validation     | Zod                          |
+| HTTP client    | Axios                        |
 
 ---
 
