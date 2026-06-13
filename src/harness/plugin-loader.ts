@@ -13,21 +13,32 @@ type AgentFactory = () => BaseAgent;
 
 interface PluginManifest {
   name: string;
+  platform?: string;
   version: string;
   description?: string;
-  agents: {
+  agents?: {
     specAuthor?: string;
     implementer?: string;
     reviewer?: string;
   };
   config?: {
     maxFilesToTouch?: number;
+    requireTests?: boolean;
+    targetBranch?: string;
+    architecture?: string;
+    module?: string;
+    /** File path patterns per artifact type (supports {Name}/{name} placeholders) */
+    patterns?: Record<string, string>;
+    /** Naming convention rules */
+    naming?: Record<string, string>;
+    /** Code style and architecture rules passed as context to agents */
+    codeRules?: string[];
+    /** Test coverage and naming rules passed as context to agents */
+    testRules?: string[];
+    /** Files/paths the agent must never modify */
+    forbidden?: string[];
+    /** Legacy alias for codeRules */
     customRules?: string[];
-    patterns?: {
-      component?: string;
-      screen?: string;
-      test?: string;
-    };
   };
 }
 
@@ -44,6 +55,7 @@ export class PluginLoader {
   private repoPath: string;
   private gaiaPath: string;
   private manifest?: PluginManifest;
+  private rulesMarkdown?: string;
   private cache: Map<string, BaseAgent> = new Map();
 
   constructor(repoPath: string) {
@@ -57,15 +69,23 @@ export class PluginLoader {
    */
   async initialize(): Promise<void> {
     const manifestPath = path.join(this.gaiaPath, 'gaia.json');
-    
+    const rulesPath    = path.join(this.gaiaPath, 'RULES.md');
+
     try {
       const manifestContent = await fs.readFile(manifestPath, 'utf-8');
       this.manifest = JSON.parse(manifestContent);
       if (this.manifest?.name) {
         console.log(`[PluginLoader] Loaded manifest for: ${this.manifest.name}`);
       }
-    } catch (error) {
-      console.log(`[PluginLoader] No custom agents found in ${this.gaiaPath}`);
+    } catch {
+      console.log(`[PluginLoader] No gaia.json found in ${this.gaiaPath}`);
+    }
+
+    try {
+      this.rulesMarkdown = await fs.readFile(rulesPath, 'utf-8');
+      console.log(`[PluginLoader] Loaded RULES.md for: ${this.manifest?.name ?? this.repoPath}`);
+    } catch {
+      // RULES.md is optional
     }
   }
 
@@ -178,6 +198,69 @@ export class PluginLoader {
 
   hasCustomAgents(): boolean {
     return !!this.manifest || this.cache.size > 0;
+  }
+
+  /** Returns the raw content of RULES.md if it exists, otherwise undefined. */
+  getRulesMarkdown(): string | undefined {
+    return this.rulesMarkdown;
+  }
+
+  /**
+   * Returns all rules as a context string for LLM prompts.
+   * Prefers RULES.md (rich prose) and supplements with structured fields from gaia.json.
+   */
+  getRulesAsContext(): string {
+    const sections: string[] = [];
+
+    // Prefer prose rules from RULES.md as primary context
+    if (this.rulesMarkdown) {
+      sections.push(this.rulesMarkdown.trim());
+    }
+
+    // Supplement with structured fields from gaia.json that are not covered by RULES.md
+    const cfg = this.manifest?.config;
+    if (cfg) {
+      const structured: string[] = [];
+
+      if (cfg.patterns && Object.keys(cfg.patterns).length > 0) {
+        structured.push('## File Path Patterns');
+        for (const [type, pattern] of Object.entries(cfg.patterns)) {
+          structured.push(`- ${type}: ${pattern}`);
+        }
+      }
+
+      if (cfg.naming && Object.keys(cfg.naming).length > 0) {
+        structured.push('\n## Naming Conventions');
+        for (const [scope, convention] of Object.entries(cfg.naming)) {
+          structured.push(`- ${scope}: ${convention}`);
+        }
+      }
+
+      // Only include these if RULES.md is absent (avoid duplication)
+      if (!this.rulesMarkdown) {
+        const codeRules = [...(cfg.codeRules ?? []), ...(cfg.customRules ?? [])];
+        if (codeRules.length > 0) {
+          structured.push('\n## Code Rules (MUST follow)');
+          codeRules.forEach(r => structured.push(`- ${r}`));
+        }
+
+        if (cfg.testRules && cfg.testRules.length > 0) {
+          structured.push('\n## Test Rules (MUST follow)');
+          cfg.testRules.forEach(r => structured.push(`- ${r}`));
+        }
+
+        if (cfg.forbidden && cfg.forbidden.length > 0) {
+          structured.push('\n## Forbidden (NEVER modify these)');
+          cfg.forbidden.forEach(r => structured.push(`- ${r}`));
+        }
+      }
+
+      if (structured.length > 0) {
+        sections.push(structured.join('\n'));
+      }
+    }
+
+    return sections.join('\n\n---\n\n');
   }
 
   private async fileExists(filePath: string): Promise<boolean> {
