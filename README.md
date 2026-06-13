@@ -1,723 +1,561 @@
-# Gaia Code Harness 🤖
+<h1 align="center">GAIA Code Harness</h1>
 
-> **Code Generation Harness** para la plataforma Gaia - Implementa **Spec-Driven Development** con **Harness Engineering**.
+<p align="center">
+  <strong>AI-powered code generation orchestrator with human oversight for Flutter, iOS, and Android.</strong>
+</p>
 
-## ¿Qué es esto?
-
-Este proyecto es el **puente entre las iniciativas de producto en Gaia y el código real en los repos de Rappi**.
-
-Cuando un Product Manager crea una iniciativa en Gaia (ej: "Agregar modo oscuro"), este harness:
-
-1. **Genera** una especificación técnica detallada (requirements + design + tasks)
-2. **Espera** aprobación humana del spec antes de tocar código
-3. **Implementa** los cambios en el repo (Flutter/iOS/Android/Backend)
-4. **Valida** que los tests pasan
-5. **Crea** un Pull Request en GitHub
-6. **Actualiza** el ticket de Jira con el link al PR
-
-Todo esto siguiendo los principios de **Harness Engineering** para controlar la IA y **Spec-Driven Development** para mantener la calidad.
+<p align="center">
+  <img src="https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen?style=flat-square&logo=node.js" />
+  <img src="https://img.shields.io/badge/TypeScript-5.3-blue?style=flat-square&logo=typescript" />
+  <img src="https://img.shields.io/badge/Fastify-4.x-black?style=flat-square&logo=fastify" />
+  <img src="https://img.shields.io/badge/PostgreSQL-15-336791?style=flat-square&logo=postgresql" />
+  <img src="https://img.shields.io/badge/platforms-Flutter%20%7C%20iOS%20%7C%20Android-orange?style=flat-square" />
+  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" />
+</p>
 
 ---
 
-## ¿Por qué existe?
+## Overview
 
-### El problema
-
-- Las herramientas de IA generan código rápido pero sin control
-- Los specs de producto no se traducen automáticamente a código
-- No hay validación automática de que el código cumple los requisitos
-- El contexto se pierde entre producto, diseño y desarrollo
-
-### La solución (Harness Engineering)
-
-En lugar de dejar la IA libre, le ponemos un **arnés** (harness):
-
-- **Herramientas controladas**: Solo puede usar read/search/patch/test/create-pr
-- **Memoria externa**: El estado vive en PostgreSQL, no en el contexto del LLM
-- **Multi-agentes**: Cada agente hace una cosa y la hace bien
-- **Verificación obligatoria**: Tests deben pasar, lint debe pasar, humano debe aprobar
-- **Auditoría completa**: Todo se loguea, todo es trazable
-
-### Inspiración
-
-- **Vercel**: Eliminaron 80% de herramientas de sus agentes → 3x velocidad
-- **Antropic**: Artículo sobre cómo construir arneses efectivos
-- **Spec-Driven Development**: La especificación es la fuente de verdad, no el código
-
----
-
-## Arquitectura en 30 segundos
+**GAIA Code Harness** bridges the gap between product requirements and production-ready code. A Product Manager defines acceptance criteria — the system autonomously generates a technical specification, implements the code across the target mobile platform, runs tests, and opens a Pull Request. A human approves the plan before a single line of code is written.
 
 ```
-┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   GAIA      │────→│  Code Harness    │────→│  REPO RAPPI     │
-│  Platform   │     │  (this service)  │     │(Flutter/iOS/And)│
-└─────────────┘     └──────────────────┘     └─────────────────┘
-                           │
-          ┌────────────────┼────────────────┐
-          ▼                ▼                ▼
-    ┌──────────┐    ┌──────────┐    ┌──────────┐
-    │  JIRA    │    │  Postgre │    │  GitHub  │
-    │  (MCP)   │    │   SQL    │    │   (PR)   │
-    └──────────┘    └──────────┘    └──────────┘
+ PM writes acceptance criteria
+         │
+         ▼
+ ┌────────────────────┐
+ │    Spec Author     │  Analyses repo, generates TechnicalSpec
+ └─────────┬──────────┘
+           │  ← Human approves spec  (Tech Lead checkpoint)
+           ▼
+ ┌────────────────────┐
+ │    Implementer     │  Writes code, installs deps, runs tests
+ └─────────┬──────────┘
+           ▼
+ ┌────────────────────┐
+ │     Reviewer       │  Lints, tests, opens GitHub PR
+ └─────────┬──────────┘
+           ▼
+ Pull Request ready for review  (~35–90 seconds end-to-end)
 ```
-
-**Flujo:**
-
-1. Gaia manda POST `/jobs` con criterios de aceptación
-2. **SpecAuthor** genera spec (requirements + design + tasks)
-3. **Humano aprueba** el spec en la UI de Gaia
-4. **Implementer** modifica código y ejecuta tests
-5. **Reviewer** valida y crea PR en GitHub
-6. Jira se actualiza con link al PR
-
-**Ver documentación completa:**
-
-- 📚 [`docs/SETUP.md`](./docs/SETUP.md) - Guía de instalación paso a paso
-- 🏗️ [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) - Arquitectura detallada
-- 🎬 [`scripts/demo.sh`](./scripts/demo.sh) - Script de demo interactivo
 
 ---
 
-## Instalación Rápida (5 minutos)
+## Key Features
 
-### Prerrequisitos
+- **Spec-Driven Development** — generates a structured `TechnicalSpec` (requirements, tasks, design decisions, risks) before writing any code
+- **Human-in-the-Loop** — mandatory approval checkpoint after spec generation; the system never touches code without explicit sign-off
+- **Multi-Platform** — independent agent sets for Flutter/Dart, iOS/Swift, and Android/Kotlin with native toolchains
+- **State Machine Orchestration** — 10-state lifecycle with full audit trail persisted in PostgreSQL
+- **Rich Terminal Output** — color-coded, emoji-enhanced logs per agent with a detailed end-of-job summary box
+- **Pluggable Agents** — repos can override default agents via a `.gaia/` directory
+- **LLM-Agnostic** — supports OpenAI and Anthropic; model selection is configurable per-agent
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         API  (Fastify)                          │
+│  POST /jobs  ·  GET /jobs/:id  ·  POST /jobs/:id/approve        │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Leader / Orchestrator                        │
+│                                                                 │
+│  pending → fetching_jira → spec_generating → spec_ready        │
+│                                                    │            │
+│  done ← pr_created ← reviewing ← implementing ← spec_approved  │
+└──────────┬─────────────────┬─────────────────┬─────────────────┘
+           ▼                 ▼                 ▼
+    Flutter Agents      iOS Agents       Android Agents
+    ──────────────      ──────────       ──────────────
+    SpecAuthor          SpecAuthor       SpecAuthor
+    Implementer         Implementer      Implementer
+    Reviewer            Reviewer         Reviewer
+    ──────────────      ──────────       ──────────────
+    flutter test        swift test       gradle test
+    dart analyze        swiftlint        lintDebug
+    pub get / melos     swift pkg res    ./gradlew deps
+                            │
+                            ▼
+                   ┌─────────────────┐
+                   │   PostgreSQL    │
+                   │  (jobs + logs)  │
+                   └─────────────────┘
+```
+
+### Job Lifecycle
+
+| Status | Description |
+|---|---|
+| `pending` | Job received, queued for processing |
+| `fetching_jira` | Fetching additional context from Jira |
+| `spec_generating` | SpecAuthor analysing repo and generating plan |
+| `spec_ready` | **⏸ Awaiting human approval** |
+| `spec_approved` | Tech lead approved — implementation begins |
+| `implementing` | Implementer writing code, running tests, committing |
+| `reviewing` | Reviewer running lint, tests, creating PR |
+| `pr_created` | Pull Request created on GitHub |
+| `done` | Job complete ✅ |
+| `failed` | Terminal error — retry available |
+
+---
+
+## Project Structure
+
+```
+gaia-code-harness/
+├── src/
+│   ├── agents/
+│   │   ├── base.ts                  # BaseAgent — shared logging, ANSI colors
+│   │   ├── flutter/
+│   │   │   ├── spec-author.ts
+│   │   │   ├── implementer.ts
+│   │   │   └── reviewer.ts
+│   │   ├── ios/
+│   │   │   ├── spec-author.ts
+│   │   │   ├── implementer.ts
+│   │   │   └── reviewer.ts
+│   │   ├── android/
+│   │   │   ├── spec-author.ts
+│   │   │   ├── implementer.ts
+│   │   │   └── reviewer.ts
+│   │   └── registry.ts              # getAgentsForPlatform()
+│   ├── api/
+│   │   ├── server.ts                # Fastify setup + custom request logger
+│   │   └── routes/
+│   │       └── jobs.ts              # REST endpoints
+│   ├── db/
+│   │   └── index.ts                 # PostgreSQL pool + CRUD
+│   ├── harness/
+│   │   └── leader.ts                # State machine orchestrator
+│   ├── tools/
+│   │   ├── git.ts                   # Clone, branch, commit, push
+│   │   ├── llm.ts                   # OpenAI / Anthropic wrappers
+│   │   ├── github.ts                # PR creation via GitHub API
+│   │   ├── jira.ts                  # Jira ticket integration
+│   │   ├── xcode-runner.ts          # iOS toolchain (swift, xcodebuild, swiftlint)
+│   │   └── gradle-runner.ts         # Android toolchain (gradle, ktlint)
+│   ├── types/
+│   │   └── index.ts                 # All TypeScript interfaces
+│   └── index.ts                     # Entry point
+├── docs/
+│   ├── ARCHITECTURE.md              # Deep-dive technical architecture
+│   └── DEMO_GUIDE.md                # Step-by-step demo guide
+├── .env.example
+└── package.json
+```
+
+---
+
+## Prerequisites
+
+| Requirement | Version | Notes |
+|---|---|---|
+| Node.js | ≥ 18.0.0 | Always required |
+| PostgreSQL | 15+ | Via Docker or local install |
+| Flutter SDK | ≥ 3.x | For Flutter jobs |
+| Xcode + Swift | ≥ 5.9 | For iOS jobs (macOS only) |
+| Java JDK + Gradle | JDK 17+ | For Android jobs |
+
+> You only need the SDK for the platform you intend to run. Node.js and PostgreSQL are always required.
+
+---
+
+## Quick Start
+
+### 1. Clone and install
 
 ```bash
-# Verificar que tienes todo instalado
-node --version        # v18+
-psql --version        # 14+
-flutter --version     # 3.35+ (para Flutter)
-swift --version       # 5.9+ (para iOS)
-xcodebuild -version   # Xcode 15+ (para iOS, opcional)
-java -version         # JDK 17+ (para Android, opcional)
-which melos           # opcional (solo para monorepos Flutter)
-```
-
-### Setup
-
-```bash
-# 1. Clonar y entrar
-cd ~/Desktop/gaia-code-harness
-
-# 2. Instalar dependencias
+git clone https://github.com/RobertoGtz/gaia-code-harness.git
+cd gaia-code-harness
 npm install
+```
 
-# 3. Configurar PostgreSQL
-createdb gaia_harness    # crear DB
+### 2. Configure environment
 
-# 4. Configurar variables de entorno
+```bash
 cp .env.example .env
-# Editar .env con:
-# - DATABASE_URL
-# - GITHUB_TOKEN (desde https://github.com/settings/tokens)
-# - GITHUB_OWNER=rappi
+```
 
-# 5. Inicializar DB y compilar
-npm run db:init
-npm run build
+Edit `.env` with your credentials:
 
-# 6. Correr!
+```bash
+# Database
+DATABASE_URL=postgresql://gaia:gaia@localhost:5432/gaia_harness
+
+# GitHub — required for real PR creation
+GITHUB_TOKEN=ghp_...
+GITHUB_OWNER=your-org-or-user
+
+# Jira — optional
+JIRA_BASE_URL=https://your-org.atlassian.net
+JIRA_EMAIL=you@example.com
+JIRA_API_TOKEN=...
+
+# LLM — at least one required for real code generation
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Paths
+LOCAL_REPOS_PATH=/path/to/local/repos   # optional: faster cloning in demo
+REPOS_BASE_PATH=/tmp/gaia-workspace
+
+PORT=3000
+```
+
+### 3. Start PostgreSQL
+
+```bash
+docker run -d \
+  --name gaia-postgres \
+  -e POSTGRES_DB=gaia_harness \
+  -e POSTGRES_USER=gaia \
+  -e POSTGRES_PASSWORD=gaia \
+  -p 5432:5432 \
+  postgres:15
+```
+
+### 4. Start the server
+
+```bash
 npm run dev
 ```
 
-**Servidor corriendo en:** `http://localhost:3000`
-
----
-
-## Demo Interactivo 🎬
-
-El demo soporta las 3 plataformas: **Flutter**, **iOS** y **Android**.
-
-```bash
-# Demo Flutter (default)
-./scripts/demo.sh flutter
-
-# Demo iOS/Swift
-./scripts/demo.sh ios
-
-# Demo Android/Kotlin
-./scripts/demo.sh android
+```
+──────────────────────────────────────────────────
+  GAIA Code Harness  —  ready on :3000
+──────────────────────────────────────────────────
 ```
 
-**El demo te muestra:**
-
-1. Cómo crear un job desde cero (para la plataforma elegida)
-2. Cómo se genera el spec automáticamente
-3. Dónde el humano debe aprobar
-4. Cómo se implementa el código con las herramientas de la plataforma
-5. Cómo se crea el PR en GitHub
-
 ---
 
-## API Endpoints
+## Running a Demo
 
-### Crear un job de generación de código
+### Create a job
 
 ```bash
-curl -X POST http://localhost:3000/jobs \
+curl -s -X POST http://localhost:3000/jobs \
   -H "Content-Type: application/json" \
   -d '{
-    "jiraTicketId": "RPP-1234",
-    "fullContext": {
-      "title": "Agregar banner de promociones",
-      "acceptanceCriteria": [
-        "WHEN usuario abre home THEN mostrar banner carousel",
-        "WHEN hay >3 promos THEN mostrar dots de paginación",
-        "WHEN toca banner THEN navegar a /promos"
-      ],
-      "platform": "flutter",
-      "repo": "rpp-pyme-multiplatform",
-      "module": "pay_multiplatform_home_web",
-      "targetBranch": "develop",
-      "figmaUrl": "https://figma.com/..."
-    }
+    "platform": "flutter",
+    "title": "Add dark mode toggle to settings screen",
+    "jiraTicketId": "DEMO-100",
+    "repo": "demo-repo",
+    "targetBranch": "develop",
+    "acceptanceCriteria": [
+      { "id": "ac-1", "text": "Settings screen shows a dark mode toggle switch" },
+      { "id": "ac-2", "text": "Toggle persists the preference using SharedPreferences" },
+      { "id": "ac-3", "text": "App applies dark theme immediately without restart" }
+    ]
   }'
 ```
 
-**Response:**
+> Change `"platform"` to `"ios"` or `"android"` to target those platforms.
 
-```json
-{
-  "job": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "status": "pending",
-    "title": "Agregar banner de promociones",
-    "acceptanceCriteria": [...]
-  }
-}
-```
-
-### Ver estado del job
+### Poll for spec
 
 ```bash
-curl http://localhost:3000/jobs/{jobId}
+curl -s http://localhost:3000/jobs/<JOB_ID>
 ```
 
-**Response:**
+When `status` reaches `spec_ready`, the SpecAuthor has produced a full `TechnicalSpec`.
 
-```json
-{
-  "job": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "status": "spec_ready",
-    "title": "Agregar banner de promociones",
-    "spec": {
-      "requirements": [...],
-      "design": { "affectedFiles": [...] },
-      "tasks": [...]
-    }
-  }
-}
-```
-
-### Aprobar spec (human in the loop) ✅
+### Approve the spec
 
 ```bash
-curl -X POST http://localhost:3000/jobs/{jobId}/approve \
+curl -s -X POST http://localhost:3000/jobs/<JOB_ID>/approve \
   -H "Content-Type: application/json" \
   -d '{"approved": true}'
 ```
 
-Esto desbloquea la implementación. Sin este paso, el harness **no toca el código**.
+> Reject with feedback: `{"approved": false, "feedback": "Needs analytics tracking"}`
 
-### Listar todos los jobs
+### End-of-job summary box
 
-```bash
-curl http://localhost:3000/jobs
-```
-
-### Reintentar job fallido
-
-```bash
-curl -X POST http://localhost:3000/jobs/{jobId}/retry
-```
-
----
-
-## Flujo de Estados (Máquina de Estados)
+When the job completes, a detailed summary is printed to the terminal:
 
 ```
-┌──────────┐
-│  START   │
-└────┬─────┘
-     │
-     ▼
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   PENDING    │────→│ FETCHING_JIRA│────→│SPEC_GENERAT- │
-└──────────────┘     │ (lee ticket) │     │   ING        │
-     │               └──────────────┘     └──────┬───────┘
-     │                                           │
-     │         ┌─────────────────┐               │
-     │         │ SPEC_AUTHOR     │◄──────────────┘
-     │         │ - Genera specs  │
-     │         └────────┬────────┘
-     │                  │
-     │    ┌─────────────▼──────────┐
-     │    │   SPEC_READY           │
-     │    │   ⏸️ PAUSA HUMANA      │◄────── Aquí el humano decide
-     │    │                        │
-     │    │   POST /jobs/:id/      │
-     │    │   approve              │
-     │    └─────────────┬──────────┘
-     │                  │
-     │    ┌─────────────▼──────────┐
-     │    │   SPEC_APPROVED       │
-     │    └─────────────┬──────────┘
-     │                  │
-     │    ┌─────────────▼──────────┐
-     │    │   IMPLEMENTING        │
-     │    │   - Crea branch       │
-     │    │   - Modifica código   │
-     │    │   - Corre tests       │
-     │    │   - Commit & push     │
-     │    └─────────────┬──────────┘
-     │                  │
-     │    ┌─────────────▼──────────┐
-     │    │   REVIEWING           │
-     │    │   - Valida tests      │
-     │    │   - Lint (platform)   │
-     │    │   - Crea PR GitHub    │
-     │    │   - Comenta Jira      │
-     │    └─────────────┬──────────┘
-     │                  │
-     │    ┌─────────────▼──────────┐
-     └────┤   DONE ✅              │
-          └───────────────────────┘
-
-┌──────────┐
-│  FAILED  │◄────── Cualquier error (con reintentos)
-└────┬─────┘
-     │ POST /jobs/:id/retry
-     └────────────────────────────────→ PENDING
+╔══════════════════════════════════════════════════════════════════╗
+║                                                                  ║
+║ ✅  GAIA — JOB COMPLETED SUCCESSFULLY                             ║
+║ 13/06/2026, 11:25:38  ·  35.2s total                             ║
+║                                                                  ║
+╠══════════════════════════════════════════════════════════════════╣
+║ JOB DETAILS                                                      ║
+║  ──────────────────────────────────────────────────────────────  ║
+║ Ticket          DEMO-100                                         ║
+║ Title           Add dark mode toggle to settings screen          ║
+║ Platform        Flutter                                          ║
+║ Repository      demo-repo                                        ║
+║ Branch          feature/DEMO-100-add-dark-mode-toggle-to-setti…  ║
+║ Base branch     develop                                          ║
+║                                                                  ║
+╠══════════════════════════════════════════════════════════════════╣
+║ ACCEPTANCE CRITERIA  (3)                                         ║
+║  ──────────────────────────────────────────────────────────────  ║
+║ ✔  [ac-1] Settings screen shows a dark mode toggle switch        ║
+║ ✔  [ac-2] Toggle persists the preference using SharedPreferences ║
+║ ✔  [ac-3] App applies dark theme immediately without restart     ║
+║                                                                  ║
+╠══════════════════════════════════════════════════════════════════╣
+║ IMPLEMENTED TASKS  (4)                                           ║
+║  ──────────────────────────────────────────────────────────────  ║
+║ +  [create ]  lib/src/presentation/screens/settings_screen.dart  ║
+║ ~  [modify ]  lib/main.dart                                      ║
+║ ~  [modify ]  lib/src/presentation/screens/home_screen.dart      ║
+║ T  [test   ]  test/settings_screen_test.dart                     ║
+║                                                                  ║
+╠══════════════════════════════════════════════════════════════════╣
+║ PULL REQUEST                                                     ║
+║  ──────────────────────────────────────────────────────────────  ║
+║ https://github.com/your-org/demo-repo/pull/42                    ║
+║                                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
 ```
 
 ---
 
-## Agentes (El Corazón del Sistema)
+## REST API Reference
 
-Los agentes están organizados por plataforma. El Leader usa `getAgentsForPlatform(job.platform)` para seleccionar automáticamente los agentes correctos.
+### `POST /jobs`
 
-**Plataformas soportadas:** `flutter`, `flutter_web`, `ios`, `android`
-**Preparado para:** `backend`
+Create a new code generation job.
 
-### 🤖 SpecAuthor
-
-**Propósito:** Transformar criterios de aceptación de producto en especificación técnica ejecutable.
-
-**Input:**
-
-- Acceptance criteria (formato EARS: "WHEN ... THEN ...")
-- Figma URL
-- Nombre del módulo
-- Estructura del repo
-
-**Output:**
-
-- `requirements.json` - Lista de requerimientos testeables
-- `design.json` - Qué archivos tocar, decisiones de arquitectura
-- `tasks.json` - Tareas concretas para el implementer
-- `risks` - Riesgos técnicos identificados
-
-**Ejemplo:**
+**Flat body (recommended):**
 
 ```json
 {
-  "requirements": [
-    {
-      "id": "req-1",
-      "content": "WHEN usuario abre home THEN mostrar banner carousel",
-      "sourceAcId": "ac-1"
-    }
-  ],
-  "design": {
-    "affectedFiles": ["lib/src/screens/home.dart"],
-    "newFiles": ["lib/src/widgets/promo_banner.dart"],
-    "architectureDecisions": ["Usar PageView para carousel"]
-  },
-  "tasks": [
-    {
-      "id": "T1",
-      "description": "Crear PromoBanner widget",
-      "filePath": "lib/src/widgets/promo_banner.dart",
-      "type": "create",
-      "status": "pending"
-    }
+  "platform": "flutter",
+  "title": "Add dark mode toggle",
+  "jiraTicketId": "DEMO-100",
+  "repo": "demo-repo",
+  "targetBranch": "develop",
+  "description": "Optional longer description",
+  "figmaUrl": "https://figma.com/...",
+  "acceptanceCriteria": [
+    { "id": "ac-1", "text": "User sees toggle in settings", "priority": "high" }
   ]
 }
 ```
 
-### 🔧 Implementer
+**`fullContext` wrapper (legacy):**
 
-**Propósito:** Ejecutar las tareas del spec y modificar el código real.
-
-**Pasos:**
-
-1. Verificar entorno de la plataforma (Flutter: `flutter doctor`, iOS: `xcodebuild -version`, Android: `gradle --version`)
-2. Setup repo via shared `setupRepository` tool (clone from local path or GitHub)
-3. Crear branch (`feature/RPP-1234-nombre-de-la-feature`)
-4. Resolver dependencias por plataforma:
-   - **Flutter:** `melos bootstrap` (monorepos) o `flutter pub get` (single-package)
-   - **iOS:** `swift package resolve` (SPM)
-   - **Android:** `gradle dependencies` (Gradle)
-5. Para cada tarea en `tasks.json`:
-   - Leer archivo existente (si es modify)
-   - Generar/Modificar código (con LLM o mock)
-   - Aplicar cambios
-   - Marcar tarea como done
-6. Ejecutar tests por plataforma (`flutter test`, `swift test`, `gradle test`)
-7. Si pasan: commit y push
-8. Si fallan: reportar error y retry (máximo 3 veces)
-
-**Restricciones de seguridad:**
-
-- ❌ No puede borrar carpetas completas
-- ❌ No puede tocar archivos fuera del módulo
-- ❌ No puede modificar CI/CD sin aprobación
-- ❌ No puede tocar más de `maxFilesToTouch` archivos
-
-### 🔍 Reviewer
-
-**Propósito:** Validar que la implementación cumple el spec y crear el PR.
-
-**Validaciones:**
-
-1. ✅ Tests pasan (`flutter test` / `swift test` / `gradle test` exit code 0)
-2. ✅ Linting pasa (`dart analyze` / `swiftlint` / `gradle lint`)
-3. ✅ Cantidad de archivos ≤ `maxFilesToTouch`
-4. ✅ Trazabilidad: todas las tareas del spec están done
-5. ✅ No hay archivos sospechosos (CI, secrets, etc.)
-
-**Si pasa:**
-
-1. Crear PR en GitHub vía API
-2. Comentar en Jira con link al PR
-3. Marcar job como done
-
-**Si falla:**
-
-- Regresar a estado IMPLEMENTING
-- Incluir el error específico en los logs
-- Permitir reintento (hasta 3 veces)
-
----
-
-## Variables de Entorno (.env)
-
-### Obligatorias
-
-```bash
-# Database
-DATABASE_URL=postgresql://user:pass@localhost:5432/gaia_harness
-
-# GitHub (para crear PRs)
-# Obtener token desde: https://github.com/settings/tokens
-# Scope requerido: 'repo' (Full control of private repositories)
-GITHUB_TOKEN=ghp_your_github_personal_access_token
-GITHUB_OWNER=rappi  # GitHub organization o user name
-```
-
-### Opcionales (para integraciones)
-
-```bash
-# Jira (para leer tickets y comentar)
-JIRA_BASE_URL=https://rappi.atlassian.net
-JIRA_EMAIL=your.email@rappi.com
-JIRA_API_TOKEN=your_jira_api_token
-
-# LLM (para generación real de código - si no, usa mocks)
-OPENAI_API_KEY=sk-your_openai_key
-ANTHROPIC_API_KEY=sk-ant-your_anthropic_key
-
-# Paths
-REPOS_BASE_PATH=/tmp/gaia-workspace
-LOCAL_REPOS_PATH=/Users/robertogutierrezgonzalez/Desktop/repos
-PORT=3000
-```
-
----
-
-## Integración con Gaia
-
-### Cómo conectar
-
-1. **Gaia manda POST a tu harness:**
-
-   ```
-   POST http://harness-url:3000/jobs
-   {
-     "jiraTicketId": "RPP-1234",
-     "fullContext": { ... }
-   }
-   ```
-
-2. **Harness responde con jobId:**
-
-   ```
-   { "job": { "id": "uuid", "status": "pending" } }
-   ```
-
-3. **Gaia muestra estado en UI:**
-   - Polling a `GET /jobs/{jobId}` cada 5 segundos
-   - O webhook cuando el harness notifique cambios
-
-4. **Gaia muestra spec para aprobación:**
-   - Cuando `status` sea `spec_ready`
-   - Renderizar `spec.requirements`, `spec.design`, `spec.tasks`
-   - Botón "Aprobar y continuar"
-
-5. **Gaia llama approve:**
-
-   ```
-   POST /jobs/{jobId}/approve
-   { "approved": true }
-   ```
-
-6. **Gaia muestra progreso de implementación:**
-   - `currentAgent`, `progressLogs`
-   - Link al PR cuando `status` sea `pr_created`
-
-### Webhooks (Futuro)
-
-```bash
-# Harness puede llamar webhook de Gaia para notificar:
-POST https://gaia.internal/webhooks/harness/progress
+```json
 {
-  "jobId": "uuid",
-  "status": "spec_ready",
-  "message": "Spec generated, waiting for approval"
+  "jiraTicketId": "DEMO-100",
+  "fullContext": {
+    "title": "Add dark mode toggle",
+    "platform": "flutter",
+    "repo": "demo-repo",
+    "acceptanceCriteria": ["User sees toggle in settings"]
+  }
+}
+```
+
+**Response `201`:**
+
+```json
+{
+  "job": { "id": "uuid", "status": "pending", "title": "...", "platform": "flutter" }
 }
 ```
 
 ---
 
-## Principios Aplicados
+### `GET /jobs/:id`
 
-### 1. Harness Engineering
-
-> "Un arnés no es darle más herramientas a la IA, es darle las herramientas correctas con límites claros."
-
-- **Vercel lo demostró:** Eliminaron 80% de tools → 3x velocidad, 37% menos tokens
-- **Nuestra aplicación:** Solo 5 tools (read, search, patch, test, git)
-
-### 2. Spec-Driven Development
-
-> "El spec es la fuente de verdad. El código es un artefacto derivado."
-
-- **Producto escribe:** Acceptance criteria en formato EARS
-- **SpecAuthor genera:** Requirements + Design + Tasks
-- **Humano aprueba:** Antes de que se toque código
-- **Implementer ejecuta:** Contra el spec aprobado
-- **Reviewer valida:** Que el código cumple el spec
-
-### 3. Memoria Externa
-
-> "La ventana de contexto del LLM se degrada después del 20-40%."
-
-- Todo el estado va a PostgreSQL
-- Los specs se guardan en archivos JSON
-- Los logs son trazables
-- Cada agente recibe solo el contexto mínimo necesario
-
-### 4. Human-in-the-loop
-
-> "Nunca dejes la IA trabajando 24h sola."
-
-- Aprobación humana del spec (obligatoria)
-- Revisión del PR antes de merge (en GitHub)
-- Retry manual si falla (con contexto del error)
-
-### 5. Verificación Obligatoria
-
-> "El código debe demostrar que funciona, no solo parecer que funciona."
-
-- Tests deben pasar (no negociable)
-- Lint debe pasar (no negociable)
-- Trazabilidad spec→código (no negociable)
+Returns full job details: spec, progress logs, branch name, PR URL.
 
 ---
 
-## Próximos Pasos (TODO)
+### `POST /jobs/:id/approve`
 
-### Alta Prioridad (MVP)
+Approve or reject the generated spec.
 
-- [x] Arquitectura base con Fastify + PostgreSQL
-- [x] Agentes: SpecAuthor, Implementer, Reviewer
-- [x] GitHub integration (crear PRs, dry-run si no hay token)
-- [x] Shared `setupRepository` tool (clone local git repos or from GitHub)
-- [x] Fallback de `melos bootstrap` a `flutter pub get` para repos no-monorepo
-- [x] Approve endpoint funciona sin body (defaults to approved)
-- [x] Demo E2E funcional con repo Flutter local
-- [x] Arquitectura multi-plataforma (agent registry + agentes por plataforma)
-- [ ] Integrar LLM real (OpenAI/Anthropic) para generación de código y specs
-- [ ] MCP Jira (leer tickets reales)
-- [ ] Tests con repo real de Rappi
-
-### Media Prioridad
-
-- [ ] Corrección automática de errores (retry loop inteligente)
-- [ ] WebSocket para UI en tiempo real
-- [ ] Caché de análisis de repos
-- [ ] Queue system (BullMQ + Redis)
-- [x] Agentes iOS (Swift/Xcode) — `src/agents/ios/` + `src/tools/xcode-runner.ts`
-- [x] Agentes Android (Kotlin) — `src/agents/android/` + `src/tools/gradle-runner.ts`
-- [ ] Agentes Backend (Node/Python/Go) — agregar `src/agents/backend/`
-
-### Baja Prioridad
-
-- [ ] Plugin system para custom agents
-- [ ] Métricas y observabilidad (Datadog/Grafana)
-- [ ] Vector DB para semantic search
-- [ ] Multi-idioma (specs en español/inglés)
-- [ ] Auto-mejoramiento del harness (meta-learning)
-
----
-
-## Dudas y Preguntas Abiertas 🤔
-
-### Arquitectura y Diseño
-
-1. **¿Deberíamos usar un message queue (Redis/BullMQ) en lugar de llamadas síncronas?**
-   - _Contexto:_ Ahora el Leader llama agentes directamente. Si un job tarda 10 minutos, el request HTTP se queda esperando.
-   - _Opciones:_
-     - A) Mantener síncrono (más simple, más lento)
-     - B) Async con job queue (más complejo, más escalable)
-   - _Mi opinión:_ Empezar con A, migrar a B cuando tengamos >100 jobs/día.
-
-2. **¿Dónde debería vivir el spec aprobado?**
-   - _Opción A:_ En la DB (como ahora) - más fácil de query, más lento de leer para humanos
-   - _Opción B:_ En el repo de código (ej: `.gaia/specs/RPP-1234.md`) - versionado con git, más transparente
-   - _Opción C:_ Ambos - DB para queries, archivos para humanos
-   - _Pregunta:_ ¿Los devs quieren ver los specs en el repo? ¿O solo en Gaia?
-
-3. **¿Cómo manejamos dependencias entre jobs?**
-   - Ej: Job B depende de que Job A esté mergeado
-   - ¿Block until A is done? ¿Crear PR draft? ¿Auto-merge A si pasa CI?
-
-### Integración con Rappi
-
-4. **¿Tenemos acceso a crear PRs en los repos de GitHub?**
-   - Necesitamos un token con scope `repo` para la org `rappi`
-   - ¿Quién genera este token? ¿Cuál es el proceso de seguridad?
-
-5. **¿Cómo corremos `flutter test` en los repos de Rappi?**
-   - Opción A: En la máquina local donde corre el harness (requiere Flutter instalado)
-   - Opción B: En CI (GitHub Actions) - el harness crea PR, CI corre tests
-   - Opción C: En contenedor Docker con Flutter preinstalado
-   - _Nota:_ Los repos de Rappi usan Melos, necesitamos `melos bs` antes de tests.
-
-6. **¿Qué pasa si el repo tiene dependencias privadas?**
-   - Ej: Otros packages de Rappi en GitHub Packages o private npm
-   - ¿El harness necesita auth adicional para `flutter pub get`?
-
-### Seguridad y Permisos
-
-7. **¿Quién puede aprobar specs?**
-   - ¿Cualquiera con acceso a Gaia?
-   - ¿Solo tech leads?
-   - ¿El owner del módulo?
-   - ¿Requerimos CODEOWNERS en el PR de GitHub?
-
-8. **¿Qué archivos NUNCA debería tocar el harness?**
-   - CI/CD (.github/workflows/, bitbucket-pipelines.yml)
-   - Secrets (cualquier archivo con "secret", "key", "password")
-   - Configuración de infraestructura (Terraform, K8s)
-   - ¿Dónde definimos esta lista? ¿En el repo (`.gaia/ignore`)? ¿En la DB?
-
-9. **¿Cómo auditamos qué hizo el harness?**
-   - Logs en DB (tenemos esto)
-   - ¿Video/GIF de los cambios? (como Vercel hace con deploys)
-   - ¿Diff interactivo antes de aprobar?
-
-### UX y Producto
-
-10. **¿Cómo se ve el spec en la UI de Gaia?**
-    - ¿Tabla con requerimientos? ¿Diagrama de flujo? ¿Markdown renderizado?
-    - ¿Mostramos el diff estimado antes de aprobar?
-
-11. **¿Qué pasa si el humano rechaza el spec?**
-    - ¿Vuelve a SpecAuthor con feedback? (loop)
-    - ¿Se cancela el job? (requiere nuevo POST)
-    - ¿El humano edita el spec directamente?
-
-12. **¿Cómo manejamos errores de CI?**
-    - El harness crea PR → GitHub Actions corre tests → Falla
-    - ¿El harness intenta auto-corregir? (muy peligroso)
-    - ¿Notifica al humano con el error? (más seguro)
-    - ¿Cuántos reintentos automáticos? (mi recomendación: 0)
-
-### Técnico
-
-13. **¿Usamos OpenAI o Anthropic?**
-    - GPT-4 Turbo: Mejor en código, más caro, rate limits
-    - Claude 3.5 Sonnet: Mejor en seguir instrucciones, más barato
-    - ¿Ambos con fallback?
-
-14. **¿Cómo parseamos `flutter test --machine` correctamente?**
-    - El output es JSON lines, pero hay casos edge (crashes, timeouts)
-    - ¿Necesitamos usar `xcresult` para iOS?
-
-15. **¿Cómo manejamos repos muy grandes?**
-    - El monorepo de Rappi tiene cientos de packages
-    - ¿Clonamos todo? ¿Solo el módulo afectado?
-    - ¿Usamos sparse checkout?
-
-### Negocio
-
-16. **¿Cuál es el ROI esperado?**
-    - ¿Tiempo ahorrado por feature?
-    - ¿Reducción de bugs?
-    - ¿Costo de LLM tokens vs salario de dev?
-    - ¿Métricas de éxito?
-
-17. **¿Qué pasa si el harness está mal?**
-    - ¿Rollback strategy?
-    - ¿Kill switch para deshabilitar?
-    - ¿Quién tiene pager duty?
-
-18. **¿Los agentes deben ser centralizados o específicos por proyecto?**
-    - **Opción A:** Agentes genéricos en el harness (más simple, menos personalizado)
-    - **Opción B:** Agentes en cada repo `.gaia/agents/` (más personalizado, más complejo)
-    - **Opción C:** Hybrid - base genérica + overrides por proyecto (RECOMMENDED)
-    - _Nota:_ Ya implementamos el plugin system ([PLUGINS.md](./PLUGINS.md)). Cada equipo puede tener agentes que entiendan sus convenciones específicas (Rappi Flutter, Rappi iOS, etc.)
-
----
-
-## Cómo Contribuir
-
-```bash
-# 1. Fork y clone
-git clone https://github.com/rappi/gaia-code-harness.git
-
-# 2. Branch
-git checkout -b feature/mi-cambio
-
-# 3. Cambios
-# ... editar código ...
-
-# 4. Test
-npm test
-
-# 5. Commit
-git commit -m "feat: descripción clara"
-
-# 6. PR
-gh pr create --title "feat: ..." --body "..."
+```json
+{ "approved": true }
+{ "approved": false, "feedback": "Missing analytics tracking" }
 ```
 
 ---
 
-## Equipo y Contacto
+### `POST /jobs/:id/retry`
 
-- **Owner:** [Tu nombre] - [tu email]
-- **Slack:** #gaia-code-harness
-- **Notion:** [Link a documentación interna]
-- **On-call:** [Link a PagerDuty/Opsgenie]
+Retry a failed job from its last successful state.
 
 ---
 
-## Licencia
+### `GET /jobs`
 
-Proyecto privado de Rappi. No distribuir fuera de la organización.
+List all jobs. Optional query param: `?initiativeId=init-123`
 
 ---
+
+## Platform Toolchains
+
+### Flutter
+
+| Tool | Purpose |
+|---|---|
+| `flutter pub get` / `melos bootstrap` | Dependency resolution |
+| `flutter test` | Unit and widget tests |
+| `dart analyze` | Static analysis |
+
+### iOS / Swift
+
+| Tool | Purpose |
+|---|---|
+| `swift package resolve` | SPM dependency resolution |
+| `swift test` / `xcodebuild test` | Unit tests |
+| `swiftlint` | Lint and style enforcement |
+| `xcodebuild build` | Full project build |
+
+### Android / Kotlin
+
+| Tool | Purpose |
+|---|---|
+| `./gradlew dependencies` | Dependency sync |
+| `./gradlew testDebugUnitTest` | Unit tests |
+| `./gradlew lintDebug` | Android lint |
+| `./gradlew ktlintCheck` | Kotlin style enforcement |
+| `./gradlew assembleDebug` | Debug build |
+
+---
+
+## Security & Control
+
+### Human Checkpoints
+
+| Checkpoint | Who | Decision |
+|---|---|---|
+| Spec approval | Tech Lead | Is the technical plan correct and safe? |
+| PR review | Dev Team | Does the code meet quality standards? |
+
+### Automatic Safeguards
+
+- **`maxFilesToTouch`** — caps the number of files an agent may modify per job (default: 5)
+- **`requireTests`** — enforces test coverage for every implementation
+- **Mandatory lint** — `dart analyze` / `swiftlint` / `lintDebug` always runs before PR creation
+- **Branch isolation** — every job gets a dedicated feature branch; nothing commits directly to the base branch
+- **Full audit trail** — every state transition, agent log, and generated spec is persisted in PostgreSQL with timestamps
+
+---
+
+## Adding a New Platform
+
+1. Create `src/agents/{platform}/` with `spec-author.ts`, `implementer.ts`, `reviewer.ts` — each extending `BaseAgent`
+2. Register the new agent set in `src/agents/registry.ts`
+3. The Leader picks it up automatically via `getAgentsForPlatform(job.platform)`
+
+---
+
+## Plugin System
+
+Repos can override default agents by adding a `.gaia/` directory at their root:
+
+```
+your-repo/
+└── .gaia/
+    ├── gaia.json
+    └── agents/
+        ├── flutter-spec-author.ts
+        └── flutter-implementer.ts
+```
+
+**`gaia.json` example:**
+
+```json
+{
+  "name": "my-flutter-app",
+  "version": "1.0.0",
+  "config": {
+    "maxFilesToTouch": 10,
+    "patterns": {
+      "component": "lib/src/presentation/widgets/{name}.dart",
+      "test": "test/widgets/{name}_test.dart"
+    }
+  }
+}
+```
+
+---
+
+## Development
+
+```bash
+npm run dev          # Start with ts-node (watch-friendly)
+npx tsc --noEmit     # Type check only
+npm run lint         # ESLint
+npm test             # Jest
+npm run build        # Compile to dist/
+npm start            # Run compiled build
+```
+
+---
+
+## Deployment (Docker)
+
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+```bash
+docker build -t gaia-code-harness .
+docker run -p 3000:3000 --env-file .env gaia-code-harness
+```
+
+---
+
+## Environment Variables Reference
+
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | ✅ | PostgreSQL connection string |
+| `GITHUB_TOKEN` | ✅ | GitHub PAT with `repo` scope |
+| `GITHUB_OWNER` | ✅ | GitHub org or user name |
+| `OPENAI_API_KEY` | ⚠️ | Required for OpenAI-based agents |
+| `ANTHROPIC_API_KEY` | ⚠️ | Required for Claude-based agents |
+| `JIRA_BASE_URL` | Optional | e.g. `https://your-org.atlassian.net` |
+| `JIRA_EMAIL` | Optional | Jira user email |
+| `JIRA_API_TOKEN` | Optional | Jira API token |
+| `LOCAL_REPOS_PATH` | Optional | Local path to repos for faster cloning in demo |
+| `REPOS_BASE_PATH` | Optional | Workspace scratch dir (default `/tmp/gaia-workspace`) |
+| `PORT` | Optional | Server port (default `3000`) |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Runtime | Node.js 18+ / TypeScript 5.3 |
+| HTTP Server | Fastify 4 |
+| Database | PostgreSQL 15 via `pg` |
+| Git operations | simple-git |
+| LLM | OpenAI SDK · Anthropic SDK |
+| Validation | Zod |
+| HTTP client | Axios |
+
+---
+
+## Further Reading
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — deep-dive into the state machine, agent design, and data model
+- [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md) — step-by-step demo guide for non-technical stakeholders
+
+---
+
+## License
+
+MIT © Rappi Engineering
