@@ -7,6 +7,7 @@
 import { BaseAgent } from './base';
 import { Platform } from '../types';
 import { FlutterSpecAuthorAgent, FlutterImplementerAgent, FlutterReviewerAgent } from './flutter';
+import { FlutterWebSpecAuthorAgent, FlutterWebImplementerAgent, FlutterWebReviewerAgent } from './flutter_web';
 import { IosSpecAuthorAgent, IosImplementerAgent, IosReviewerAgent } from './ios';
 import { AndroidSpecAuthorAgent, AndroidImplementerAgent, AndroidReviewerAgent } from './android';
 
@@ -30,9 +31,9 @@ const platformRegistry: Record<string, () => PlatformAgents> = {
     reviewer: new FlutterReviewerAgent(),
   }),
   flutter_web: () => ({
-    specAuthor: new FlutterSpecAuthorAgent(),
-    implementer: new FlutterImplementerAgent(),
-    reviewer: new FlutterReviewerAgent(),
+    specAuthor: new FlutterWebSpecAuthorAgent(),
+    implementer: new FlutterWebImplementerAgent(),
+    reviewer: new FlutterWebReviewerAgent(),
   }),
   ios: () => ({
     specAuthor: new IosSpecAuthorAgent(),

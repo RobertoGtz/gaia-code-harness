@@ -1,7 +1,7 @@
 <h1 align="center">GAIA Code Harness</h1>
 
 <p align="center">
-  <strong>AI-powered code generation orchestrator with human oversight for Flutter, iOS, and Android.</strong>
+  <strong>AI-powered code generation orchestrator with human oversight for Flutter, Flutter Web, iOS, and Android.</strong>
 </p>
 
 <p align="center">
@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/TypeScript-5.3-blue?style=flat-square&logo=typescript" />
   <img src="https://img.shields.io/badge/Fastify-4.x-black?style=flat-square&logo=fastify" />
   <img src="https://img.shields.io/badge/PostgreSQL-15-336791?style=flat-square&logo=postgresql" />
-  <img src="https://img.shields.io/badge/platforms-Flutter%20%7C%20iOS%20%7C%20Android-orange?style=flat-square" />
+  <img src="https://img.shields.io/badge/platforms-Flutter%20%7C%20Flutter%20Web%20%7C%20iOS%20%7C%20Android-orange?style=flat-square" />
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" />
 </p>
 
@@ -45,7 +45,7 @@
 
 - **Spec-Driven Development** — generates a structured `TechnicalSpec` (requirements, tasks, design decisions, risks) before writing any code
 - **Human-in-the-Loop** — mandatory approval checkpoint after spec generation; the system never touches code without explicit sign-off
-- **Multi-Platform** — independent agent sets for Flutter/Dart, iOS/Swift, and Android/Kotlin with native toolchains
+- **Multi-Platform** — independent agent sets for Flutter (mobile), Flutter Web, iOS/Swift, and Android/Kotlin with native toolchains
 - **State Machine Orchestration** — 10-state lifecycle with full audit trail persisted in PostgreSQL
 - **Rich Terminal Output** — color-coded, emoji-enhanced logs per agent with a detailed end-of-job summary box
 - **Pluggable Agents** — repos can override default agents via a `.gaia/` directory
@@ -402,13 +402,32 @@ List all jobs. Optional query param: `?initiativeId=init-123`
 
 ## Platform Toolchains
 
-### Flutter
+### Flutter (mobile)
 
 | Tool                                  | Purpose               |
 | ------------------------------------- | --------------------- |
 | `flutter pub get` / `melos bootstrap` | Dependency resolution |
 | `flutter test`                        | Unit and widget tests |
 | `dart analyze`                        | Static analysis       |
+
+### Flutter Web
+
+Uses the same Dart/Flutter SDK as mobile but with web-specific constraints enforced at the agent level:
+
+| Tool              | Purpose               |
+| ----------------- | --------------------- |
+| `flutter pub get` | Dependency resolution |
+| `flutter test`    | Unit and widget tests |
+| `dart analyze`    | Static analysis       |
+
+**Additional agent-level checks:**
+
+| Check                  | Description                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------ |
+| Forbidden package scan | Blocks `camera`, `geolocator`, `local_auth`, `image_picker`, and other mobile-only plugins |
+| Responsive breakpoints | Warns if new page files lack `LayoutBuilder` or `MediaQuery`                               |
+| go_router enforcement  | LLM prompts explicitly forbid `Navigator.push` / `MaterialPageRoute`                       |
+| File path conventions  | Pages → `lib/src/web/pages/`, components → `lib/src/web/components/`                       |
 
 ### iOS / Swift
 
@@ -453,8 +472,19 @@ List all jobs. Optional query param: `?initiativeId=init-123`
 ## Adding a New Platform
 
 1. Create `src/agents/{platform}/` with `spec-author.ts`, `implementer.ts`, `reviewer.ts` — each extending `BaseAgent`
-2. Register the new agent set in `src/agents/registry.ts`
-3. The Leader picks it up automatically via `getAgentsForPlatform(job.platform)`
+2. Export them from `src/agents/{platform}/index.ts`
+3. Import and register the new agent set in `src/agents/registry.ts`
+4. Add the platform string to the `Platform` type in `src/types/index.ts`
+5. The Leader picks it up automatically via `getAgentsForPlatform(job.platform)`
+
+**Currently supported platforms:**
+
+| Platform         | Value         | Agent directory           |
+| ---------------- | ------------- | ------------------------- |
+| Flutter (mobile) | `flutter`     | `src/agents/flutter/`     |
+| Flutter Web      | `flutter_web` | `src/agents/flutter_web/` |
+| iOS / Swift      | `ios`         | `src/agents/ios/`         |
+| Android / Kotlin | `android`     | `src/agents/android/`     |
 
 ---
 
