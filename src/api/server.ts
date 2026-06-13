@@ -9,22 +9,53 @@ import cors from '@fastify/cors';
 import { initDatabase } from '../db';
 import { setupJobRoutes } from './routes/jobs';
 
+// ─── Terminal helpers ──────────────────────────────────────────────────────
+const C = {
+  reset:   '\x1b[0m',
+  bold:    '\x1b[1m',
+  cyan:    '\x1b[36m',
+  green:   '\x1b[32m',
+  yellow:  '\x1b[33m',
+  red:     '\x1b[31m',
+  gray:    '\x1b[90m',
+  blue:    '\x1b[34m',
+};
+
+function ts(): string {
+  return `${C.gray}${new Date().toLocaleTimeString('en-GB')}${C.reset}`;
+}
+
+function serverLog(method: string, url: string, status: number, ms: number): void {
+  const statusColor = status >= 500 ? C.red : status >= 400 ? C.yellow : C.green;
+  const methodColor = method === 'POST' ? C.cyan : method === 'GET' ? C.blue : C.yellow;
+  console.log(
+    `${ts()} ${C.bold}${C.gray}[HTTP]${C.reset}  ` +
+    `${C.bold}${methodColor}${method.padEnd(6)}${C.reset} ` +
+    `${url.padEnd(30)} ` +
+    `${C.bold}${statusColor}${status}${C.reset}  ` +
+    `${C.gray}${ms.toFixed(0)}ms${C.reset}`
+  );
+}
+
 /**
  * Start the Fastify HTTP server
  *
  * @param port - Port number to listen on (default: 3000)
  * @returns Fastify instance
- *
- * @example
- * const server = await startServer(3000);
- * // Server running on port 3000
  */
 export async function startServer(port: number = 3000) {
   // Initialize database connection
   await initDatabase();
 
   const app = Fastify({
-    logger: true,
+    logger: false,
+  });
+
+  // Log every request in a clean human-readable format
+  app.addHook('onResponse', (request, reply, done) => {
+    const ms = reply.elapsedTime;
+    serverLog(request.method, request.url, reply.statusCode, ms);
+    done();
   });
 
   // Enable CORS for cross-origin requests from Gaia Platform
@@ -41,9 +72,12 @@ export async function startServer(port: number = 3000) {
 
   try {
     await app.listen({ port, host: '0.0.0.0' });
-    console.log(`Server running on port ${port}`);
+    const line = '─'.repeat(50);
+    console.log(`\n${C.bold}${C.cyan}${line}${C.reset}`);
+    console.log(`${C.bold}${C.cyan}  GAIA Code Harness  —  ready on :${port}${C.reset}`);
+    console.log(`${C.bold}${C.cyan}${line}${C.reset}\n`);
   } catch (err) {
-    app.log.error(err);
+    console.error(`${C.red}✖ Failed to start server:${C.reset}`, err);
     process.exit(1);
   }
 

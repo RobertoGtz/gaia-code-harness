@@ -6,46 +6,82 @@
 
 import { AgentContext, AgentResult } from '../types';
 
+// ─── ANSI color helpers ────────────────────────────────────────────────────
+const C = {
+  reset:   '\x1b[0m',
+  bold:    '\x1b[1m',
+  dim:     '\x1b[2m',
+  // foreground
+  cyan:    '\x1b[36m',
+  green:   '\x1b[32m',
+  yellow:  '\x1b[33m',
+  red:     '\x1b[31m',
+  magenta: '\x1b[35m',
+  blue:    '\x1b[34m',
+  white:   '\x1b[37m',
+  gray:    '\x1b[90m',
+};
+
+const AGENT_COLOR: Record<string, string> = {
+  FlutterSpecAuthor:  C.cyan,
+  IosSpecAuthor:      C.blue,
+  AndroidSpecAuthor:  C.magenta,
+  FlutterImplementer: C.cyan,
+  IosImplementer:     C.blue,
+  AndroidImplementer: C.magenta,
+  FlutterReviewer:    C.cyan,
+  IosReviewer:        C.blue,
+  AndroidReviewer:    C.magenta,
+};
+
+function timestamp(): string {
+  return `${C.gray}${new Date().toLocaleTimeString('en-GB')}${C.reset}`;
+}
+
 /**
  * Abstract base class for all agents in the harness.
  * Agents are the core processing units that perform specific tasks
  * in the code generation pipeline.
  *
  * @abstract
- * @example
- * class SpecAuthorAgent extends BaseAgent {
- *   name = 'SpecAuthor';
- *
- *   async execute(context: AgentContext): Promise<AgentResult> {
- *     // Implementation here
- *   }
- * }
  */
 export abstract class BaseAgent {
-  /**
-   * Agent identifier used for logging and metrics
-   * @abstract
-   */
   abstract name: string;
-
-  /**
-   * Execute the agent's primary task.
-   * This is the main entry point called by the Leader orchestrator.
-   *
-   * @param context - Execution context containing job, workspace path, and relevant files
-   * @returns Promise resolving to the agent result with success/failure status
-   * @abstract
-   */
   abstract execute(context: AgentContext): Promise<AgentResult>;
 
-  /**
-   * Log a message with the agent's name prefix.
-   * All log output is captured in the job's progress logs for debugging.
-   *
-   * @param message - The message to log
-   * @protected
-   */
+  private get color(): string {
+    return AGENT_COLOR[this.name] ?? C.white;
+  }
+
+  private get tag(): string {
+    return `${this.color}${C.bold}[${this.name}]${C.reset}`;
+  }
+
   protected log(message: string): void {
-    console.log(`[${this.name}] ${message}`);
+    console.log(`${timestamp()} ${this.tag} ${message}`);
+  }
+
+  protected logStep(step: string): void {
+    console.log(`${timestamp()} ${this.tag} ${C.bold}${C.white}▶ ${step}${C.reset}`);
+  }
+
+  protected logSuccess(message: string): void {
+    console.log(`${timestamp()} ${this.tag} ${C.green}✔ ${message}${C.reset}`);
+  }
+
+  protected logWarn(message: string): void {
+    console.log(`${timestamp()} ${this.tag} ${C.yellow}⚠ ${message}${C.reset}`);
+  }
+
+  protected logError(message: string): void {
+    console.error(`${timestamp()} ${this.tag} ${C.red}✖ ${message}${C.reset}`);
+  }
+
+  protected logJSON(label: string, data: unknown): void {
+    const pretty = JSON.stringify(data, null, 2)
+      .split('\n')
+      .map((l, i) => i === 0 ? l : `       ${l}`)
+      .join('\n');
+    console.log(`${timestamp()} ${this.tag} ${C.gray}${label}:${C.reset}\n       ${pretty}`);
   }
 }

@@ -96,12 +96,12 @@ export async function setupJobRoutes(app: FastifyInstance) {
       // Si viene de Jira, necesitamos fetchear info (mock por ahora)
       let jobData: Omit<CodeGenerationJob, 'id' | 'status' | 'progressLogs' | 'createdAt' | 'updatedAt'>;
       
-      if (body.fullContext) {
-        // Contexto completo directo de Gaia
+        if (body.fullContext) {
+        // Contexto completo via fullContext wrapper
         jobData = {
           jiraTicketId: body.jiraTicketId,
           jiraEpicId: body.jiraEpicId,
-          initiativeId: `init-${Date.now()}`, // Gaia debería pasar esto
+          initiativeId: `init-${Date.now()}`,
           title: body.fullContext.title,
           platform: body.fullContext.platform,
           repo: body.fullContext.repo,
@@ -117,15 +117,36 @@ export async function setupJobRoutes(app: FastifyInstance) {
           maxFilesToTouch: 5,
           requireTests: true,
         };
+      } else if (body.platform && body.title) {
+        // Flat body — platform/title/repo/acceptanceCriteria directly
+        const rawAC = body.acceptanceCriteria ?? [];
+        jobData = {
+          jiraTicketId: body.jiraTicketId,
+          jiraEpicId: body.jiraEpicId,
+          initiativeId: `init-${Date.now()}`,
+          title: body.title,
+          platform: body.platform,
+          repo: body.repo || 'demo-repo',
+          module: body.module,
+          targetBranch: body.targetBranch || 'main',
+          description: body.description,
+          acceptanceCriteria: rawAC.map((ac, i) => ({
+            id: typeof ac === 'string' ? `ac-${i}` : (ac.id ?? `ac-${i}`),
+            text: typeof ac === 'string' ? ac : ac.text,
+            testable: true,
+          })),
+          figmaUrl: body.figmaUrl,
+          maxFilesToTouch: 5,
+          requireTests: true,
+        };
       } else {
         // Solo ticket ID - necesitamos fetchear de Jira
-        // TODO: Integrar con MCP Jira para fetchear info
         jobData = {
           jiraTicketId: body.jiraTicketId,
           jiraEpicId: body.jiraEpicId,
           initiativeId: `init-${Date.now()}`,
           title: `Ticket ${body.jiraTicketId || body.jiraEpicId}`,
-          platform: 'flutter', // Default
+          platform: 'flutter',
           repo: 'rpp-pyme-multiplatform',
           targetBranch: 'develop',
           acceptanceCriteria: [],
@@ -142,7 +163,7 @@ export async function setupJobRoutes(app: FastifyInstance) {
       
       return reply.status(201).send({ job });
     } catch (error) {
-      console.error('Error creating job:', error);
+      console.error(`\x1b[31m✖ [HTTP] Error creating job:\x1b[0m`, error);
       return reply.status(500).send({ error: 'Failed to create job' });
     }
   });

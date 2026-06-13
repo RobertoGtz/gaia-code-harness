@@ -114,11 +114,23 @@ export async function commitAndPush(
   git: SimpleGit,
   message: string,
   files: string[] = ['.'],
-  branch?: string
+  branch?: string,
+  repo?: string
 ): Promise<void> {
   await git.add(files);
   await git.commit(message);
   if (branch) {
+    // If GITHUB_TOKEN + repo provided, point origin to GitHub before pushing
+    const token = process.env.GITHUB_TOKEN;
+    const owner = process.env.GITHUB_OWNER || 'rappi';
+    if (token && repo) {
+      const githubUrl = `https://${token}@github.com/${owner}/${repo}.git`;
+      try {
+        await git.remote(['set-url', 'origin', githubUrl]);
+      } catch {
+        await git.remote(['add', 'origin', githubUrl]);
+      }
+    }
     await git.push('origin', branch, ['--force']);
   }
 }
@@ -230,7 +242,21 @@ export async function createGitHubPR(options: {
       id: response.data.id,
       number: response.data.number,
     };
-  } catch (error) {
+  } catch (error: any) {
+    // 422 = PR already exists for this branch — fetch and return the existing one
+    if (error?.response?.status === 422) {
+      const existing = await axios.get(
+        `https://api.github.com/repos/${owner}/${repo}/pulls?head=${owner}:${head}&base=${base}&state=open`,
+        { headers: { Authorization: `token ${githubToken}`, Accept: 'application/vnd.github.v3+json' } }
+      );
+      if (existing.data.length > 0) {
+        return {
+          url: existing.data[0].html_url,
+          id: existing.data[0].id,
+          number: existing.data[0].number,
+        };
+      }
+    }
     throw new Error(`Failed to create PR: ${error}`);
   }
 }

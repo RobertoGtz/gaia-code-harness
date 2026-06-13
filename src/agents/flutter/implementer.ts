@@ -25,7 +25,7 @@ export class FlutterImplementerAgent extends BaseAgent {
     const { job, workspacePath } = context;
     const repoPath = path.join(workspacePath, 'repo');
     
-    this.log(`Implementing: ${job.title}`);
+    this.logStep(`Implementing: ${job.title}`);
     
     try {
       // 1. Setup repository (clone or copy from local)
@@ -37,7 +37,7 @@ export class FlutterImplementerAgent extends BaseAgent {
           error: repoSetup.error,
         };
       }
-      this.log(repoSetup.output);
+      this.logSuccess(repoSetup.output);
       
       // 2. Verify Flutter environment
       const env = await verifyFlutterEnvironment(repoPath);
@@ -53,12 +53,12 @@ export class FlutterImplementerAgent extends BaseAgent {
       const git = initGit(repoPath);
       const branchName = generateBranchName(job.jiraTicketId || job.id.slice(0, 8), job.title);
       await createBranch(git, branchName, job.targetBranch);
-      this.log(`Created branch: ${branchName}`);
+      this.logSuccess(`Branch created: ${branchName}`);
       
       // 4. Resolve dependencies (melos for monorepos, pub get otherwise)
       const isMonorepo = await fileExists(path.join(repoPath, 'melos.yaml'));
       if (isMonorepo) {
-        this.log('Running melos bootstrap...');
+        this.logStep('Running melos bootstrap...');
         const bootstrapResult = await runMelosBootstrap(repoPath);
         if (!bootstrapResult.passed) {
           return {
@@ -68,7 +68,7 @@ export class FlutterImplementerAgent extends BaseAgent {
           };
         }
       } else {
-        this.log('No melos.yaml found, running flutter pub get...');
+        this.logStep('No melos.yaml found — running flutter pub get...');
         const pubGetResult = await runFlutterPubGet(repoPath);
         if (!pubGetResult.passed) {
           return {
@@ -92,7 +92,7 @@ export class FlutterImplementerAgent extends BaseAgent {
       }
       
       for (const task of spec.tasks) {
-        this.log(`Processing task: ${task.description}`);
+        this.logStep(`Task: ${task.description}`);
         
         if (task.type === 'create' && task.filePath) {
           const filePath = path.join(repoPath, task.filePath);
@@ -129,7 +129,7 @@ export class FlutterImplementerAgent extends BaseAgent {
       }
       
       // 6. Run tests
-      this.log('Running tests...');
+      this.logStep('Running tests...');
       const testResult = await runFlutterTests({
         workingDir: repoPath,
         module: job.module,
@@ -145,8 +145,8 @@ export class FlutterImplementerAgent extends BaseAgent {
       }
       
       // 7. Commit changes
-      this.log('Committing changes...');
-      await commitAndPush(git, `feat: ${job.title}\n\nCloses ${job.jiraTicketId || 'N/A'}`, ['.'], branchName);
+      this.logStep('Committing & pushing changes...');
+      await commitAndPush(git, `feat: ${job.title}\n\nCloses ${job.jiraTicketId || 'N/A'}`, ['.'], branchName, job.repo);
       
       return {
         success: true,
@@ -183,14 +183,8 @@ ${isTest ? 'Generate a complete test file.' : 'Generate the implementation file.
         { role: 'user', content: userPrompt },
       ]);
       return response.text.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '');
-    } catch {
-      return isTest
-        ? `import 'package:flutter_test/flutter_test.dart';
-void main() { test('placeholder', () { expect(true, true); }); }
-`
-        : `import 'package:flutter/material.dart';
-// TODO: implement ${task.description}
-`;
+    } catch (err) {
+      throw new Error(`LLM unavailable: ${err}`);
     }
   }
 }

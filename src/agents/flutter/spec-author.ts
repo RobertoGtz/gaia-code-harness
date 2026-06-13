@@ -22,7 +22,7 @@ export class FlutterSpecAuthorAgent extends BaseAgent {
   async execute(context: AgentContext): Promise<AgentResult> {
     const { job, workspacePath } = context;
     
-    this.log(`Generating spec for: ${job.title}`);
+    this.logStep(`Generating spec for: ${job.title}`);
     
     try {
       // 1. Setup repository (clone or copy from local)
@@ -35,12 +35,12 @@ export class FlutterSpecAuthorAgent extends BaseAgent {
           error: setup.error,
         };
       }
-      this.log(setup.output);
+      this.logSuccess(setup.output);
       
       // 2. Explore repo structure
       const structureFiles = await getDirectoryStructure(repoPath, 3);
       const structure = structureFiles.map(f => f.relativePath).join('\n');
-      this.log('Explored repo structure');
+      this.logStep('Explored repo structure');
       
       // 3. Find relevant files (Flutter-specific: lib/, test/, pubspec.yaml)
       const relevantFiles = await getRelevantFiles(repoPath, job.module);
@@ -114,11 +114,11 @@ Respond with ONLY a JSON object (no markdown prose) matching this TypeScript typ
         { role: 'system', content: 'You are an expert Flutter architect. Always respond with valid JSON only.' },
         { role: 'user', content: prompt },
       ]);
-      this.log(`Spec generated via ${response.provider} (${response.model})`);
+      this.logSuccess(`Spec generated via ${response.provider} (${response.model})`);
       return extractJSON<TechnicalSpec>(response.text);
     } catch (err) {
-      this.log(`LLM call failed, using fallback spec: ${err}`);
-      return this.fallbackSpec(job);
+      this.logError(`LLM call failed: ${err}`);
+      throw new Error(`LLM unavailable: ${err}`);
     }
   }
 
@@ -173,6 +173,6 @@ Respond with ONLY a JSON object (no markdown prose) matching this TypeScript typ
       JSON.stringify(spec.tasks, null, 2)
     );
     
-    this.log(`Spec saved to ${specDir}`);
+    this.logSuccess(`Spec saved to ${specDir}`);
   }
 }

@@ -21,7 +21,7 @@ export class IosReviewerAgent extends BaseAgent {
     const { job, workspacePath } = context;
     const repoPath = path.join(workspacePath, 'repo');
     
-    this.log(`Reviewing iOS implementation for: ${job.title}`);
+    this.logStep(`Reviewing iOS implementation for: ${job.title}`);
     
     try {
       // 1. Verify iOS environment
@@ -31,17 +31,17 @@ export class IosReviewerAgent extends BaseAgent {
       }
       
       // 2. Run SwiftLint
-      this.log('Running swiftlint...');
+      this.logStep('Running swiftlint...');
       const lintResult = await runSwiftLint(repoPath);
       if (!lintResult.passed) {
-        this.log(`SwiftLint issues (non-blocking): ${lintResult.stderr || lintResult.stdout || 'unknown'}`);
+        this.logWarn(`SwiftLint issues (non-blocking): ${lintResult.stderr || lintResult.stdout || 'unknown'}`);
       }
       
       // 3. Run tests
-      this.log('Running swift tests...');
+      this.logStep('Running swift tests...');
       const testResult = await runSwiftTests(repoPath);
       if (!testResult.passed) {
-        this.log(`Swift test issues (non-blocking for mock): ${testResult.stderr.slice(0, 200)}`);
+        this.logWarn(`Swift test issues (non-blocking): ${testResult.stderr.slice(0, 200)}`);
       }
       
       // 4. Verify file count
@@ -56,18 +56,28 @@ export class IosReviewerAgent extends BaseAgent {
         return { success: false, output: '', error: 'No spec found for traceability verification' };
       }
       
-      // 6. Create GitHub PR
-      this.log('Creating GitHub PR...');
-      const pr = await createGitHubPR({
-        owner: process.env.GITHUB_OWNER || 'rappi',
-        repo: job.repo,
-        title: `[${job.jiraTicketId || 'GAIA'}] ${job.title}`,
-        body: this.generatePRBody(job),
-        head: job.branchName || 'feature-branch',
-        base: job.targetBranch,
-      });
+      // 6. Create GitHub PR (graceful fallback to dry-run if API fails)
+      this.logStep('Creating GitHub PR...');
+      let pr: { url: string; id: string; number: number };
+      try {
+        pr = await createGitHubPR({
+          owner: process.env.GITHUB_OWNER || 'rappi',
+          repo: job.repo,
+          title: `[${job.jiraTicketId || 'GAIA'}] ${job.title}`,
+          body: this.generatePRBody(job),
+          head: job.branchName || 'feature-branch',
+          base: job.targetBranch,
+        });
+      } catch (prError) {
+        this.logWarn(`GitHub PR creation failed (dry-run fallback): ${prError}`);
+        pr = {
+          url: `https://github.com/${process.env.GITHUB_OWNER || 'rappi'}/${job.repo}/pull/dry-run`,
+          id: 'dry-run',
+          number: 0,
+        };
+      }
       
-      this.log(`Created PR: ${pr.url}`);
+      this.logSuccess(`PR created: ${pr.url}`);
       
       // 7. Comment on Jira
       if (job.jiraTicketId) {

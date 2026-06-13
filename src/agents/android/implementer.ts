@@ -24,7 +24,7 @@ export class AndroidImplementerAgent extends BaseAgent {
     const { job, workspacePath } = context;
     const repoPath = path.join(workspacePath, 'repo');
     
-    this.log(`Implementing Android feature: ${job.title}`);
+    this.logStep(`Implementing Android feature: ${job.title}`);
     
     try {
       // 1. Setup repository
@@ -32,25 +32,25 @@ export class AndroidImplementerAgent extends BaseAgent {
       if (!repoSetup.success) {
         return { success: false, output: '', error: repoSetup.error };
       }
-      this.log(repoSetup.output);
+      this.logSuccess(repoSetup.output);
       
       // 2. Verify Android environment
       const env = await verifyAndroidEnvironment(repoPath);
       if (!env.valid) {
-        this.log(`Android environment issues (non-blocking): ${env.errors.join(', ')}`);
+        this.logWarn(`Android environment issues (non-blocking): ${env.errors.join(', ')}`);
       }
       
       // 3. Setup git and create branch
       const git = initGit(repoPath);
       const branchName = generateBranchName(job.jiraTicketId || job.id.slice(0, 8), job.title);
       await createBranch(git, branchName, job.targetBranch);
-      this.log(`Created branch: ${branchName}`);
+      this.logSuccess(`Branch created: ${branchName}`);
       
       // 4. Resolve Gradle dependencies
-      this.log('Running gradle sync...');
+      this.logStep('Running gradle sync...');
       const syncResult = await runGradleSync(repoPath);
       if (!syncResult.passed) {
-        this.log(`Gradle sync issues (non-blocking): ${syncResult.stderr.slice(0, 200)}`);
+        this.logWarn(`Gradle sync issues (non-blocking): ${syncResult.stderr.slice(0, 200)}`);
       }
       
       // 5. Implement each task from spec
@@ -62,7 +62,7 @@ export class AndroidImplementerAgent extends BaseAgent {
       }
       
       for (const task of spec.tasks) {
-        this.log(`Processing task: ${task.description}`);
+        this.logStep(`Task: ${task.description}`);
         
         if (task.type === 'create' && task.filePath) {
           const filePath = path.join(repoPath, task.filePath);
@@ -94,17 +94,17 @@ export class AndroidImplementerAgent extends BaseAgent {
       }
       
       // 6. Run tests
-      this.log('Running gradle tests...');
+      this.logStep('Running gradle tests...');
       const testResult = await runGradleTests(repoPath, job.module);
       
       if (!testResult.passed) {
-        this.log(`Gradle tests did not pass (mock code): ${testResult.stderr.slice(0, 200)}`);
-        this.log('Continuing with commit (mock implementation)...');
+        this.logWarn(`Gradle tests did not pass (non-blocking): ${testResult.stderr.slice(0, 200)}`);
+        this.log('Continuing with commit...');
       }
       
       // 7. Commit changes
-      this.log('Committing changes...');
-      await commitAndPush(git, `feat: ${job.title}\n\nCloses ${job.jiraTicketId || 'N/A'}`, ['.'], branchName);
+      this.logStep('Committing & pushing changes...');
+      await commitAndPush(git, `feat: ${job.title}\n\nCloses ${job.jiraTicketId || 'N/A'}`, ['.'], branchName, job.repo);
       
       return {
         success: true,
@@ -137,21 +137,8 @@ ${isXml ? 'Generate a complete Android XML layout file.' : isTest ? 'Generate a 
         { role: 'user', content: userPrompt },
       ]);
       return response.text.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '');
-    } catch {
-      if (isXml) return `<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content" />
-`;
-      if (isTest) return `package com.rappi.app
-import org.junit.Test
-class PlaceholderTest {
-    @Test fun placeholder() { assert(true) }
-}
-`;
-      return `package com.rappi.app
-// TODO: implement ${task.description}
-`;
+    } catch (err) {
+      throw new Error(`LLM unavailable: ${err}`);
     }
   }
 

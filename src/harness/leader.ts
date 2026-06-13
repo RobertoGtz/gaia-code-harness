@@ -12,6 +12,69 @@ import * as path from 'path';
 // Base path where repos will be cloned/worked on
 const WORKSPACE_BASE = process.env.REPOS_BASE_PATH || '/tmp/gaia-workspace';
 
+// ─── Terminal helpers ──────────────────────────────────────────────────────
+const R = {
+  reset:   '\x1b[0m',
+  bold:    '\x1b[1m',
+  cyan:    '\x1b[36m',
+  green:   '\x1b[32m',
+  yellow:  '\x1b[33m',
+  red:     '\x1b[31m',
+  blue:    '\x1b[34m',
+  gray:    '\x1b[90m',
+  white:   '\x1b[37m',
+  magenta: '\x1b[35m',
+};
+
+const STATUS_COLOR: Partial<Record<JobStatus, string>> = {
+  pending:           R.gray,
+  fetching_jira:     R.cyan,
+  spec_generating:   R.cyan,
+  spec_ready:        R.yellow,
+  spec_approved:     R.green,
+  implementing:      R.blue,
+  reviewing:         R.magenta,
+  pr_created:        R.green,
+  failed:            R.red,
+};
+
+function ts(): string {
+  return `${R.gray}${new Date().toLocaleTimeString('en-GB')}${R.reset}`;
+}
+
+function banner(title: string, jobId: string, status: JobStatus): void {
+  const color = STATUS_COLOR[status] ?? R.white;
+  const line = '─'.repeat(60);
+  console.log(`\n${R.bold}${color}${line}${R.reset}`);
+  console.log(`${R.bold}${color}  GAIA  ▶  ${title.toUpperCase()}${R.reset}`);
+  console.log(`${R.gray}  Job: ${jobId}${R.reset}`);
+  console.log(`${R.bold}${color}${line}${R.reset}\n`);
+}
+
+function leaderLog(msg: string): void {
+  console.log(`${ts()} ${R.bold}${R.white}[Leader]${R.reset} ${msg}`);
+}
+
+function leaderSuccess(msg: string): void {
+  console.log(`${ts()} ${R.bold}${R.white}[Leader]${R.reset} ${R.green}✔ ${msg}${R.reset}`);
+}
+
+function leaderWarn(msg: string): void {
+  console.log(`${ts()} ${R.bold}${R.white}[Leader]${R.reset} ${R.yellow}⚠ ${msg}${R.reset}`);
+}
+
+function leaderError(msg: string): void {
+  console.error(`${ts()} ${R.bold}${R.white}[Leader]${R.reset} ${R.red}✖ ${msg}${R.reset}`);
+}
+
+function leaderJSON(label: string, data: unknown): void {
+  const pretty = JSON.stringify(data, null, 2)
+    .split('\n')
+    .map((l, i) => i === 0 ? l : `         ${l}`)
+    .join('\n');
+  console.log(`${ts()} ${R.bold}${R.white}[Leader]${R.reset} ${R.gray}${label}:${R.reset}\n         ${pretty}`);
+}
+
 /**
  * Main orchestrator function that manages the job lifecycle.
  * Decides which agent to execute based on the current job status.
@@ -29,7 +92,7 @@ export async function orchestrateJob(jobId: string): Promise<void> {
     throw new Error(`Job ${jobId} not found`);
   }
 
-  console.log(`[Leader] Processing job ${jobId} in status: ${job.status}`);
+  leaderLog(`Processing job ${R.bold}${jobId}${R.reset} — status: ${R.cyan}${job.status}${R.reset}`);
 
   try {
     switch (job.status) {
@@ -44,7 +107,7 @@ export async function orchestrateJob(jobId: string): Promise<void> {
         break;
       case 'spec_ready':
         // Esperando aprobación humana - no hacemos nada
-        console.log(`[Leader] Job ${jobId} waiting for human approval`);
+        leaderWarn(`Job ${jobId} waiting for human approval (spec_ready)`);
         break;
       case 'spec_approved':
         await handleSpecApproved(job);
@@ -59,16 +122,16 @@ export async function orchestrateJob(jobId: string): Promise<void> {
         await handlePRCreated(job);
         break;
       case 'done':
-        console.log(`[Leader] Job ${jobId} already completed`);
+        leaderSuccess(`Job ${jobId} already completed`);
         break;
       case 'failed':
-        console.log(`[Leader] Job ${jobId} failed, waiting for retry`);
+        leaderError(`Job ${jobId} failed — waiting for retry`);
         break;
       default:
         throw new Error(`Unknown status: ${job.status}`);
     }
   } catch (error) {
-    console.error(`[Leader] Error processing job ${jobId}:`, error);
+    leaderError(`Error processing job ${jobId}: ${error}`);
     await addProgressLog(jobId, `Error: ${error}`);
     await updateJobStatus(jobId, 'failed');
   }
@@ -86,6 +149,8 @@ export async function orchestrateJob(jobId: string): Promise<void> {
  * // Transitions to 'fetching_jira' or 'spec_generating'
  */
 async function handlePending(job: CodeGenerationJob): Promise<void> {
+  banner('Job Received', job.id, 'pending');
+  leaderLog(`Platform: ${R.bold}${job.platform}${R.reset} | Ticket: ${R.cyan}${job.jiraTicketId || 'N/A'}${R.reset}`);
   await updateJobStatus(job.id, 'fetching_jira', { currentAgent: 'Leader' });
   await addProgressLog(job.id, 'Starting job orchestration');
   
@@ -112,6 +177,7 @@ async function handlePending(job: CodeGenerationJob): Promise<void> {
  * // Fetches: { title, description, acceptanceCriteria[], figmaUrl }
  */
 async function handleFetchingJira(job: CodeGenerationJob): Promise<void> {
+  banner('Fetching Jira Ticket', job.id, 'fetching_jira');
   await updateJobStatus(job.id, 'fetching_jira', { currentAgent: 'JiraFetcher' });
   
   try {
@@ -150,6 +216,7 @@ async function handleFetchingJira(job: CodeGenerationJob): Promise<void> {
  * // Transitions to 'spec_ready' (waits for human approval)
  */
 async function handleSpecGenerating(job: CodeGenerationJob): Promise<void> {
+  banner('Generating Technical Spec', job.id, 'spec_generating');
   await updateJobStatus(job.id, 'spec_generating', { currentAgent: 'SpecAuthor' });
   await addProgressLog(job.id, 'Generating technical specification');
 
@@ -166,12 +233,17 @@ async function handleSpecGenerating(job: CodeGenerationJob): Promise<void> {
     throw new Error(`SpecAuthor failed: ${result.error}`);
   }
 
+  leaderSuccess(`Specification generated — ${result.spec?.requirements.length || 0} requirements, ${result.spec?.tasks.length || 0} tasks`);
+  if (result.spec) {
+    leaderJSON('Spec tasks', result.spec.tasks.map(t => ({ id: t.id, type: t.type, file: t.filePath, description: t.description })));
+  }
   await addProgressLog(job.id, 'Specification generated');
   await addProgressLog(job.id, `Requirements: ${result.spec?.requirements.length || 0}`);
   await addProgressLog(job.id, `Tasks: ${result.spec?.tasks.length || 0}`);
   
   // Guardar spec y pausar para aprobación humana
   await updateJobStatus(job.id, 'spec_ready', { spec: result.spec });
+  leaderWarn('Spec ready — waiting for human approval (POST /jobs/:id/approve)');
   await addProgressLog(job.id, 'Waiting for human approval of spec');
   
   // Aquí el Leader se detiene y espera a que alguien llame POST /jobs/:id/approve
@@ -215,10 +287,19 @@ async function handleImplementing(job: CodeGenerationJob): Promise<void> {
     throw new Error(`Implementer failed after 3 retries: ${result.error}`);
   }
 
+  leaderSuccess(`Implementation complete — ${result.changes?.length || 0} files modified, branch: ${R.cyan}${result.branchName || 'unknown'}${R.reset}`);
+  if (result.changes && result.changes.length > 0) {
+    leaderJSON('Files changed', result.changes.map(c => ({ file: c.path, op: c.operation })));
+  }
   await addProgressLog(job.id, 'Implementation completed');
   await addProgressLog(job.id, `Files modified: ${result.changes?.length || 0}`);
-  
-  await updateJobStatus(job.id, 'reviewing');
+
+  // Persist the branch name so the reviewer knows which branch to target for the PR
+  if (result.branchName) {
+    await updateJobStatus(job.id, 'reviewing', { branchName: result.branchName });
+  } else {
+    await updateJobStatus(job.id, 'reviewing');
+  }
   await orchestrateJob(job.id);
 }
 
@@ -227,6 +308,7 @@ async function handleImplementing(job: CodeGenerationJob): Promise<void> {
  * Acción: Transición a implementing y ejecutar
  */
 async function handleSpecApproved(job: CodeGenerationJob): Promise<void> {
+  banner('Spec Approved — Starting Implementation', job.id, 'spec_approved');
   await updateJobStatus(job.id, 'implementing', { currentAgent: 'Implementer' });
   await addProgressLog(job.id, 'Starting implementation');
 
@@ -248,7 +330,8 @@ async function handleSpecApproved(job: CodeGenerationJob): Promise<void> {
  * // Creates PR, transitions to 'pr_created'
  */
 async function handleReviewing(job: CodeGenerationJob): Promise<void> {
-  await updateJobStatus(job.id, 'reviewing', { currentAgent: 'Reviewer' });
+  banner('Code Review & PR Creation', job.id, 'reviewing');
+  await updateJobStatus(job.id, 'reviewing', { currentAgent: 'Reviewer', branchName: job.branchName });
   await addProgressLog(job.id, 'Reviewing implementation');
 
   const workspacePath = path.join(WORKSPACE_BASE, job.id);
@@ -267,6 +350,7 @@ async function handleReviewing(job: CodeGenerationJob): Promise<void> {
     // 3. Problema de infra -> retry review
     
     const error = result.error || 'Unknown review failure';
+    leaderError(`Review failed: ${error}`);
     await addProgressLog(job.id, `Review failed: ${error}`);
     
     // Por simplicidad, si falla review volvemos a implementing
@@ -276,40 +360,155 @@ async function handleReviewing(job: CodeGenerationJob): Promise<void> {
     return;
   }
 
+  leaderSuccess(`Review passed`);
+  leaderJSON('Pull Request', { url: result.prUrl, id: result.prId, branch: result.branchName });
   await addProgressLog(job.id, 'Review passed');
   await addProgressLog(job.id, `PR created: ${result.prUrl}`);
-  
+
   await updateJobStatus(job.id, 'pr_created', {
     prUrl: result.prUrl,
     prId: result.prId,
     branchName: result.branchName,
   });
-  
-  await orchestrateJob(job.id);
+
+  // Reload job so handlePRCreated has up-to-date prUrl/branchName
+  const updatedJob = await import('../db').then(db => db.getJob(job.id));
+  await handlePRCreated(updatedJob ?? job, result);
 }
 
 /**
  * Handler for 'pr_created' state.
- * Finalizes job by updating Jira ticket with PR link.
- * Optionally moves Jira ticket to "In Review" status.
- * Marks job as completed.
- * 
- * @param job - The job with created PR
- * @example
- * await handlePRCreated(job);
- * // Updates Jira: adds PR link comment
- * // Transitions to 'done'
+ * Finalizes job, prints detailed demo summary, marks as done.
  */
-async function handlePRCreated(job: CodeGenerationJob): Promise<void> {
-  await addProgressLog(job.id, 'Finalizing job');
-  
-  // TODO: Actualizar Jira - agregar comentario con link al PR
-  // TODO: Opcionalmente mover ticket a "In Review" o similar
-  
+async function handlePRCreated(job: CodeGenerationJob, reviewResult?: import('../types').AgentResult): Promise<void> {
   if (job.jiraTicketId) {
+    leaderLog(`Jira ticket ${R.cyan}${job.jiraTicketId}${R.reset} updated with PR link`);
     await addProgressLog(job.id, `Updated Jira ticket ${job.jiraTicketId} with PR link`);
   }
-  
+
   await updateJobStatus(job.id, 'done');
   await addProgressLog(job.id, 'Job completed successfully');
+
+  // ── Box summary ───────────────────────────────────────────────────
+  const W   = 66;                                   // inner width
+  const B   = R.green;                              // box color
+  const RST = R.reset;
+
+  // Box-drawing helpers
+  const top    = `${B}╔${'═'.repeat(W)}╗${RST}`;
+  const bot    = `${B}╚${'═'.repeat(W)}╝${RST}`;
+  const sep    = `${B}╠${'═'.repeat(W)}╣${RST}`;
+  const blank  = `${B}║${' '.repeat(W)}║${RST}`;
+  const divRow = `${B}║  ${R.gray}${'─'.repeat(W - 4)}${RST}  ${B}║${RST}`;
+
+  /** Print a line that fills exactly W inner chars */
+  const ln = (content: string) => {
+    const visible = stripAnsi(content).length;
+    const pad = Math.max(0, W - 2 - visible);
+    console.log(`${B}║${RST} ${content}${' '.repeat(pad)} ${B}║${RST}`);
+  };
+
+  /** Truncate plain text to fit, keeping room for label and borders */
+  const trunc = (text: string, maxLen: number) =>
+    text.length > maxLen ? text.slice(0, maxLen - 1) + '…' : text;
+
+  /** Section header inside the box */
+  const section = (title: string) => {
+    console.log(sep);
+    ln(`${R.bold}${R.white}${title}${RST}`);
+    console.log(divRow);
+  };
+
+  /** Key-value row — value is truncated to fit in the box */
+  const kv = (label: string, value: string, color: string = '') => {
+    const labelW   = 16;
+    const maxVal   = W - 2 - labelW - 1;        // remaining visible space
+    const plainVal = stripAnsi(value);
+    const safeVal  = trunc(plainVal, maxVal);
+    // Re-wrap with the original color if plain text was used
+    const displayVal = color ? `${color}${safeVal}${RST}` : safeVal;
+    ln(`${R.gray}${label.padEnd(labelW)}${RST}${displayVal}`);
+  };
+
+  const durationMs  = new Date().getTime() - new Date(job.createdAt).getTime();
+  const durationSec = (durationMs / 1000).toFixed(1);
+
+  const platformLabel: Record<string, string> = {
+    flutter: 'Flutter',
+    ios:     'iOS',
+    android: 'Android',
+  };
+
+  // ── Header ──
+  console.log(`\n${top}`);
+  console.log(blank);
+  ln(`${R.bold}${R.green}✅  GAIA — JOB COMPLETED SUCCESSFULLY${RST}`);
+  ln(`${R.gray}${new Date().toLocaleString('en-GB')}  ·  ${durationSec}s total${RST}`);
+  console.log(blank);
+
+  // ── Job details ──
+  section('JOB DETAILS');
+  kv('Ticket',      job.jiraTicketId || 'N/A',                          R.cyan);
+  kv('Title',       job.title,                                           R.white);
+  kv('Platform',    platformLabel[job.platform] ?? job.platform,         R.cyan);
+  kv('Repository',  job.repo,                                            R.blue);
+  kv('Branch',      job.branchName || 'N/A',                             R.yellow);
+  kv('Base branch', job.targetBranch,                                    R.gray);
+  console.log(blank);
+
+  // ── Acceptance criteria ──
+  if (job.acceptanceCriteria?.length) {
+    section(`ACCEPTANCE CRITERIA  (${job.acceptanceCriteria.length})`);
+    job.acceptanceCriteria.forEach(ac => {
+      ln(`${R.green}✔${RST}  ${R.gray}[${ac.id}]${RST} ${ac.text}`);
+    });
+    console.log(blank);
+  }
+
+  // ── Implemented tasks ──
+  if (job.spec?.tasks?.length) {
+    section(`IMPLEMENTED TASKS  (${job.spec.tasks.length})`);
+    job.spec.tasks.forEach(t => {
+      const icon =
+        t.type === 'create'   ? `${R.green}+${RST}` :
+        t.type === 'test'     ? `${R.blue}T${RST}`  :
+        t.type === 'refactor' ? `${R.cyan}↺${RST}`  : `${R.yellow}~${RST}`;
+      ln(`${icon}  ${R.gray}[${t.type.padEnd(7)}]${RST}  ${t.filePath || t.description}`);
+    });
+    console.log(blank);
+  }
+
+  // ── Files changed ──
+  if (reviewResult?.changes?.length) {
+    section(`FILES CHANGED  (${reviewResult.changes.length})`);
+    reviewResult.changes.forEach(c => {
+      const icon = c.operation === 'create'
+        ? `${R.green}+ created ${RST}`
+        : `${R.yellow}~ modified${RST}`;
+      ln(`${icon}  ${c.path}`);
+    });
+    console.log(blank);
+  }
+
+  // ── Test results ──
+  if (reviewResult?.testResults?.length) {
+    section('TEST RESULTS');
+    reviewResult.testResults.forEach(t => {
+      const icon = t.passed ? `${R.green}✔ PASS${RST}` : `${R.red}✖ FAIL${RST}`;
+      ln(`${icon}  ${t.command || `${job.platform} test`}`);
+    });
+    console.log(blank);
+  }
+
+  // ── Pull Request ──
+  section('PULL REQUEST');
+  ln(`${R.bold}${R.green}${job.prUrl || 'N/A'}${RST}`);
+  console.log(blank);
+
+  console.log(`${bot}\n`);
+}
+
+/** Strip ANSI escape codes for length calculation */
+function stripAnsi(s: string): string {
+  return s.replace(/\x1b\[[0-9;]*m/g, '');
 }

@@ -24,7 +24,7 @@ export class IosImplementerAgent extends BaseAgent {
     const { job, workspacePath } = context;
     const repoPath = path.join(workspacePath, 'repo');
     
-    this.log(`Implementing iOS feature: ${job.title}`);
+    this.logStep(`Implementing iOS feature: ${job.title}`);
     
     try {
       // 1. Setup repository
@@ -32,7 +32,7 @@ export class IosImplementerAgent extends BaseAgent {
       if (!repoSetup.success) {
         return { success: false, output: '', error: repoSetup.error };
       }
-      this.log(repoSetup.output);
+      this.logSuccess(repoSetup.output);
       
       // 2. Verify iOS environment
       const env = await verifyIosEnvironment(repoPath);
@@ -44,12 +44,12 @@ export class IosImplementerAgent extends BaseAgent {
       const git = initGit(repoPath);
       const branchName = generateBranchName(job.jiraTicketId || job.id.slice(0, 8), job.title);
       await createBranch(git, branchName, job.targetBranch);
-      this.log(`Created branch: ${branchName}`);
+      this.logSuccess(`Branch created: ${branchName}`);
       
       // 4. Resolve SPM dependencies
       const hasSPM = await fileExists(path.join(repoPath, 'Package.swift'));
       if (hasSPM) {
-        this.log('Resolving Swift Package Manager dependencies...');
+        this.logStep('Resolving Swift Package Manager dependencies...');
         const resolveResult = await runSwiftPackageResolve(repoPath);
         if (!resolveResult.passed) {
           return { success: false, output: '', error: `swift package resolve failed: ${resolveResult.stderr}` };
@@ -65,7 +65,7 @@ export class IosImplementerAgent extends BaseAgent {
       }
       
       for (const task of spec.tasks) {
-        this.log(`Processing task: ${task.description}`);
+        this.logStep(`Task: ${task.description}`);
         
         if (task.type === 'create' && task.filePath) {
           const filePath = path.join(repoPath, task.filePath);
@@ -97,17 +97,17 @@ export class IosImplementerAgent extends BaseAgent {
       }
       
       // 6. Run tests
-      this.log('Running swift tests...');
+      this.logStep('Running swift tests...');
       const testResult = await runSwiftTests(repoPath);
       
       if (!testResult.passed) {
-        this.log(`Swift tests did not pass (mock code): ${testResult.stderr.slice(0, 200)}`);
-        this.log('Continuing with commit (mock implementation)...');
+        this.logWarn(`Swift tests did not pass (non-blocking): ${testResult.stderr.slice(0, 200)}`);
+        this.log('Continuing with commit...');
       }
       
       // 7. Commit changes
-      this.log('Committing changes...');
-      await commitAndPush(git, `feat: ${job.title}\n\nCloses ${job.jiraTicketId || 'N/A'}`, ['.'], branchName);
+      this.logStep('Committing & pushing changes...');
+      await commitAndPush(git, `feat: ${job.title}\n\nCloses ${job.jiraTicketId || 'N/A'}`, ['.'], branchName, job.repo);
       
       return {
         success: true,
@@ -139,17 +139,8 @@ ${isTest ? 'Generate a complete XCTest test file.' : 'Generate the implementatio
         { role: 'user', content: userPrompt },
       ]);
       return response.text.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '');
-    } catch {
-      return isTest
-        ? `import XCTest
-@testable import App
-final class PlaceholderTests: XCTestCase {
-    func testPlaceholder() { XCTAssertTrue(true) }
-}
-`
-        : `import Foundation
-// TODO: implement ${task.description}
-`;
+    } catch (err) {
+      throw new Error(`LLM unavailable: ${err}`);
     }
   }
 }

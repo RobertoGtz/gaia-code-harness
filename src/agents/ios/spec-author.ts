@@ -23,7 +23,7 @@ export class IosSpecAuthorAgent extends BaseAgent {
   async execute(context: AgentContext): Promise<AgentResult> {
     const { job, workspacePath } = context;
     
-    this.log(`Generating spec for iOS project: ${job.title}`);
+    this.logStep(`Generating spec for iOS project: ${job.title}`);
     
     try {
       // 1. Setup repository
@@ -32,12 +32,12 @@ export class IosSpecAuthorAgent extends BaseAgent {
       if (!setup.success) {
         return { success: false, output: '', error: setup.error };
       }
-      this.log(setup.output);
+      this.logSuccess(setup.output);
       
       // 2. Explore repo structure
       const structureFiles = await getDirectoryStructure(repoPath, 3);
       const structure = structureFiles.map(f => f.relativePath).join('\n');
-      this.log('Explored repo structure');
+      this.logStep('Explored repo structure');
       
       // 3. Find relevant Swift files
       const relevantFiles = await this.findSwiftFiles(repoPath, job.module);
@@ -151,11 +151,11 @@ Respond with ONLY a JSON object matching this TypeScript type:
         { role: 'system', content: 'You are an expert iOS/Swift architect. Always respond with valid JSON only.' },
         { role: 'user', content: prompt },
       ]);
-      this.log(`Spec generated via ${response.provider} (${response.model})`);
+      this.logSuccess(`Spec generated via ${response.provider} (${response.model})`);
       return extractJSON<TechnicalSpec>(response.text);
     } catch (err) {
-      this.log(`LLM call failed, using fallback spec: ${err}`);
-      return this.fallbackSpec(job);
+      this.logError(`LLM call failed: ${err}`);
+      throw new Error(`LLM unavailable: ${err}`);
     }
   }
 
@@ -194,6 +194,6 @@ Respond with ONLY a JSON object matching this TypeScript type:
     await writeFile(path.join(specDir, 'design.json'), JSON.stringify(spec.design, null, 2));
     await writeFile(path.join(specDir, 'tasks.json'), JSON.stringify(spec.tasks, null, 2));
 
-    this.log(`Spec saved to ${specDir}`);
+    this.logSuccess(`Spec saved to ${specDir}`);
   }
 }
