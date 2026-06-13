@@ -56,6 +56,7 @@ export class PluginLoader {
   private gaiaPath: string;
   private manifest?: PluginManifest;
   private rulesMarkdown?: string;
+  private unitTestsMarkdown?: string;
   private cache: Map<string, BaseAgent> = new Map();
 
   constructor(repoPath: string) {
@@ -86,6 +87,14 @@ export class PluginLoader {
       console.log(`[PluginLoader] Loaded RULES.md for: ${this.manifest?.name ?? this.repoPath}`);
     } catch {
       // RULES.md is optional
+    }
+
+    const unitTestsPath = path.join(this.gaiaPath, 'UNIT_TESTS.md');
+    try {
+      this.unitTestsMarkdown = await fs.readFile(unitTestsPath, 'utf-8');
+      console.log(`[PluginLoader] Loaded UNIT_TESTS.md for: ${this.manifest?.name ?? this.repoPath}`);
+    } catch {
+      // UNIT_TESTS.md is optional
     }
   }
 
@@ -205,16 +214,24 @@ export class PluginLoader {
     return this.rulesMarkdown;
   }
 
+  /** Returns the raw content of UNIT_TESTS.md if it exists, otherwise undefined. */
+  getUnitTestsMarkdown(): string | undefined {
+    return this.unitTestsMarkdown;
+  }
+
   /**
    * Returns all rules as a context string for LLM prompts.
-   * Prefers RULES.md (rich prose) and supplements with structured fields from gaia.json.
+   * Concatenates RULES.md + UNIT_TESTS.md + structured fields from gaia.json.
    */
   getRulesAsContext(): string {
     const sections: string[] = [];
 
-    // Prefer prose rules from RULES.md as primary context
     if (this.rulesMarkdown) {
       sections.push(this.rulesMarkdown.trim());
+    }
+
+    if (this.unitTestsMarkdown) {
+      sections.push(this.unitTestsMarkdown.trim());
     }
 
     // Supplement with structured fields from gaia.json that are not covered by RULES.md
