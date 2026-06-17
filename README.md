@@ -181,13 +181,17 @@ gaia-code-harness/
 │   └── index.ts                     # HTTP server entry point
 ├── .claude/
 │   └── agents/                      # Claude Code subagent definitions
-│       ├── spec_agent.md
+│       ├── craftsman_lead.md
+│       ├── spec_partner.md
+│       ├── gherkin_author.md
 │       ├── tdd_craftsman.md
 │       ├── judge.md
 │       └── mutation_tester.md
-├── CLAUDE.md                        # craftsman_lead instructions for Claude Code
+├── AGENTS.md                        # Navigation map for all agents (both modes)
+├── CLAUDE.md                        # craftsman_lead entry point for Claude Code
+├── CHECKPOINTS.md                   # Objective done criteria C1-C7
 ├── feature_list.json                # Feature backlog for Claude Code mode
-├── project-spec.md                  # Living spec document (maintained by spec_agent)
+├── project-spec.md                  # Living spec document (maintained by spec_partner)
 ├── docs/
 │   ├── ARCHITECTURE.md              # Deep-dive technical architecture
 │   └── DEMO_GUIDE.md                # Step-by-step demo guide
