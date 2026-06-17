@@ -1,15 +1,14 @@
 /**
- * @fileoverview Agent Registry - Factory for platform-specific agents
- * @description Selects the correct SpecAuthor, Implementer, and Reviewer
- *              agents based on the job's target platform.
+ * @fileoverview Agent Registry - Factory for platform-agnostic agents
+ * @description All platforms share the same three generic agents.
+ *              Platform-specific logic lives in src/skills/{platform}/.
  */
 
 import { BaseAgent } from './base';
 import { Platform } from '../types';
-import { FlutterSpecAuthorAgent, FlutterImplementerAgent, FlutterReviewerAgent } from './flutter';
-import { FlutterWebSpecAuthorAgent, FlutterWebImplementerAgent, FlutterWebReviewerAgent } from './flutter_web';
-import { IosSpecAuthorAgent, IosImplementerAgent, IosReviewerAgent } from './ios';
-import { AndroidSpecAuthorAgent, AndroidImplementerAgent, AndroidReviewerAgent } from './android';
+import { SpecAuthorAgent } from './spec-author';
+import { ImplementerAgent } from './implementer';
+import { ReviewerAgent } from './reviewer';
 
 /**
  * Set of agents for a specific platform.
@@ -20,32 +19,12 @@ export interface PlatformAgents {
   reviewer: BaseAgent;
 }
 
-/**
- * Registry mapping platforms to their agent constructors.
- * Add new platforms here as they are implemented.
- */
-const platformRegistry: Record<string, () => PlatformAgents> = {
-  flutter: () => ({
-    specAuthor: new FlutterSpecAuthorAgent(),
-    implementer: new FlutterImplementerAgent(),
-    reviewer: new FlutterReviewerAgent(),
-  }),
-  flutter_web: () => ({
-    specAuthor: new FlutterWebSpecAuthorAgent(),
-    implementer: new FlutterWebImplementerAgent(),
-    reviewer: new FlutterWebReviewerAgent(),
-  }),
-  ios: () => ({
-    specAuthor: new IosSpecAuthorAgent(),
-    implementer: new IosImplementerAgent(),
-    reviewer: new IosReviewerAgent(),
-  }),
-  android: () => ({
-    specAuthor: new AndroidSpecAuthorAgent(),
-    implementer: new AndroidImplementerAgent(),
-    reviewer: new AndroidReviewerAgent(),
-  }),
-};
+// Single shared instances — agents are stateless, safe to reuse across platforms
+const specAuthor = new SpecAuthorAgent();
+const implementer = new ImplementerAgent();
+const reviewer = new ReviewerAgent();
+
+const SUPPORTED_PLATFORMS: Platform[] = ['flutter', 'flutter_web', 'ios', 'android'];
 
 /**
  * Get the set of agents for a given platform.
@@ -59,19 +38,18 @@ const platformRegistry: Record<string, () => PlatformAgents> = {
  * const result = await agents.specAuthor.execute(context);
  */
 export function getAgentsForPlatform(platform: Platform): PlatformAgents {
-  const factory = platformRegistry[platform];
-  if (!factory) {
-    const supported = Object.keys(platformRegistry).join(', ');
+  if (!SUPPORTED_PLATFORMS.includes(platform)) {
     throw new Error(
-      `Platform "${platform}" is not supported. Supported platforms: ${supported}`
+      `Platform "${platform}" is not supported. Supported platforms: ${SUPPORTED_PLATFORMS.join(', ')}`
     );
   }
-  return factory();
+  // All platforms use the same generic agents — skill loaded at runtime inside each agent
+  return { specAuthor, implementer, reviewer };
 }
 
 /**
  * List all currently supported platforms.
  */
 export function getSupportedPlatforms(): string[] {
-  return Object.keys(platformRegistry);
+  return [...SUPPORTED_PLATFORMS];
 }

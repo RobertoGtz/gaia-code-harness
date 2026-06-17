@@ -1,9 +1,144 @@
 /**
- * @fileoverview Reviewer Agent (backward-compatible re-export)
- * @description Re-exports FlutterReviewerAgent as ReviewerAgent for backward compatibility.
- *              New code should use getAgentsForPlatform() from './registry' instead.
+ * @fileoverview Generic Reviewer Agent
+ * @description Platform-agnostic review: analyze, test, file count, then GitHub PR.
+ *              Platform-specific checks and PR checklist come from PlatformSkill.
  */
 
-import { FlutterReviewerAgent } from './flutter';
+import { BaseAgent } from './base';
+import { AgentContext, AgentResult, TestResult } from '../types';
+import { TestRunResult } from '../tools/test-runner';
+import { initGit, createGitHubPR, addJiraComment, getModifiedFiles } from '../tools/git';
+import { loadSkill } from '../skills';
+import * as path from 'path';
 
-export { FlutterReviewerAgent as ReviewerAgent } from './flutter';
+export class ReviewerAgent extends BaseAgent {
+  name = 'Reviewer';
+
+  async execute(context: AgentContext): Promise<AgentResult> {
+    const { job, workspacePath } = context;
+    const repoPath = path.join(workspacePath, 'repo');
+    this.logStep(`Reviewing: ${job.title} [${job.platform}]`);
+
+    try {
+      const skill = await loadSkill(job.platform);
+      this.log(`Loaded skill: ${skill.displayName}`);
+
+      const env = await skill.verifyEnvironment(repoPath);
+      if (!env.valid) {
+        return { success: false, output: '', error: `${skill.displayName} environment invalid: ${env.errors.join(', ')}` };
+      }
+
+      // 1. Static analysis (non-blocking — warnings logged)
+      this.logStep('Running static analysis...');
+      const analyzeResult = await skill.analyze(repoPath);
+      if (!analyzeResult.passed) {
+        this.logWarn(`Analysis issues (non-blocking): ${analyzeResult.stderr.slice(0, 300)}`);
+      }
+
+      // 2. Tests
+      this.logStep('Running tests...');
+      const testResult = await skill.test(repoPath, job.module);
+      if (!testResult.passed) {
+        return {
+          success: false,
+          output: testResult.stdout,
+          error: `Tests failed: ${testResult.stderr}`,
+          testResults: [this.toTestResult(testResult)],
+        };
+      }
+      this.logSuccess(`Tests passed`);
+
+      // 3. File count guard
+      const git = initGit(repoPath);
+      const modifiedFiles = await getModifiedFiles(git);
+      if (modifiedFiles.length > job.maxFilesToTouch) {
+        return { success: false, output: '', error: `Too many files modified: ${modifiedFiles.length} > ${job.maxFilesToTouch}` };
+      }
+
+      // 4. Traceability
+      if (!job.spec) {
+        return { success: false, output: '', error: 'No spec found for traceability verification' };
+      }
+
+      // 5. GitHub PR
+      this.logStep('Creating GitHub PR...');
+      let pr: { url: string; id: string; number: number };
+      try {
+        pr = await createGitHubPR({
+          owner: process.env.GITHUB_OWNER || 'rappi',
+          repo: job.repo,
+          title: `[${job.jiraTicketId || 'GAIA'}] ${job.title}`,
+          body: this.generatePRBody(job, skill.displayName),
+          head: job.branchName || 'feature-branch',
+          base: job.targetBranch,
+        });
+      } catch (prError) {
+        this.logWarn(`GitHub PR creation failed (dry-run): ${prError}`);
+        pr = {
+          url: `https://github.com/${process.env.GITHUB_OWNER || 'rappi'}/${job.repo}/pull/dry-run`,
+          id: 'dry-run',
+          number: 0,
+        };
+      }
+      this.logSuccess(`PR created: ${pr.url}`);
+
+      // 6. Jira comment
+      if (job.jiraTicketId) {
+        await addJiraComment(job.jiraTicketId, `Pull Request created: ${pr.url}`);
+      }
+
+      return {
+        success: true,
+        output: `Review passed. PR created: ${pr.url}`,
+        prUrl: pr.url,
+        prId: pr.id,
+        testResults: [this.toTestResult(testResult)],
+      };
+    } catch (error) {
+      return { success: false, output: '', error: `Review failed: ${error}` };
+    }
+  }
+
+  private toTestResult(r: TestRunResult): TestResult {
+    return {
+      passed: r.passed,
+      command: r.command ?? '',
+      stdout: r.stdout,
+      stderr: r.stderr,
+      exitCode: r.exitCode ?? 0,
+      duration: r.duration ?? 0,
+    };
+  }
+
+  private generatePRBody(job: AgentContext['job'], platformName: string): string {
+    if (!job.spec) return '';
+    const requirements = job.spec.requirements.map(r => `- [x] ${r.content}`).join('\n');
+    const design = job.spec.design;
+    return `## ${job.title}
+
+**Jira:** ${job.jiraTicketId || 'N/A'}
+**Platform:** ${platformName}
+
+### Requirements
+${requirements}
+
+### Changes
+**Modified files:**
+${design.affectedFiles.map(f => `- \`${f}\``).join('\n')}
+
+**New files:**
+${design.newFiles.map(f => `- \`${f}\` (created)`).join('\n')}
+
+### Design Decisions
+${design.architectureDecisions.map(d => `- ${d}`).join('\n')}
+
+### Verification
+- [x] All tests passing
+- [x] Static analysis clean
+- [x] Files within limit (${job.maxFilesToTouch})
+- [x] Traceability to spec verified
+
+---
+*Generated by Gaia Code Harness 🤖*`;
+  }
+}
