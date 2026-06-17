@@ -3,6 +3,11 @@
  * @description Validates that the test suite actually detects defects by applying
  *              source mutations and checking whether tests fail (KILLED) or pass (SURVIVED).
  *              A mutation score ≥ 80% is required to pass.
+ *
+ *              Strategy (dual):
+ *                1. If Python 3 and tools/mutate.py are available → deterministic mutator
+ *                   (no LLM calls, token-level mutations, always restores original).
+ *                2. Otherwise → LLM-generated mutations (original behaviour, fallback).
  * @module agents/mutation-tester
  */
 
@@ -13,8 +18,10 @@ import { callLLM } from '../tools/llm';
 import { readFile, writeFile } from '../tools/file';
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import { spawn } from 'child_process';
 
 const MUTATION_THRESHOLD = 0.8; // 80% kill rate required
+const MUTATE_PY_PATH = path.resolve(__dirname, '../../tools/mutate.py');
 
 interface Mutation {
   file: string;
@@ -46,49 +53,85 @@ export class MutationTesterAgent extends BaseAgent {
         return { success: true, output: 'No source files to mutate.' };
       }
 
-      // 2. Ask LLM to generate mutations for each file
-      const allMutations: Mutation[] = [];
-      for (const file of sourceFiles) {
-        const content = await readFile(file).catch(() => '');
-        if (!content) continue;
-        const mutations = await this.generateMutations(file, content, repoPath);
-        allMutations.push(...mutations);
+      // 2. Prefer deterministic mutator (tools/mutate.py) over LLM mutations
+      const pythonAvailable = await this.isPythonAvailable();
+      const mutatePyExists  = await fs.access(MUTATE_PY_PATH).then(() => true).catch(() => false);
+      const useDeterministic = pythonAvailable && mutatePyExists;
+
+      this.log(useDeterministic
+        ? `Using deterministic mutator (tools/mutate.py) — no LLM credits consumed`
+        : `Python/mutate.py unavailable — falling back to LLM-generated mutations`);
+
+      let score: number;
+      let killed: number;
+      let total: number;
+      let survivedDetails: string[];
+      let report: string;
+
+      if (useDeterministic) {
+        // ── Strategy A: tools/mutate.py ──────────────────────────────────────
+        const TEST_CMDS: Record<string, string> = {
+          flutter:     'flutter test',
+          flutter_web: 'flutter test',
+          ios:         'swift test',
+          android:     './gradlew testDebugUnitTest',
+        };
+        const testCmd = TEST_CMDS[job.platform] ?? 'npx jest --passWithNoTests';
+        const jsonResults = await this.runMutatePy(sourceFiles, testCmd, repoPath);
+
+        killed   = jsonResults.reduce((s, r) => s + r.killed, 0);
+        total    = jsonResults.reduce((s, r) => s + r.total, 0);
+        score    = total > 0 ? killed / total : 1;
+        survivedDetails = jsonResults.flatMap(r =>
+          r.survived_details.map((d: any) => `${d.file}:${d.row} [${d.label}] ${d.original} → ${d.replacement}`)
+        );
+        report = this.buildReportFromPy(jsonResults, score, job.title, sourceFiles);
+      } else {
+        // ── Strategy B: LLM-generated mutations (original behaviour) ─────────
+        const allMutations: Mutation[] = [];
+        for (const file of sourceFiles) {
+          const content = await readFile(file).catch(() => '');
+          if (!content) continue;
+          const mutations = await this.generateMutations(file, content, repoPath);
+          allMutations.push(...mutations);
+        }
+
+        if (allMutations.length === 0) {
+          this.log('LLM generated no mutations — skipping');
+          return { success: true, output: 'No mutations generated.' };
+        }
+
+        this.log(`Generated ${allMutations.length} LLM mutations across ${sourceFiles.length} file(s)`);
+
+        const results: MutationResult[] = [];
+        for (const mutation of allMutations) {
+          const result = await this.applyAndTest(mutation, repoPath, skill, job.module);
+          results.push(result);
+          this.log(`  ${result.killed ? '✓ KILLED' : '✗ SURVIVED'} — ${mutation.description}`);
+        }
+
+        killed   = results.filter(r => r.killed).length;
+        total    = results.length;
+        score    = total > 0 ? killed / total : 1;
+        survivedDetails = results
+          .filter(r => !r.killed)
+          .map(r => `${r.file}:${r.line} — ${r.description}`);
+        report = this.buildReport(results, score, job.title);
       }
 
-      if (allMutations.length === 0) {
-        this.log('LLM generated no mutations — skipping');
-        return { success: true, output: 'No mutations generated.' };
-      }
-
-      this.log(`Generated ${allMutations.length} mutations across ${sourceFiles.length} file(s)`);
-
-      // 3. Apply each mutation, run tests, revert
-      const results: MutationResult[] = [];
-      for (const mutation of allMutations) {
-        const result = await this.applyAndTest(mutation, repoPath, skill, job.module);
-        results.push(result);
-        this.log(`  ${result.killed ? '✓ KILLED' : '✗ SURVIVED'} — ${mutation.description}`);
-      }
-
-      // 4. Compute score and write report
-      const killed   = results.filter(r => r.killed).length;
-      const score    = killed / results.length;
       const scoreStr = `${(score * 100).toFixed(1)}%`;
       const passed   = score >= MUTATION_THRESHOLD;
 
-      const report = this.buildReport(results, score, job.title);
       const reportPath = path.join(workspacePath, '..', '..', 'progress', `mutation_${job.id.slice(0, 8)}.md`);
       await fs.writeFile(reportPath, report, 'utf8').catch(() => {});
 
-      this.log(`Mutation score: ${scoreStr} (${killed}/${results.length} killed) — ${passed ? 'PASS' : 'FAIL'}`);
+      this.log(`Mutation score: ${scoreStr} (${killed}/${total} killed) — ${passed ? 'PASS ✅' : 'FAIL ❌'}`);
 
       if (!passed) {
-        const survived = results.filter(r => !r.killed);
-        const detail   = survived.map(r => `${r.file}:${r.line} — ${r.description}`).join('\n');
         return {
           success: false,
           output: `Mutation score ${scoreStr} below ${MUTATION_THRESHOLD * 100}% threshold.`,
-          error: `${survived.length} mutations survived:\n${detail}`,
+          error: `${survivedDetails.length} mutations survived:\n${survivedDetails.join('\n')}`,
           errorCode: 'TEST_ERROR',
         };
       }
@@ -102,7 +145,78 @@ export class MutationTesterAgent extends BaseAgent {
     }
   }
 
-  // ── helpers ──────────────────────────────────────────────────────────────
+  // ── deterministic mutator helpers ──────────────────────────────────────
+
+  private async isPythonAvailable(): Promise<boolean> {
+    return new Promise(resolve => {
+      const p = spawn('python3', ['--version'], { stdio: 'ignore' });
+      p.on('close', code => resolve(code === 0));
+      p.on('error', () => resolve(false));
+    });
+  }
+
+  private runMutatePy(
+    files: string[],
+    testCmd: string,
+    cwd: string
+  ): Promise<Array<{ score: number; killed: number; survived: number; total: number; survived_details: any[] }>> {
+    return Promise.all(
+      files.map(file =>
+        new Promise<any>((resolve) => {
+          const args = [MUTATE_PY_PATH, file, '--cmd', testCmd, '--cwd', cwd, '--threshold', '80', '--json'];
+          const p = spawn('python3', args, { cwd });
+          let out = '';
+          p.stdout.on('data', (d: Buffer) => { out += d.toString(); });
+          p.on('close', () => {
+            try {
+              resolve(JSON.parse(out.trim()));
+            } catch {
+              resolve({ score: 100, killed: 0, survived: 0, total: 0, survived_details: [] });
+            }
+          });
+          p.on('error', () =>
+            resolve({ score: 100, killed: 0, survived: 0, total: 0, survived_details: [] })
+          );
+        })
+      )
+    );
+  }
+
+  private buildReportFromPy(
+    results: Array<{ score: number; killed: number; survived: number; total: number; survived_details: any[] }>,
+    overallScore: number,
+    title: string,
+    files: string[]
+  ): string {
+    const totalKilled   = results.reduce((s, r) => s + r.killed, 0);
+    const totalMutants  = results.reduce((s, r) => s + r.total, 0);
+    const passed = overallScore >= MUTATION_THRESHOLD;
+    const lines = [
+      `# Mutation Report: ${title}`,
+      '',
+      `**Score**: ${(overallScore * 100).toFixed(1)}% (${totalKilled}/${totalMutants} killed)`,
+      `**Threshold**: 80%`,
+      `**Result**: ${passed ? '✅ PASS' : '❌ FAIL'}`,
+      `**Method**: deterministic (tools/mutate.py)`,
+      '',
+      '## Results by file',
+      '',
+    ];
+    results.forEach((r, i) => {
+      lines.push(`### ${path.basename(files[i])}`);
+      lines.push(`- Score: ${r.score.toFixed(1)}% (${r.killed}/${r.total} killed)`);
+      if (r.survived_details.length > 0) {
+        lines.push('- Survived mutations:');
+        for (const d of r.survived_details) {
+          lines.push(`  - \`${d.file}:${d.row}\` [${d.label}] \`${d.original}\` → \`${d.replacement}\``);
+        }
+      }
+      lines.push('');
+    });
+    return lines.join('\n');
+  }
+
+  // ── LLM-based helpers (fallback) ─────────────────────────────────────────
 
   private async collectSourceFiles(repoPath: string, skill: Awaited<ReturnType<typeof loadSkill>>): Promise<string[]> {
     const srcDirs = skill.srcDirs ?? ['lib', 'src', 'Sources'];
