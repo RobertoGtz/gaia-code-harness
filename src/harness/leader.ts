@@ -273,7 +273,19 @@ async function handleSpecGenerating(job: CodeGenerationJob): Promise<void> {
   const result = await agents.specAuthor.execute(context);
 
   if (!result.success) {
-    throw new Error(`SpecAuthor failed: ${result.error}`);
+    const errorCode = result.errorCode ?? 'UNKNOWN';
+    const errorStatus = ERROR_STATUS[errorCode] ?? 'spec_error';
+    const ctx: ErrorContext = {
+      code: errorCode,
+      stage: 'spec_generating',
+      message: result.error ?? 'SpecAuthor failed',
+      timestamp: new Date().toISOString(),
+      retryCount: 0,
+    };
+    await setErrorContext(job.id, ctx);
+    await updateJobStatus(job.id, errorStatus);
+    printErrorBox(job, ctx);
+    return;
   }
 
   leaderSuccess(`Specification generated — ${result.spec?.requirements.length || 0} requirements, ${result.spec?.tasks.length || 0} tasks`);

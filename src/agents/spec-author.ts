@@ -10,6 +10,7 @@ import { getDirectoryStructure, getRelevantFiles, writeFile } from '../tools/fil
 import { setupRepository } from '../tools/repo';
 import { callLLM, extractJSON } from '../tools/llm';
 import { loadSkill } from '../skills';
+import { GaiaError, GaiaRepoError, GaiaSpecError } from '../errors';
 import * as path from 'path';
 
 export class SpecAuthorAgent extends BaseAgent {
@@ -25,7 +26,12 @@ export class SpecAuthorAgent extends BaseAgent {
 
       const repoPath = path.join(workspacePath, 'repo');
       const setup = await setupRepository(job, repoPath);
-      if (!setup.success) return { success: false, output: '', error: setup.error };
+      if (!setup.success) {
+        throw new GaiaRepoError(
+          `[${job.platform}] Cannot clone repository '${job.repo}' for spec generation. Check GITHUB_TOKEN and repo permissions.`,
+          setup.error
+        );
+      }
       this.logSuccess(setup.output);
 
       const structureFiles = await getDirectoryStructure(repoPath, 3);
@@ -41,7 +47,10 @@ export class SpecAuthorAgent extends BaseAgent {
 
       return { success: true, output: 'Specification generated successfully', spec, nextStatus: 'spec_ready' };
     } catch (error) {
-      return { success: false, output: '', error: `Failed to generate spec: ${error}` };
+      if (error instanceof GaiaError) {
+        return { success: false, output: '', error: error.message, errorCode: error.code };
+      }
+      return { success: false, output: '', error: `Failed to generate spec: ${error}`, errorCode: 'UNKNOWN' };
     }
   }
 
@@ -94,7 +103,10 @@ Respond with ONLY a JSON object matching this TypeScript type:
       return extractJSON<TechnicalSpec>(response.text);
     } catch (err) {
       this.logError(`LLM call failed: ${err}`);
-      throw new Error(`LLM unavailable: ${err}`);
+      throw new GaiaSpecError(
+        `[${job.platform}] LLM failed to generate spec for '${job.title}'`,
+        String(err)
+      );
     }
   }
 
