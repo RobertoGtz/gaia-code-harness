@@ -12,6 +12,18 @@ import { TestRunResult, EnvironmentCheck } from './test-runner';
 
 const execAsync = promisify(exec);
 
+function javaEnv(): NodeJS.ProcessEnv {
+  const javaHome = process.env.JAVA_HOME;
+  if (!javaHome) return process.env;
+  const javaBin = path.join(javaHome, 'bin');
+  const currentPath = process.env.PATH || '';
+  return {
+    ...process.env,
+    JAVA_HOME: javaHome,
+    PATH: currentPath.includes(javaBin) ? currentPath : `${javaBin}:${currentPath}`,
+  };
+}
+
 /**
  * Run Android unit tests via Gradle.
  */
@@ -27,7 +39,8 @@ export async function runGradleTests(workingDir: string, module?: string): Promi
   try {
     const { stdout, stderr } = await execAsync(command, {
       cwd: workingDir,
-      timeout: 300000, // 5 minute timeout
+      timeout: 300000,
+      env: javaEnv(),
     });
 
     return {
@@ -63,6 +76,7 @@ export async function runAndroidLint(workingDir: string, module?: string): Promi
     const { stdout, stderr } = await execAsync(command, {
       cwd: workingDir,
       timeout: 180000,
+      env: javaEnv(),
     });
 
     return {
@@ -97,6 +111,7 @@ export async function runKtlint(workingDir: string): Promise<TestRunResult> {
     const { stdout, stderr } = await execAsync(command, {
       cwd: workingDir,
       timeout: 120000,
+      env: javaEnv(),
     });
 
     return {
@@ -132,6 +147,7 @@ export async function runGradleBuild(workingDir: string, module?: string): Promi
     const { stdout, stderr } = await execAsync(command, {
       cwd: workingDir,
       timeout: 300000,
+      env: javaEnv(),
     });
 
     return {
@@ -166,6 +182,7 @@ export async function runGradleSync(workingDir: string): Promise<TestRunResult> 
     const { stdout, stderr } = await execAsync(command, {
       cwd: workingDir,
       timeout: 180000,
+      env: javaEnv(),
     });
 
     return {
@@ -197,7 +214,7 @@ export async function verifyAndroidEnvironment(workingDir: string): Promise<Envi
 
   // Check Java
   try {
-    await execAsync('java -version', { cwd: workingDir, timeout: 10000 });
+    await execAsync('java -version', { cwd: workingDir, timeout: 10000, env: javaEnv() });
   } catch {
     errors.push('Java not found in PATH');
   }

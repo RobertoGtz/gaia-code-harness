@@ -91,6 +91,7 @@ export class ImplementerAgent extends BaseAgent {
         this.log(errorOutput.slice(0, 300));
 
         const fixedFiles = await this.fixAllFiles(changes.map(c => c.path), repoPath, errorOutput, promptCtx.implementerSystem, job.title, pubspecRaw);
+        this.log(`LLM fix returned ${Object.keys(fixedFiles).length} file(s): ${Object.keys(fixedFiles).join(', ')}`);
         for (const [relPath, content] of Object.entries(fixedFiles)) {
           const filePath = path.join(repoPath, relPath);
           await writeFile(filePath, content);
@@ -200,7 +201,8 @@ export class ImplementerAgent extends BaseAgent {
         if (typeof v === 'string') result[k] = v;
       }
       return result;
-    } catch {
+    } catch (err) {
+      this.log(`fixAllFiles JSON parse failed: ${err}`);
       return {};
     }
   }
