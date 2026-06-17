@@ -17,6 +17,7 @@ import * as path from 'path';
 export class FlutterSkill implements PlatformSkill {
   readonly displayName = 'Flutter (mobile)';
   readonly sourceExtension = 'dart';
+  readonly srcDirs = ['lib', 'test'];
 
   async verifyEnvironment(repoPath: string) {
     const result = await verifyFlutterEnvironment(repoPath);

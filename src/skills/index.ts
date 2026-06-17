@@ -28,6 +28,9 @@ export interface PlatformSkill {
   /** Primary source extension, e.g. "dart", "swift", "kt" */
   readonly sourceExtension: string;
 
+  /** Source and test directories relative to repo root, e.g. ["lib", "test"] */
+  readonly srcDirs: string[];
+
   /** Verify the local toolchain is available (flutter, xcode, gradle…) */
   verifyEnvironment(repoPath: string): Promise<{ valid: boolean; errors: string[] }>;
 

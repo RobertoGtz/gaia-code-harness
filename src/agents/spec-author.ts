@@ -38,7 +38,7 @@ export class SpecAuthorAgent extends BaseAgent {
       const structure = structureFiles.map(f => f.relativePath).join('\n');
       this.logStep('Explored repo structure');
 
-      const relevantFiles = await getRelevantFiles(repoPath, job.module);
+      const relevantFiles = await getRelevantFiles(repoPath, job.module, skill.srcDirs, skill.sourceExtension);
       this.log(`Found ${relevantFiles.lib.length} source files, ${relevantFiles.test.length} test files`);
 
       const promptCtx = skill.getPromptContext(job);

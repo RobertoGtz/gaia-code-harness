@@ -28,6 +28,7 @@ const FORBIDDEN_PACKAGES = [
 export class FlutterWebSkill implements PlatformSkill {
   readonly displayName = 'Flutter Web';
   readonly sourceExtension = 'dart';
+  readonly srcDirs = ['lib', 'test'];
 
   async verifyEnvironment(repoPath: string) {
     const base = await verifyFlutterEnvironment(repoPath);

@@ -186,26 +186,36 @@ export async function getDirectoryStructure(
  */
 export async function getRelevantFiles(
   repoPath: string,
-  module?: string
+  module?: string,
+  srcDirs: string[] = ['lib', 'test'],
+  sourceExtension = 'dart'
 ): Promise<{ lib: string[]; test: string[]; pubspec: boolean }> {
   const basePath = module ? path.join(repoPath, 'packages/features', module) : repoPath;
-  
-  const libFiles = await searchFiles(path.join(basePath, 'lib'), '**/*.dart', { maxResults: 50 });
-  const testFiles = await searchFiles(path.join(basePath, 'test'), '**/*.dart', { maxResults: 50 });
-  
+  const glob = `**/*.${sourceExtension}`;
+
+  const allFiles: string[] = [];
+  for (const dir of srcDirs) {
+    try {
+      const found = await searchFiles(path.join(basePath, dir), glob, { maxResults: 50 });
+      allFiles.push(...found.map(f => f.relativePath));
+    } catch {
+      // dir may not exist for this platform — skip
+    }
+  }
+
+  const testKeywords = ['test', 'Test', 'spec', 'Spec', '__tests__'];
+  const testFiles = allFiles.filter(f => testKeywords.some(k => f.includes(k)));
+  const libFiles  = allFiles.filter(f => !testKeywords.some(k => f.includes(k)));
+
   let pubspec = false;
   try {
     await fs.access(path.join(basePath, 'pubspec.yaml'));
     pubspec = true;
   } catch {
-    // No pubspec.yaml
+    // No pubspec.yaml — fine for non-Flutter platforms
   }
 
-  return {
-    lib: libFiles.map(f => f.relativePath),
-    test: testFiles.map(f => f.relativePath),
-    pubspec,
-  };
+  return { lib: libFiles, test: testFiles, pubspec };
 }
 
 /**

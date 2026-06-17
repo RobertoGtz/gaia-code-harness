@@ -15,6 +15,7 @@ import * as path from 'path';
 export class AndroidSkill implements PlatformSkill {
   readonly displayName = 'Android / Kotlin';
   readonly sourceExtension = 'kt';
+  readonly srcDirs = ['app/src/main', 'app/src/test', 'app/src/androidTest'];
 
   async verifyEnvironment(repoPath: string) {
     const result = await verifyAndroidEnvironment(repoPath);

@@ -15,6 +15,7 @@ import * as path from 'path';
 export class IosSkill implements PlatformSkill {
   readonly displayName = 'iOS / Swift';
   readonly sourceExtension = 'swift';
+  readonly srcDirs = ['Sources', 'Tests', 'App'];
 
   async verifyEnvironment(repoPath: string) {
     const result = await verifyIosEnvironment(repoPath);
