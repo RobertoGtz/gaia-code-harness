@@ -63,10 +63,10 @@ export class IosSkill implements PlatformSkill {
 
   getPromptContext(job: { title: string; module?: string; repo: string }): PromptContext {
     return {
-      specSystem: `You are an expert iOS architect using MVVM + Coordinator pattern.
-Use Swift concurrency (async/await). Prefer protocol-oriented programming and dependency injection via initializer.
-Source files go in Sources/{TargetName}/, tests in Tests/{TargetName}Tests/.
-IMPORTANT: This is a Swift Package Manager project validated with 'swift build' on macOS. Do NOT use UIKit or SwiftUI — use only Foundation and pure Swift. All business logic must be platform-agnostic.`,
+      specSystem: `You are an expert iOS architect using MVVM pattern.
+Source files go in Sources/DemoApp/, tests in Tests/DemoAppTests/.
+IMPORTANT: This is a Swift Package Manager project validated with 'swift build' on macOS 12+. Do NOT use UIKit, SwiftUI, or Combine. Use only Foundation and pure Swift.
+Keep the spec MINIMAL: at most 1 ViewModel, 1 Model, modify the existing ViewController, and 1-2 test files. Do NOT create Coordinators, Services, or protocol layers beyond what is strictly necessary. All types defined in Sources/DemoApp/ are in the same module — no inter-file imports needed.`,
       implementerSystem: `You are an expert iOS/Swift developer.
 - Architecture: MVVM + Coordinator
 - Source files: Sources/DemoApp/
@@ -75,7 +75,7 @@ IMPORTANT: This is a Swift Package Manager project validated with 'swift build' 
 - Use async/await for asynchronous code — no completion handlers unless interfacing legacy APIs.
 - CRITICAL: Do NOT import UIKit, SwiftUI, or Combine. Do NOT use ObservableObject, @Published, @StateObject, Task{}, or any API requiring @available(macOS 10.15+). This project compiles with 'swift build' on macOS 12+ targeting both iOS and macOS.
 - Use plain Swift structs, protocols, and synchronous/closure-based patterns only. ViewModels are plain classes with a delegate protocol for updates.
-- NEVER define a type (struct/class/enum) in more than one file. If a model is defined in Models/FeedItem.swift, import it by module — do NOT redeclare it inside ViewModel or Coordinator files.
+- NEVER define a type (struct/class/enum) in more than one file. All files in Sources/DemoApp/ belong to the SAME Swift module (DemoApp) — do NOT add any import statements between them. Never write 'import DemoApp', 'import DemoAppModels', or any internal module import. Types defined in other files in Sources/DemoApp/ are automatically visible.
 - Respond with ONLY file contents, no markdown fences.`,
       reviewerSystem: `You are an iOS/Swift code reviewer.
 Check for: MVVM separation, Coordinator navigation pattern, XCTest coverage, Swift concurrency usage, no force-unwraps in production code, SwiftLint compliance.`,

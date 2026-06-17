@@ -13,6 +13,30 @@ import { TestRunResult, EnvironmentCheck } from './test-runner';
 const execAsync = promisify(exec);
 
 /**
+ * Remove internal module imports (e.g. import DemoAppModels) that the LLM
+ * erroneously generates for single-target SPM projects.
+ */
+async function stripInternalImports(workingDir: string): Promise<void> {
+  const sourcesDir = path.join(workingDir, 'Sources');
+  async function walk(dir: string): Promise<void> {
+    let names: string[];
+    try { names = await fs.readdir(dir); } catch { return; }
+    for (const name of names) {
+      const full = path.join(dir, name);
+      const stat = await fs.stat(full).catch(() => null);
+      if (!stat) continue;
+      if (stat.isDirectory()) { await walk(full); continue; }
+      if (!name.endsWith('.swift')) continue;
+      const src = await fs.readFile(full, 'utf8').catch(() => '');
+      // Remove lines like: import DemoApp, import DemoAppModels, import DemoAppViewModels, etc.
+      const fixed = src.split('\n').filter(l => !/^import DemoApp/.test(l.trim())).join('\n');
+      if (fixed !== src) await fs.writeFile(full, fixed, 'utf8');
+    }
+  }
+  await walk(sourcesDir);
+}
+
+/**
  * Run Swift tests via `swift test` or `xcodebuild test`.
  * Uses swift test for SPM projects, xcodebuild for .xcodeproj/.xcworkspace.
  */
@@ -32,6 +56,10 @@ export async function runSwiftTests(workingDir: string, scheme?: string): Promis
       return { passed: false, command, stdout: error.stdout || '', stderr: error.stderr || '', exitCode: error.code || 1, duration: Date.now() - startTime };
     }
   }
+
+  // Strip internal module imports that the LLM erroneously generates (e.g. import DemoAppModels).
+  // In a single-target SPM project all source files share one module; no internal imports are needed.
+  await stripInternalImports(workingDir);
 
   // SPM project with iOS platform target — swift test cannot run iOS code on macOS without a simulator.
   // Always use swift build to validate compilation correctness instead.
