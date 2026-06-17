@@ -33,25 +33,21 @@ export async function runSwiftTests(workingDir: string, scheme?: string): Promis
     }
   }
 
-  // SPM project — try swift test first, fall back to swift build if UIKit/simulator required
-  const testCommand = 'swift test';
+  // SPM project with iOS platform target — swift test cannot run iOS code on macOS without a simulator.
+  // Always use swift build to validate compilation correctness instead.
+  const buildCommand = 'swift build';
   try {
-    const { stdout, stderr } = await execAsync(testCommand, { cwd: workingDir, timeout: 300000 });
-    return { passed: true, command: testCommand, stdout, stderr, exitCode: 0, duration: Date.now() - startTime };
-  } catch (testErr: any) {
-    const testStderr: string = testErr.stderr || '';
-    const needsSimulator = testStderr.includes('no such module') || testStderr.includes('UIKit') || testStderr.includes('cannot be used when building for iOS');
-    if (!needsSimulator) {
-      return { passed: false, command: testCommand, stdout: testErr.stdout || '', stderr: testStderr, exitCode: testErr.code || 1, duration: Date.now() - startTime };
-    }
-    // UIKit / iOS-only code — validate compilation via swift build instead
-    const buildCommand = 'swift build';
-    try {
-      const { stdout, stderr } = await execAsync(buildCommand, { cwd: workingDir, timeout: 300000 });
-      return { passed: true, command: buildCommand, stdout, stderr, exitCode: 0, duration: Date.now() - startTime };
-    } catch (buildErr: any) {
-      return { passed: false, command: buildCommand, stdout: buildErr.stdout || '', stderr: buildErr.stderr || '', exitCode: buildErr.code || 1, duration: Date.now() - startTime };
-    }
+    const { stdout, stderr } = await execAsync(buildCommand, { cwd: workingDir, timeout: 300000 });
+    return { passed: true, command: buildCommand, stdout, stderr, exitCode: 0, duration: Date.now() - startTime };
+  } catch (buildErr: any) {
+    return {
+      passed: false,
+      command: buildCommand,
+      stdout: buildErr.stdout || '',
+      stderr: buildErr.stderr || '',
+      exitCode: buildErr.code || 1,
+      duration: Date.now() - startTime,
+    };
   }
 }
 

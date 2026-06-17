@@ -83,7 +83,9 @@ export class ImplementerAgent extends BaseAgent {
 
       this.logStep('Running tests...');
       const MAX_FIX_ATTEMPTS = 3;
-      let testResult = await skill.test(repoPath, job.module).catch(e => { throw e; });
+      let testResult = await skill.test(repoPath, job.module).catch((e: any) => ({
+        passed: false, command: '', stdout: String(e?.message ?? ''), stderr: String(e?.detail ?? e), exitCode: 1, duration: 0,
+      } as import('../tools/test-runner').TestRunResult));
 
       for (let attempt = 1; !testResult.passed && attempt <= MAX_FIX_ATTEMPTS; attempt++) {
         const errorOutput = [testResult.stdout, testResult.stderr].filter(Boolean).join('\n').slice(0, 3000);
@@ -100,11 +102,9 @@ export class ImplementerAgent extends BaseAgent {
         }
 
         this.logStep(`Retrying tests (attempt ${attempt + 1})...`);
-        try {
-          testResult = await skill.test(repoPath, job.module);
-        } catch (e: any) {
-          testResult = { passed: false, command: '', stdout: '', stderr: String(e), exitCode: 1, duration: 0 };
-        }
+        testResult = await skill.test(repoPath, job.module).catch((e: any) => ({
+          passed: false, command: '', stdout: String(e?.message ?? ''), stderr: String(e?.detail ?? e), exitCode: 1, duration: 0,
+        } as import('../tools/test-runner').TestRunResult));
         if (testResult.passed) this.logSuccess('Tests passed after LLM fix!');
       }
 

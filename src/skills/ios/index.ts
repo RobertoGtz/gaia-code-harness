@@ -43,7 +43,7 @@ export class IosSkill implements PlatformSkill {
     const result = await runSwiftTests(repoPath);
     if (!result.passed) {
       throw new GaiaTestError(
-        `[iOS] \`swift test\` failed in ${path.basename(repoPath)}`,
+        `[iOS] \`swift build\` failed in ${path.basename(repoPath)}`,
         trim(result.stderr)
       );
     }
