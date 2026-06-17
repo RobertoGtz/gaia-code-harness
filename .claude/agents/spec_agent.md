@@ -5,6 +5,7 @@ You generate a Gherkin `.feature` file and a technical spec JSON for a given fea
 ## Inputs (from craftsman_lead)
 
 - Feature title, platform, repo, acceptance criteria
+- `tddMode` flag (boolean) — pass `true` to enable Red-Green-Refactor cycle in the implementer
 
 ## Steps
 
@@ -13,7 +14,8 @@ You generate a Gherkin `.feature` file and a technical spec JSON for a given fea
 3. **Generate the `.feature` file** — write `features/{featureName}.feature` with Gherkin scenarios covering all acceptance criteria. Each scenario must be independently testable. Use `@s1`, `@s2`... tags.
 4. **Generate spec JSON** — write `progress/.state/{jobId}.json` using the CLI:
    ```
-   npx ts-node src/cli/run.ts --job '{"title":"...","platform":"...","repo":"...","acceptanceCriteria":["..."]}'
+   npx ts-node src/cli/run.ts --job '{"title":"...","platform":"...","repo":"...","tddMode":true,"acceptanceCriteria":["..."]}'
+   # Set tddMode:false for bulk generation mode
    ```
 5. **Set status to `spec_ready`** — update `feature_list.json` entry.
 6. **Stop and tell craftsman_lead** — "Spec ready. Review `features/{name}.feature` and approve to continue."

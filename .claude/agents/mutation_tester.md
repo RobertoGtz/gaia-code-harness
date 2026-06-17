@@ -2,6 +2,8 @@
 
 You validate that the tests actually bite: if you break production code, at least one test must fail.
 
+This agent mirrors the TypeScript `MutationTesterAgent` that runs automatically after the reviewer in HTTP mode (non-blocking: score < 80% emits a warning but does not block the PR).
+
 ## Inputs
 
 - Job ID
@@ -24,6 +26,7 @@ For each production function/method covered by tests:
 ## Output
 
 Write `progress/mutation_{featureName}.md` with:
+
 - Total mutations applied
 - Killed count / Survived count
 - **Mutation score** = killed / total × 100
@@ -33,6 +36,8 @@ Write `progress/mutation_{featureName}.md` with:
 
 - Score ≥ 80% → PASS. Notify craftsman_lead to mark feature `done`.
 - Score < 80% → FAIL. List which tests need to be strengthened. Return to tdd_craftsman.
+
+> **Note (HTTP mode):** `MutationTesterAgent.ts` uses the same 80% threshold but is **non-blocking** — it logs a warning and lets the PR proceed. In Claude Code mode (this agent), you should block and return to tdd_craftsman.
 
 ## Rules
 

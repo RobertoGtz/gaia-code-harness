@@ -24,16 +24,21 @@
          │
          ▼
  ┌────────────────────┐
- │    Spec Author     │  Analyses repo, generates TechnicalSpec
+ │    Spec Author     │  Analyses repo, generates TechnicalSpec + Gherkin
  └─────────┬──────────┘
            │  ← Human approves spec  (Tech Lead checkpoint)
            ▼
  ┌────────────────────┐
- │    Implementer     │  Writes code, installs deps, runs tests
+ │    Implementer     │  Normal mode: bulk code → tests
+ │   (TDD mode)       │  Red-Green-Refactor one scenario at a time
  └─────────┬──────────┘
            ▼
  ┌────────────────────┐
  │     Reviewer       │  Lints, tests, opens GitHub PR
+ └─────────┬──────────┘
+           ▼
+ ┌────────────────────┐
+ │  Mutation Tester   │  Validates tests actually bite (≥80% kill rate)
  └─────────┬──────────┘
            ▼
  Pull Request ready for review  (~35–90 seconds end-to-end)
@@ -46,7 +51,10 @@
 - **Spec-Driven Development** — generates a structured `TechnicalSpec` (requirements, tasks, design decisions, risks) before writing any code
 - **Human-in-the-Loop** — mandatory approval checkpoint after spec generation; the system never touches code without explicit sign-off
 - **Multi-Platform** — Flutter (mobile), Flutter Web, iOS/Swift, and Android/Kotlin supported via platform **Skills** — no per-platform agent duplication
-- **State Machine Orchestration** — 10-state lifecycle with full audit trail persisted in PostgreSQL
+- **Dual Orchestration Mode** — HTTP + PostgreSQL server mode _and_ Claude Code local mode (disk state, no DB required)
+- **TDD Craftsman** — optional `tddMode: true` flag switches Implementer to Red-Green-Refactor, one failing test at a time
+- **Mutation Tester** — automatically runs after every review; validates that tests detect real defects (≥80% kill rate required)
+- **State Machine Orchestration** — 10-state lifecycle with full audit trail persisted in PostgreSQL or on-disk JSON
 - **Rich Terminal Output** — color-coded, emoji-enhanced logs per agent with a detailed end-of-job summary box
 - **Pluggable Agents** — repos can override default agents via a `.gaia/` directory
 - **LLM-Agnostic** — supports OpenAI and Anthropic; model selection is configurable per-agent
@@ -56,42 +64,45 @@
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         API  (Fastify)                          │
-│  POST /jobs  ·  GET /jobs/:id  ·  POST /jobs/:id/approve        │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Leader / Orchestrator                        │
-│                                                                 │
-│  pending → fetching_jira → spec_generating → spec_ready        │
-│                                                    │            │
-│  done ← pr_created ← reviewing ← implementing ← spec_approved  │
-└──────────┬─────────────────────────────────────────────────────┘
-           ▼
-    SpecAuthorAgent  ImplementerAgent  ReviewerAgent
-    (generic)        (generic)         (generic)
-           │                │                │
-           └────────────────┴────────────────┘
-                        loadSkill(platform)
-                            │
-                            ▼
-             ┌──────────────────────────────┐
-             │       Platform Skills        │
-             │    src/skills/{platform}/    │
-             ├──────────┬────────┬──────────┤
-             │ flutter  │  ios   │ android  │
-             │ pub get  │ spm    │ gradle   │
-             │ dart ana │ swift  │ ktlint   │
-             │ prompts  │ prompts│ prompts  │
-             └──────────┴────────┴──────────┘
-                            │
-                            ▼
-                   ┌─────────────────┐
-                   │   PostgreSQL    │
-                   │  (jobs + logs)  │
-                   └─────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│               Orchestration Mode A — HTTP Server                 │
+│  POST /jobs  ·  GET /jobs/:id  ·  POST /jobs/:id/approve         │
+└──────────────────────┬───────────────────────────────────────────┘
+                       │
+              ┌────────┴────────┐
+              │                 │
+              ▼                 ▼
+   ┌──────────────────┐  ┌──────────────────────────────────────┐
+   │  Leader (state   │  │  Orchestration Mode B — Claude Code  │
+   │  machine)        │  │  npx ts-node src/cli/run.ts          │
+   └────────┬─────────┘  └──────────────┬───────────────────────┘
+            │                           │
+            └─────────────┬─────────────┘
+                          ▼
+             ┌────────────────────────────┐
+             │      State Backend         │
+             │  (interface: StateBackend) │
+             ├────────────┬───────────────┤
+             │ Postgres   │   Disk JSON   │
+             │ (HTTP mode)│ (Claude mode) │
+             └────────────┴───────────────┘
+                          │
+                          ▼
+  SpecAuthorAgent  ImplementerAgent   ReviewerAgent  MutationTesterAgent
+  (generic)        execute() / executeTDD()  (generic)  (auto, post-review)
+                          │
+                    loadSkill(platform)
+                          │
+                          ▼
+          ┌───────────────────────────────┐
+          │       Platform Skills         │
+          │    src/skills/{platform}/     │
+          ├──────────┬────────┬───────────┤
+          │ flutter  │  ios   │ android   │
+          │ pub get  │ spm    │ gradle    │
+          │ dart ana │ swift  │ ktlint    │
+          │ prompts  │ prompts│ prompts   │
+          └──────────┴────────┴───────────┘
 ```
 
 ### Job Lifecycle
@@ -134,8 +145,9 @@ gaia-code-harness/
 │   ├── agents/
 │   │   ├── base.ts                  # BaseAgent — shared logging, ANSI colors
 │   │   ├── spec-author.ts           # Generic SpecAuthor (all platforms)
-│   │   ├── implementer.ts           # Generic Implementer (all platforms)
+│   │   ├── implementer.ts           # Implementer: execute() + executeTDD()
 │   │   ├── reviewer.ts              # Generic Reviewer (all platforms)
+│   │   ├── mutation-tester.ts       # MutationTesterAgent (auto, post-review)
 │   │   └── registry.ts              # getAgentsForPlatform()
 │   ├── skills/
 │   │   ├── index.ts                 # PlatformSkill interface + loadSkill()
@@ -143,10 +155,16 @@ gaia-code-harness/
 │   │   ├── flutter_web/index.ts     # Flutter Web skill
 │   │   ├── ios/index.ts             # iOS / Swift skill
 │   │   └── android/index.ts         # Android / Kotlin skill
+│   ├── state/
+│   │   ├── index.ts                 # StateBackend interface + singleton
+│   │   ├── postgres-backend.ts      # Adapter: Postgres (HTTP mode)
+│   │   └── disk-backend.ts          # Adapter: JSON files (Claude Code mode)
 │   ├── api/
-│   │   ├── server.ts                # Fastify setup + custom request logger
+│   │   ├── server.ts                # Fastify setup — registers PostgresBackend
 │   │   └── routes/
 │   │       └── jobs.ts              # REST endpoints
+│   ├── cli/
+│   │   └── run.ts                   # Claude Code CLI entry point
 │   ├── db/
 │   │   └── index.ts                 # PostgreSQL pool + CRUD
 │   ├── harness/
@@ -160,7 +178,16 @@ gaia-code-harness/
 │   ├── types/
 │   │   └── index.ts                 # All TypeScript interfaces
 │   ├── errors.ts                    # Typed error classes (GaiaEnvError, GaiaRepoError…)
-│   └── index.ts                     # Entry point
+│   └── index.ts                     # HTTP server entry point
+├── .claude/
+│   └── agents/                      # Claude Code subagent definitions
+│       ├── spec_agent.md
+│       ├── tdd_craftsman.md
+│       ├── judge.md
+│       └── mutation_tester.md
+├── CLAUDE.md                        # craftsman_lead instructions for Claude Code
+├── feature_list.json                # Feature backlog for Claude Code mode
+├── project-spec.md                  # Living spec document (maintained by spec_agent)
 ├── docs/
 │   ├── ARCHITECTURE.md              # Deep-dive technical architecture
 │   └── DEMO_GUIDE.md                # Step-by-step demo guide
@@ -418,11 +445,16 @@ Create a new code generation job.
   "targetBranch": "develop",
   "description": "Optional longer description",
   "figmaUrl": "https://figma.com/...",
+  "tddMode": false,
   "acceptanceCriteria": [
     { "id": "ac-1", "text": "User sees toggle in settings", "priority": "high" }
   ]
 }
 ```
+
+Set `"tddMode": true` to use the Red-Green-Refactor cycle (one test per scenario).
+
+````
 
 **`fullContext` wrapper (legacy):**
 
@@ -436,7 +468,7 @@ Create a new code generation job.
     "acceptanceCriteria": ["User sees toggle in settings"]
   }
 }
-```
+````
 
 **Response `201`:**
 
@@ -783,6 +815,8 @@ docker run -p 3000:3000 --env-file .env gaia-code-harness
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — deep-dive into the state machine, agent design, and data model
 - [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md) — step-by-step demo guide for non-technical stakeholders
+- [`CLAUDE.md`](CLAUDE.md) — craftsman_lead instructions for Claude Code orchestration mode
+- [`API.md`](API.md) — full REST API reference
 
 ---
 

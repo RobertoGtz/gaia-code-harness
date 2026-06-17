@@ -40,27 +40,46 @@ POST /jobs
 Content-Type: application/json
 ```
 
-**Request Body (Opción A - Contexto completo):**
+**Request Body (Opción A - Flat body, recomendado):**
 
 ```json
 {
+  "platform": "flutter",
+  "title": "Agregar banner de promociones",
+  "jiraTicketId": "RPP-1234",
+  "repo": "rpp-pyme-multiplatform",
+  "module": "pay_multiplatform_home_web",
+  "targetBranch": "develop",
+  "description": "Mostrar carrusel de promociones destacadas",
+  "figmaUrl": "https://figma.com/file/abc123/promo-banner",
+  "tddMode": false,
+  "acceptanceCriteria": [
+    "WHEN user opens home screen THEN display promotional banner carousel",
+    "WHEN there are more than 3 promotions THEN show pagination dots"
+  ]
+}
+```
+
+> Pasa `"tddMode": true` para activar el ciclo Red-Green-Refactor (un test a la vez).
+
+**Request Body (Opción B - fullContext wrapper, legacy):**
+
+```json
+{
+  "jiraTicketId": "RPP-1234",
+  "tddMode": true,
   "fullContext": {
     "title": "Agregar banner de promociones",
-    "description": "Mostrar carrusel de promociones destacadas",
-    "acceptanceCriteria": [
-      "WHEN user opens home screen THEN display promotional banner carousel",
-      "WHEN there are more than 3 promotions THEN show pagination dots"
-    ],
-    "platform": "flutter", // "flutter" | "ios" | "android"
+    "platform": "flutter",
     "repo": "rpp-pyme-multiplatform",
-    "module": "pay_multiplatform_home_web",
-    "targetBranch": "develop",
-    "figmaUrl": "https://figma.com/file/abc123/promo-banner"
+    "acceptanceCriteria": [
+      "WHEN user opens home screen THEN display promotional banner carousel"
+    ]
   }
 }
 ```
 
-**Request Body (Opción B - Solo Jira ticket):**
+**Request Body (Opción C - Solo Jira ticket):**
 
 ```json
 {
@@ -220,7 +239,7 @@ POST /jobs/:id/retry
 
 **Notas:**
 
-- Solo funciona para jobs en estado `failed`
+- Funciona para cualquier estado de error: `failed`, `env_error`, `repo_error`, `build_error`, `test_error`, `review_error`, `spec_error`
 - Reinicia el flujo desde `pending`
 
 **Response:**
@@ -250,7 +269,13 @@ POST /jobs/:id/retry
 | `reviewing`       | Validando y creando PR   | 🟡 Creando PR...       |
 | `pr_created`      | PR listo                 | 🟣 PR creado           |
 | `done`            | **Completado**           | ✅ Completado          |
-| `failed`          | Error (retry disponible) | ❌ Error               |
+| `failed`          | Error inesperado (retry) | ❌ Error               |
+| `env_error`       | SDK no encontrado        | ❌ Env error           |
+| `repo_error`      | Git clone/push falló     | ❌ Repo error          |
+| `build_error`     | Deps no resueltas        | ❌ Build error         |
+| `test_error`      | Tests fallaron           | ❌ Test error          |
+| `review_error`    | Reviewer falló           | ❌ Review error        |
+| `spec_error`      | LLM no pudo generar spec | ❌ Spec error          |
 
 ---
 
@@ -338,7 +363,29 @@ curl -s http://localhost:3000/jobs/$JOB_ID | jq -r '.job.prUrl'
 
 ---
 
+---
+
+## 🧑‍💻 Claude Code Mode
+
+Alternativa sin servidor HTTP. Usa un `DiskBackend` (JSON en `progress/`) en lugar de Postgres.
+
+```bash
+# Listar jobs
+npx ts-node src/cli/run.ts --list
+
+# Crear y correr un job desde archivo JSON
+npx ts-node src/cli/run.ts --job job.json
+
+# Retomar job existente
+npx ts-node src/cli/run.ts --id <uuid>
+```
+
+El `job.json` acepta los mismos campos que `POST /jobs` body flat (incluido `tddMode`).
+
+---
+
 **Documentación relacionada:**
 
-- [GAIA_INTEGRATION.md](./docs/GAIA_INTEGRATION.md) - Integración con Gaia
 - [ARCHITECTURE.md](./docs/ARCHITECTURE.md) - Arquitectura interna
+- [CLAUDE.md](./CLAUDE.md) - Instrucciones para Claude Code orchestration mode
+- [README.md](./README.md) - Guía general

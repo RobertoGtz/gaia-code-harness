@@ -12,6 +12,7 @@
       "Items list updates after refresh completes"
     ],
     "status": "pending",
+    "tddMode": true,
     "sdd": true,
     "jobId": null
   }

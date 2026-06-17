@@ -12,11 +12,11 @@ Vamos a simular lo que pasa cuando un Product Manager pide una nueva feature:
 1. **Tú le dices al sistema qué quieres** (criterios de aceptación)
 2. **El sistema genera un plan técnico** (spec)
 3. **Tú lo apruebas** (human in the loop)
-4. **El sistema escribe el código automáticamente**
-5. **El sistema valida que todo funcione** (tests)
+4. **El sistema escribe el código automáticamente** (modo normal o TDD ciclo Rojo-Verde)
+5. **El sistema valida que todo funcione** (tests + mutation testing)
 6. **El sistema crea un Pull Request** listo para revisión
 
-Todo esto sucede en ~50 segundos.
+Todo esto sucede en ~50–90 segundos.
 
 ---
 
@@ -125,23 +125,23 @@ Si prefieres el control manual, copia y pega:
 curl -s -X POST http://localhost:3000/jobs \
   -H "Content-Type: application/json" \
   -d '{
+    "platform": "flutter",
+    "title": "Add promotional banner to home screen",
     "jiraTicketId": "DEMO-100",
-    "fullContext": {
-      "title": "Add promotional banner to home screen",
-      "description": "Display a carousel of promotions on the home screen",
-      "acceptanceCriteria": [
-        "WHEN user opens home screen THEN display promotional banner carousel",
-        "WHEN there are more than 3 promotions THEN show pagination dots",
-        "WHEN user taps a banner THEN navigate to promotion details"
-      ],
-      "platform": "flutter",
-      "repo": "demo-repo",
-      "targetBranch": "develop"
-    }
+    "repo": "demo-repo",
+    "targetBranch": "develop",
+    "tddMode": false,
+    "acceptanceCriteria": [
+      "WHEN user opens home screen THEN display promotional banner carousel",
+      "WHEN there are more than 3 promotions THEN show pagination dots",
+      "WHEN user taps a banner THEN navigate to promotion details"
+    ]
   }' | python3 -m json.tool
 ```
 
-> Cambia `"platform"` a `"ios"` y `"repo"` a `"demo-repo-ios"` para probar iOS, o `"android"` / `"demo-repo-android"` para Android.
+> Cambia `"platform"` a `"ios"` y `"repo"` a `"demo-repo-ios"` para iOS, o `"android"` / `"demo-repo-android"` para Android.
+>
+> Pasa `"tddMode": true` para activar el ciclo **Red-Green-Refactor** (un test a la vez — el implementador escribe primero el test que falla, luego hace que pase).
 
 Deberías ver una respuesta con un `"id"` (un código largo). **Copia ese ID**, lo vas a necesitar.
 
@@ -218,13 +218,16 @@ curl -s http://localhost:3000/jobs/TU_JOB_ID | python3 -m json.tool
 
 Los estados que verás en orden:
 
-| Status         | Qué significa                        |
-| -------------- | ------------------------------------ |
-| `implementing` | Escribiendo código y corriendo tests |
-| `reviewing`    | Validando que todo esté bien         |
-| `done`         | Terminó exitosamente                 |
+| Status         | Qué significa                            |
+| -------------- | ---------------------------------------- |
+| `implementing` | Escribiendo código y corriendo tests     |
+| `reviewing`    | Lint + tests + creando PR                |
+| `pr_created`   | PR listo, corriendo mutation tests       |
+| `done`         | Terminó exitosamente + mutation score OK |
 
-> **Tip:** Repite el comando cada 10 segundos hasta ver `"done"`.
+Estados de error retryables: `test_error`, `build_error`, `review_error`, `failed`.
+
+> **Tip:** Repite el comando cada 10 segundos hasta ver `"done"` o un estado `_error`.
 
 ---
 
@@ -246,22 +249,21 @@ Cuando el status sea `"done"`, en la respuesta verás:
 Tú (Producto)                    Sistema (Harness)
      │                                  │
      │── "Quiero un banner" ──────────→ │
-     │                                  │── Genera spec técnico
+     │                                  │── SpecAuthor: genera spec técnico
      │                                  │
      │←── "¿Apruebas este plan?" ──────│
      │                                  │
      │── "Sí, aprobado" ─────────────→ │
-     │                                  │── Clona repo
-     │                                  │── Crea branch
-     │                                  │── Escribe código
-     │                                  │── Corre tests
-     │                                  │── Crea Pull Request
+     │                                  │── Implementer: escribe código
+     │                                  │    (normal: bulk | tddMode: RED→GREEN)
+     │                                  │── Reviewer: lint + tests + PR
+     │                                  │── MutationTester: valida tests
      │                                  │
      │←── "Listo, aquí está el PR" ────│
      │                                  │
 ```
 
-**Tiempo total: ~50 segundos**
+**Tiempo total: ~50–90 segundos**
 
 ---
 
@@ -297,13 +299,19 @@ curl -s -X POST http://localhost:3000/jobs/TU_JOB_ID/retry | python3 -m json.too
 ## Preguntas frecuentes
 
 **¿Esto genera código real?**
-En esta demo el código es mock (plantilla fija). En producción se conectaría a un LLM (como GPT-4 o Claude) para generar código real basado en el spec.
+Sí. El harness llama a OpenAI o Anthropic (configura `OPENAI_API_KEY` o `ANTHROPIC_API_KEY` en `.env`) y genera código real basado en el spec y el repositorio.
 
 **¿Crea un PR real en GitHub?**
-No en esta demo. Necesitaría un token de GitHub configurado. En producción crearía un PR real que un dev puede revisar.
+Sí, si tienes `GITHUB_TOKEN` configurado. Sin él, retorna un PR mock de "dry-run".
+
+**¿Qué es `tddMode`?**
+Cuando está activo, el Implementer aplica el ciclo **Red-Green-Refactor**: primero escribe un test que falla, luego hace que pase, repitiendo por cada escenario. Genera tests más robustos pero tarda más.
+
+**¿Qué hace el Mutation Tester?**
+Despues del reviewer, el harness aplica pequeñas mutaciones (ej. `true → false`, `return null`) al código generado y verifica que los tests las detecten. Si el score es ≥ 80% el job sigue; si no, se emite un warning en los logs pero el PR se crea igual.
 
 **¿Solo funciona con Flutter?**
-No. Soporta **Flutter**, **Flutter Web**, **iOS/Swift** y **Android/Kotlin**. Los tres agentes son genéricos; la lógica específica de cada plataforma (herramientas nativas, prompts, patrones de archivos) vive en `src/skills/{platform}/`. Cambia `"platform"` en el request para elegir la plataforma.
+No. Soporta **Flutter**, **Flutter Web**, **iOS/Swift** y **Android/Kotlin**. Cambia `"platform"` en el request para elegir la plataforma.
 
 **¿Puede tocar cualquier archivo del repo?**
 No. Tiene límites configurables (`maxFilesToTouch: 5`) y no puede tocar archivos de CI/CD, secrets, o infraestructura.

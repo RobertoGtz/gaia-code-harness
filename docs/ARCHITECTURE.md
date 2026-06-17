@@ -43,8 +43,8 @@
 │                   AGENT REGISTRY                             │
 │            getAgentsForPlatform(job.platform)                 │
 │                                                              │
-│      SpecAuthorAgent   ImplementerAgent   ReviewerAgent       │
-│      (generic)         (generic)          (generic)           │
+│  SpecAuthorAgent  ImplementerAgent  ReviewerAgent  MutationTesterAgent │
+│  (generic)     execute()/executeTDD() (generic)  (auto, post-review)  │
 │            │                  │                  │           │
 │            └──────────────────┴──────────────────┘           │
 │                        loadSkill(platform)                    │
@@ -79,6 +79,17 @@
 ---
 
 ## 🔄 Flujo de Datos
+
+### 0. Modo de Orquestación
+
+El harness soporta dos modos, ambos usan la misma máquina de estados:
+
+| Modo                | Entry point                  | State backend        | Casos de uso                                  |
+| ------------------- | ---------------------------- | -------------------- | --------------------------------------------- |
+| **HTTP + Postgres** | `npm run dev` → `POST /jobs` | `PostgresBackend`    | Integración con plataforma, demos, producción |
+| **Claude Code CLI** | `npx ts-node src/cli/run.ts` | `DiskBackend` (JSON) | Desarrollo local, sin DB                      |
+
+`StateBackend` es una interfaz en `src/state/index.ts`. El Leader y las rutas HTTP importan de `state/` — nunca directamente de `db/`.
 
 ### 1. Creación de Job
 
@@ -115,41 +126,51 @@ Tech Lead → POST /jobs/:id/approve
 ### 4. Implementación
 
 ```
-ImplementerAgent (seleccionado por platform):
-  1. Setup repo → GaiaRepoError si clone falla
-  2. skill.verifyEnvironment() → GaiaEnvError si SDK no encontrado
-  3. Crea branch → GaiaRepoError si branch creation falla
-  4. skill.build() → GaiaBuildError si resolución de dependencias falla
-     - Flutter: melos bootstrap || flutter pub get
-     - iOS:    swift package resolve
-     - Android: gradle dependencies
-  5. Escribe/modifica archivos (LLM)
-  6. skill.test() → GaiaTestError si tests fallan
-  7. commit & push → GaiaRepoError si push falla
-         ↓ success
-  DB: status='reviewing'
-         ↓ catch GaiaError
-  return { success: false, error: err.message, errorCode: err.code }
+ImplementerAgent:
+  Si job.tddMode=false → execute() [modo normal]
+    1. Setup repo → GaiaRepoError si clone falla
+    2. skill.verifyEnvironment() → GaiaEnvError si SDK no encontrado
+    3. Crea branch → GaiaRepoError si branch creation falla
+    4. skill.build() → GaiaBuildError si resolución de dependencias falla
+    5. Por cada task (bulk): genera/modifica código con LLM
+    6. skill.test() → GaiaTestError si tests fallan (hasta 3 fix loops)
+    7. commit & push → GaiaRepoError si push falla
+
+  Si job.tddMode=true → executeTDD() [Red-Green-Refactor]
+    1-4. Mismo setup que execute()
+    5. Escribe todos los archivos impl (no test) primero
+    6. Verifica que impl compila
+    7. Por cada test task (uno a la vez):
+       RED   → escribe test → confirma que falla
+       GREEN → fixAllFiles() con LLM → confirma que pasa
+    8. Final fix loop (hasta 3) para cubrir cualquier fallo restante
+    9. commit & push
+
+  → success: DB status='reviewing'
+  → catch GaiaError: return { success:false, errorCode }
   Leader → ERROR_STATUS[errorCode] → estado granular
 ```
 
-### 5. Review y PR
+### 5. Review y Mutation Testing
 
 ```
-ReviewerAgent (seleccionado por platform):
-  1. Lint:
-     - Flutter: dart analyze
-     - iOS:    swiftlint
-     - Android: lintDebug + ktlintCheck
-  2. Tests:
-     - Flutter: flutter test
-     - iOS:    swift test / xcodebuild test
-     - Android: gradle testDebugUnitTest
+ReviewerAgent:
+  1. Lint: dart analyze / swiftlint / lintDebug + ktlintCheck
+  2. Tests: flutter test / swift test / gradle testDebugUnitTest
   3. Verifica cambios vs spec
   4. Crea GitHub PR
   5. Comenta en Jira (opcional)
-         ↓
-  DB: status='pr_created' → 'done'
+  → DB: status='pr_created'
+
+MutationTesterAgent (automático, post-review):
+  Para cada archivo de producción modificado:
+    1. Genera 3-5 mutaciones con LLM (flip booleano, remove return, etc.)
+    2. Aplica mutación → corre tests → revierte
+    3. KILLED = tests fallaron (bueno) / SURVIVED = tests no detectaron (malo)
+  Score = killed/total × 100
+  ≥ 80% → PASS (warning en logs si < 80%, no bloquea el PR)
+  Reporte: progress/mutation_{jobId}.md
+  → DB: status='done'
 ```
 
 ---
@@ -179,9 +200,10 @@ CREATE TABLE code_generation_jobs (
   figma_url TEXT,
   technical_constraints JSONB DEFAULT '[]',
 
-  -- Límites
+  -- Límites y modos
   max_files_to_touch INTEGER DEFAULT 5,
   require_tests BOOLEAN DEFAULT true,
+  tdd_mode BOOLEAN DEFAULT false,   -- Red-Green-Refactor cycle when true
 
   -- Estado
   status TEXT NOT NULL DEFAULT 'pending',
@@ -322,9 +344,16 @@ Todos los jobs comparten **tres agentes genéricos**. La lógica específica de 
 src/
 ├── agents/
 │   ├── spec-author.ts      ← único para todas las plataformas
-│   ├── implementer.ts      ← único para todas las plataformas
+│   ├── implementer.ts      ← execute() + executeTDD()
 │   ├── reviewer.ts         ← único para todas las plataformas
-│   └── registry.ts
+│   ├── mutation-tester.ts  ← corre automáticamente post-review
+│   └── registry.ts         ← PlatformAgents: specAuthor, implementer, reviewer, mutationTester
+├── state/
+│   ├── index.ts            ← StateBackend interface + setStateBackend()/getStateBackend()
+│   ├── postgres-backend.ts ← Adapter (HTTP mode)
+│   └── disk-backend.ts     ← Adapter (Claude Code mode)
+├── cli/
+│   └── run.ts              ← CLI entry point: --list, --job, --id
 └── skills/
     ├── flutter/index.ts    ← PlatformSkill impl
     ├── flutter_web/index.ts
@@ -335,11 +364,22 @@ src/
 **Flujo de ejecución:**
 
 ```typescript
-const agents = getAgentsForPlatform(job.platform); // siempre los mismos 3 agentes
+const agents = getAgentsForPlatform(job.platform);
+// agents = { specAuthor, implementer, reviewer, mutationTester }
+
 await agents.specAuthor.execute(context);
 // internamente: const skill = await loadSkill(job.platform)
 //               const ctx = skill.getPromptContext(job)
-//               const result = await skill.build(repoPath)
+
+// Normal mode:
+await agents.implementer.execute(context);
+// TDD mode (job.tddMode === true):
+await agents.implementer.executeTDD(context);
+// Leader elige automáticamente según job.tddMode
+
+// MutationTester corre siempre después del reviewer:
+await agents.mutationTester.execute(context);
+// score ≥ 80% → PASS | < 80% → warn (non-blocking)
 ```
 
 **Para agregar una plataforma nueva:**
@@ -377,14 +417,35 @@ Define el contrato que cada skill debe cumplir (`src/skills/index.ts`):
 
 ### ImplementerAgent (genérico)
 
-**Proceso:**
+**`execute()` — modo normal:**
 
 1. `loadSkill(platform)` → `verifyEnvironment`, `build`, `getPromptContext`
 2. Setup repo + crea branch
 3. `skill.build()` → resuelve deps
-4. Por cada task: genera/modifica código con LLM usando `promptCtx.implementerSystem`
-5. `skill.test()` → verifica que tests pasen
+4. Por cada task: genera/modifica código con LLM (bulk)
+5. `skill.test()` → hasta 3 fix loops con LLM si falla
 6. Commit & push
+
+**`executeTDD()` — modo Red-Green-Refactor:**
+
+1-3. Igual que `execute()` 4. Escribe todos los archivos impl (no test) para establecer el baseline 5. Por cada test task, en orden:
+
+- **RED**: escribe test → confirma que falla por razón correcta
+- **GREEN**: `fixAllFiles()` con LLM → confirma que pasa
+
+6. Final fix loop (hasta 3) para cubrir cualquier fallo restante
+7. Commit & push
+
+### MutationTesterAgent (automático)
+
+**Proceso:**
+
+1. Recopila archivos de producción modificados en el job (excluye tests)
+2. Por cada archivo: pide al LLM 3-5 mutaciones simples
+3. Aplica cada mutación → `skill.test()` → revierte
+4. `KILLED` = tests fallaron (bueno); `SURVIVED` = tests pasaron con código roto (malo)
+5. Score ≥ 80% → PASS; < 80% → warn en logs (no bloquea)
+6. Escribe `progress/mutation_{jobId}.md`
 
 ### ReviewerAgent (genérico)
 
@@ -468,8 +529,10 @@ Repo del proyecto
 
 - `maxFilesToTouch`: Previene cambios masivos no revisables
 - `requireTests`: Fuerza tests para cada feature
+- `tddMode`: Activa Red-Green-Refactor (un test a la vez)
 - Lint obligatorio: dart analyze (Flutter) / swiftlint (iOS) / lintDebug (Android)
 - Tests obligatorios: flutter test / swift test / gradle test
+- **Mutation Tester**: valida automáticamente que los tests detecten defectos reales (≥80% kill rate)
 
 ### Auditoría
 

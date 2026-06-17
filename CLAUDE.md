@@ -9,8 +9,19 @@ Read `feature_list.json`. Find the next feature with `"status": "pending"`. Exec
 ## The pipeline
 
 ```
-pending → [spec_agent] → spec_ready → ⏸ HUMAN GATE (approve Gherkin) → in_progress → [tdd_craftsman] → [judge] → [mutation_tester] → done
+pending → [spec_agent] → spec_ready → ⏸ HUMAN GATE (approve Gherkin)
+       → in_progress → [tdd_craftsman (if tddMode) | bulk implementer] → [judge] → [mutation_tester] → done
 ```
+
+**Mapping to HTTP mode** (TypeScript harness):
+
+| Claude Code agent | TypeScript equivalent           | Key difference                                |
+| ----------------- | ------------------------------- | --------------------------------------------- |
+| `spec_agent`      | `SpecAuthorAgent`               | Same logic                                    |
+| `tdd_craftsman`   | `ImplementerAgent.executeTDD()` | Triggered by `tddMode:true`                   |
+| _(bulk)_          | `ImplementerAgent.execute()`    | `tddMode:false` (default)                     |
+| `judge`           | `ReviewerAgent`                 | Judge is blocking; reviewer non-blocking lint |
+| `mutation_tester` | `MutationTesterAgent`           | Claude mode blocks; HTTP mode warns only      |
 
 ## How to run a step
 
@@ -34,6 +45,8 @@ Pass the feature's JSON context to each agent.
 2. **Never skip the human gate.** Always pause after spec_agent produces the `.feature` file.
 3. **Always run the full pipeline**: spec → code → review → mutation.
 4. **One feature at a time.** Update `feature_list.json` status to `"in_progress"` before starting.
+5. **Check `tddMode` in the feature entry.** If `"tddMode": true`, invoke `tdd_craftsman`. If `false` or absent, invoke the bulk implementer path (same agent, no Red-Green cycle).
+6. **`mutation_tester` is always mandatory** — even if `tddMode` is false.
 
 ## Starting a session
 

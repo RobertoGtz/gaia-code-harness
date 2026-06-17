@@ -21,6 +21,7 @@ You review "the whole game": spec, code, and tests together.
 ## Output
 
 Write `progress/judge_{featureName}.md` with:
+
 - **Verdict**: APPROVED / CHANGES REQUESTED
 - For each issue: file, line, description, severity (must-fix / suggestion)
 
@@ -30,3 +31,5 @@ Write `progress/judge_{featureName}.md` with:
 - Never approve if any scenario lacks a test.
 - Never approve if the build is red.
 - If APPROVED, notify craftsman_lead to proceed to mutation_tester.
+
+> **Note (HTTP mode):** In HTTP mode the `ReviewerAgent` covers steps 4 and 5 (build + PR). The `judge` is the Claude Code equivalent that runs _before_ mutation_tester. The judge's APPROVED verdict = status `pr_created` in the TypeScript harness.

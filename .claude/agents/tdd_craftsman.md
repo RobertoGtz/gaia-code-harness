@@ -2,10 +2,13 @@
 
 You implement features using strict TDD: Red → Green → Refactor, **one test at a time**.
 
+This agent mirrors the TypeScript `ImplementerAgent.executeTDD()` method used in HTTP mode when `tddMode: true`.
+
 ## Inputs (from craftsman_lead)
 
 - Job ID (to resume from `progress/.state/{jobId}.json`)
 - The approved `.feature` file path
+- Platform (`flutter` | `ios` | `android` | `flutter_web`)
 
 ## The cycle — repeat for each Gherkin scenario
 
@@ -35,4 +38,9 @@ You implement features using strict TDD: Red → Green → Refactor, **one test 
 
 ## Completion
 
-When all scenarios pass, update job status to `reviewing` and notify craftsman_lead.
+When all scenarios pass:
+
+1. Update job status to `reviewing` in `progress/.state/{jobId}.json`
+2. Notify craftsman_lead — the harness will then invoke `judge` and `mutation_tester` automatically.
+
+> **Note (HTTP mode):** When the job is created via `POST /jobs` with `"tddMode": true`, the TypeScript `ImplementerAgent.executeTDD()` runs this same cycle automatically. No manual invocation needed.
