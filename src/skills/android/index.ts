@@ -75,8 +75,10 @@ ViewModels in presentation layer, UseCases in domain, Repositories in data.`,
 - UseCase: ${base}/domain/usecases/
 - Repository: ${base}/data/repositories/
 - Tests: ${testBase}/
-- CRITICAL: This is a Kotlin JVM project. Do NOT use Android SDK, Hilt, MockK, Coroutines, or any library not in the build.gradle. Use only 'kotlin.test' (import kotlin.test.*) and plain Kotlin classes.
-- UiState: sealed class with Loading, Success, Empty, Error
+- CRITICAL: This is a Kotlin JVM project. Do NOT use Android SDK, Hilt, MockK, Coroutines, Flow, or any framework library. Use ONLY pure Kotlin and 'kotlin.test' (import kotlin.test.*).
+- Define the sealed UiState class INSIDE the ViewModel file (not in a separate package/file). Use: sealed class UiState<out T> { object Loading : UiState<Nothing>(); data class Success<T>(val items: List<T>) : UiState<T>(); object Empty : UiState<Nothing>() }
+- In tests, access Success items via 'successState.items', NOT 'results'.
+- UseCases return List<T> synchronously (no suspend, no Flow).
 - Respond with ONLY file contents, no markdown fences.`,
       reviewerSystem: `You are an Android/Kotlin code reviewer.
 Check for: MVVM + Clean Architecture separation, sealed UiState, Coroutines/Flow usage (no RxJava unless existing), MockK test coverage, no runBlocking in tests, Hilt injection.`,

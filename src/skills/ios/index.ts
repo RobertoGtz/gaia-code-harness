@@ -73,7 +73,8 @@ IMPORTANT: This is a Swift Package Manager project validated with 'swift build' 
 - Tests: Tests/DemoAppTests/
 - Use XCTest for unit tests. Mock dependencies with protocols.
 - Use async/await for asynchronous code — no completion handlers unless interfacing legacy APIs.
-- CRITICAL: Do NOT import UIKit or SwiftUI. This project uses Swift Package Manager and is compiled with 'swift build' on macOS where UIKit is unavailable. Use only Foundation and pure Swift.
+- CRITICAL: Do NOT import UIKit, SwiftUI, or Combine. Do NOT use ObservableObject, @Published, @StateObject, Task{}, or any API requiring @available(macOS 10.15+). This project compiles with 'swift build' on macOS 12+ targeting both iOS and macOS.
+- Use plain Swift structs, protocols, and synchronous/closure-based patterns only. ViewModels are plain classes with a delegate protocol for updates.
 - Respond with ONLY file contents, no markdown fences.`,
       reviewerSystem: `You are an iOS/Swift code reviewer.
 Check for: MVVM separation, Coordinator navigation pattern, XCTest coverage, Swift concurrency usage, no force-unwraps in production code, SwiftLint compliance.`,
