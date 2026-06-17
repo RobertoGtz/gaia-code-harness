@@ -122,9 +122,9 @@ export async function commitAndPush(
   if (branch) {
     // If GITHUB_TOKEN + repo provided, point origin to GitHub before pushing
     const token = process.env.GITHUB_TOKEN;
-    const owner = process.env.GITHUB_OWNER || 'rappi';
     if (token && repo) {
-      const githubUrl = `https://${token}@github.com/${owner}/${repo}.git`;
+      const fullRepo = repo.includes('/') ? repo : `${process.env.GITHUB_OWNER || 'rappi'}/${repo}`;
+      const githubUrl = `https://${token}@github.com/${fullRepo}.git`;
       try {
         await git.remote(['set-url', 'origin', githubUrl]);
       } catch {

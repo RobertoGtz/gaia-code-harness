@@ -81,39 +81,45 @@ export class ImplementerAgent extends BaseAgent {
         task.status = 'done';
       }
 
-      this.logStep('Running tests...');
-      const MAX_FIX_ATTEMPTS = 3;
-      let testResult = await skill.test(repoPath, job.module).catch((e: any) => ({
-        passed: false, command: '', stdout: String(e?.message ?? ''), stderr: String(e?.detail ?? e), exitCode: 1, duration: 0,
-      } as import('../tools/test-runner').TestRunResult));
+      let testResult: import('../tools/test-runner').TestRunResult | undefined;
 
-      for (let attempt = 1; !testResult.passed && attempt <= MAX_FIX_ATTEMPTS; attempt++) {
-        const errorOutput = [testResult.stdout, testResult.stderr].filter(Boolean).join('\n').slice(0, 3000);
-        this.logStep(`Tests failed (attempt ${attempt}/${MAX_FIX_ATTEMPTS}) — asking LLM to fix errors...`);
-        this.log(errorOutput.slice(0, 300));
-
-        const fixedFiles = await this.fixAllFiles(changes.map(c => c.path), repoPath, errorOutput, promptCtx.implementerSystem, job.title, pubspecRaw);
-        this.log(`LLM fix returned ${Object.keys(fixedFiles).length} file(s): ${Object.keys(fixedFiles).join(', ')}`);
-        for (const [relPath, content] of Object.entries(fixedFiles)) {
-          const filePath = path.join(repoPath, relPath);
-          await writeFile(filePath, content);
-          const change = changes.find(c => c.path === relPath);
-          if (change) change.newContent = content;
-        }
-
-        this.logStep(`Retrying tests (attempt ${attempt + 1})...`);
+      if (job.requireTests !== false) {
+        this.logStep('Running tests...');
+        const MAX_FIX_ATTEMPTS = 3;
         testResult = await skill.test(repoPath, job.module).catch((e: any) => ({
           passed: false, command: '', stdout: String(e?.message ?? ''), stderr: String(e?.detail ?? e), exitCode: 1, duration: 0,
         } as import('../tools/test-runner').TestRunResult));
-        if (testResult.passed) this.logSuccess('Tests passed after LLM fix!');
-      }
 
-      if (!testResult.passed) {
-        const stderr = [testResult.stdout, testResult.stderr].filter(Boolean).join('\n').slice(0, 500);
-        throw new GaiaTestError(
-          `[${job.platform}] \`${testResult.command || 'test'}\` failed after ${MAX_FIX_ATTEMPTS} fix attempts`,
-          stderr
-        );
+        for (let attempt = 1; !testResult!.passed && attempt <= MAX_FIX_ATTEMPTS; attempt++) {
+          const errorOutput = [testResult!.stdout, testResult!.stderr].filter(Boolean).join('\n').slice(0, 3000);
+          this.logStep(`Tests failed (attempt ${attempt}/${MAX_FIX_ATTEMPTS}) — asking LLM to fix errors...`);
+          this.log(errorOutput.slice(0, 300));
+
+          const fixedFiles = await this.fixAllFiles(changes.map(c => c.path), repoPath, errorOutput, promptCtx.implementerSystem, job.title, pubspecRaw);
+          this.log(`LLM fix returned ${Object.keys(fixedFiles).length} file(s): ${Object.keys(fixedFiles).join(', ')}`);
+          for (const [relPath, content] of Object.entries(fixedFiles)) {
+            const filePath = path.join(repoPath, relPath);
+            await writeFile(filePath, content);
+            const change = changes.find(c => c.path === relPath);
+            if (change) change.newContent = content;
+          }
+
+          this.logStep(`Retrying tests (attempt ${attempt + 1})...`);
+          testResult = await skill.test(repoPath, job.module).catch((e: any) => ({
+            passed: false, command: '', stdout: String(e?.message ?? ''), stderr: String(e?.detail ?? e), exitCode: 1, duration: 0,
+          } as import('../tools/test-runner').TestRunResult));
+          if (testResult!.passed) this.logSuccess('Tests passed after LLM fix!');
+        }
+
+        if (!testResult!.passed) {
+          const stderr = [testResult!.stdout, testResult!.stderr].filter(Boolean).join('\n').slice(0, 500);
+          throw new GaiaTestError(
+            `[${job.platform}] \`${testResult!.command || 'test'}\` failed after ${MAX_FIX_ATTEMPTS} fix attempts`,
+            stderr
+          );
+        }
+      } else {
+        this.logStep('Skipping tests (requireTests: false)');
       }
 
       this.logStep('Committing & pushing changes...');
@@ -128,9 +134,9 @@ export class ImplementerAgent extends BaseAgent {
 
       return {
         success: true,
-        output: `Implementation completed. ${changes.length} files modified. Tests passing.`,
+        output: `Implementation completed. ${changes.length} files modified.${testResult ? ' Tests passing.' : ' Tests skipped.'}`,
         changes,
-        testResults: [this.toTestResult(testResult)],
+        testResults: testResult ? [this.toTestResult(testResult)] : [],
         branchName,
       };
     } catch (error) {
