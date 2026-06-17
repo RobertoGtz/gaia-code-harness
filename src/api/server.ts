@@ -47,6 +47,10 @@ function serverLog(method: string, url: string, status: number, ms: number): voi
  * @returns Fastify instance
  */
 export async function startServer(port: number = 3000) {
+  // Expose harness root so custom plugin agents can resolve internal modules
+  process.env.GAIA_HARNESS_ROOT = process.env.GAIA_HARNESS_ROOT
+    || require('path').resolve(__dirname, '../..');
+
   // Initialize database connection and register Postgres state backend
   await initDatabase();
   setStateBackend(new PostgresBackend());

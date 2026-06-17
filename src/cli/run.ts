@@ -20,7 +20,11 @@ import { DiskBackend } from '../state/disk-backend';
 import { orchestrateJob } from '../harness/leader';
 import { CodeGenerationJob, Platform } from '../types';
 
-// ── Bootstrap disk backend ──────────────────────────────────────────────────
+// ── Bootstrap ────────────────────────────────────────────────────────────────
+
+// Expose harness root so custom plugin agents can resolve internal modules
+process.env.GAIA_HARNESS_ROOT = process.env.GAIA_HARNESS_ROOT
+  || path.resolve(__dirname, '../..');
 
 const backend = new DiskBackend();
 setStateBackend(backend);
