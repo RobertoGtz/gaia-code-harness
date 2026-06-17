@@ -73,10 +73,12 @@ curl http://localhost:3000/jobs/$JOB_ID | jq .
 
 ### Testing de Agentes
 
+Todos los agentes son genéricos. El `platform` del job determina qué `PlatformSkill` se carga en runtime.
+
 #### SpecAuthorAgent
 
 ```typescript
-// Test directo del agente
+// Cambiar platform a "ios" o "android" para probar otras plataformas
 import { SpecAuthorAgent } from "./src/agents/spec-author";
 
 const agent = new SpecAuthorAgent();
@@ -87,7 +89,7 @@ const result = await agent.execute({
     acceptanceCriteria: [
       { id: "1", text: "WHEN test THEN success", testable: true },
     ],
-    platform: "flutter",
+    platform: "flutter", // ← cambia aqui: "flutter"|"flutter_web"|"ios"|"android"
     repo: "test-repo",
     targetBranch: "main",
     maxFilesToTouch: 5,
@@ -108,8 +110,8 @@ console.log(result.spec);
 
 Requiere:
 
-- Repo de la plataforma clonado (Flutter/iOS/Android)
-- Herramientas de la plataforma instaladas (Flutter SDK, Swift, Gradle)
+- Repo de la plataforma clonado
+- Toolchain instalado según `platform`: Flutter SDK / Xcode+Swift / JDK+Gradle
 - Git configurado
 
 #### ReviewerAgent
@@ -117,8 +119,7 @@ Requiere:
 Requiere:
 
 - Código implementado
-- Tests pasando (`flutter test` / `swift test` / `gradle test`)
-- Lint pasando (`dart analyze` / `swiftlint` / `gradle lint`)
+- Toolchain instalado (el skill verifica automáticamente)
 - GitHub token configurado (opcional, usa dry-run sin él)
 
 ---

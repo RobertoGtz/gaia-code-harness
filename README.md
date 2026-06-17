@@ -45,7 +45,7 @@
 
 - **Spec-Driven Development** — generates a structured `TechnicalSpec` (requirements, tasks, design decisions, risks) before writing any code
 - **Human-in-the-Loop** — mandatory approval checkpoint after spec generation; the system never touches code without explicit sign-off
-- **Multi-Platform** — independent agent sets for Flutter (mobile), Flutter Web, iOS/Swift, and Android/Kotlin with native toolchains
+- **Multi-Platform** — Flutter (mobile), Flutter Web, iOS/Swift, and Android/Kotlin supported via platform **Skills** — no per-platform agent duplication
 - **State Machine Orchestration** — 10-state lifecycle with full audit trail persisted in PostgreSQL
 - **Rich Terminal Output** — color-coded, emoji-enhanced logs per agent with a detailed end-of-job summary box
 - **Pluggable Agents** — repos can override default agents via a `.gaia/` directory
@@ -68,17 +68,24 @@
 │  pending → fetching_jira → spec_generating → spec_ready        │
 │                                                    │            │
 │  done ← pr_created ← reviewing ← implementing ← spec_approved  │
-└──────────┬─────────────────┬─────────────────┬─────────────────┘
-           ▼                 ▼                 ▼
-    Flutter Agents      iOS Agents       Android Agents
-    ──────────────      ──────────       ──────────────
-    SpecAuthor          SpecAuthor       SpecAuthor
-    Implementer         Implementer      Implementer
-    Reviewer            Reviewer         Reviewer
-    ──────────────      ──────────       ──────────────
-    flutter test        swift test       gradle test
-    dart analyze        swiftlint        lintDebug
-    pub get / melos     swift pkg res    ./gradlew deps
+└──────────┬─────────────────────────────────────────────────────┘
+           ▼
+    SpecAuthorAgent  ImplementerAgent  ReviewerAgent
+    (generic)        (generic)         (generic)
+           │                │                │
+           └────────────────┴────────────────┘
+                        loadSkill(platform)
+                            │
+                            ▼
+             ┌──────────────────────────────┐
+             │       Platform Skills        │
+             │    src/skills/{platform}/    │
+             ├──────────┬────────┬──────────┤
+             │ flutter  │  ios   │ android  │
+             │ pub get  │ spm    │ gradle   │
+             │ dart ana │ swift  │ ktlint   │
+             │ prompts  │ prompts│ prompts  │
+             └──────────┴────────┴──────────┘
                             │
                             ▼
                    ┌─────────────────┐
@@ -111,19 +118,16 @@ gaia-code-harness/
 ├── src/
 │   ├── agents/
 │   │   ├── base.ts                  # BaseAgent — shared logging, ANSI colors
-│   │   ├── flutter/
-│   │   │   ├── spec-author.ts
-│   │   │   ├── implementer.ts
-│   │   │   └── reviewer.ts
-│   │   ├── ios/
-│   │   │   ├── spec-author.ts
-│   │   │   ├── implementer.ts
-│   │   │   └── reviewer.ts
-│   │   ├── android/
-│   │   │   ├── spec-author.ts
-│   │   │   ├── implementer.ts
-│   │   │   └── reviewer.ts
+│   │   ├── spec-author.ts           # Generic SpecAuthor (all platforms)
+│   │   ├── implementer.ts           # Generic Implementer (all platforms)
+│   │   ├── reviewer.ts              # Generic Reviewer (all platforms)
 │   │   └── registry.ts              # getAgentsForPlatform()
+│   ├── skills/
+│   │   ├── index.ts                 # PlatformSkill interface + loadSkill()
+│   │   ├── flutter/index.ts         # Flutter mobile skill
+│   │   ├── flutter_web/index.ts     # Flutter Web skill
+│   │   ├── ios/index.ts             # iOS / Swift skill
+│   │   └── android/index.ts         # Android / Kotlin skill
 │   ├── api/
 │   │   ├── server.ts                # Fastify setup + custom request logger
 │   │   └── routes/
@@ -135,8 +139,7 @@ gaia-code-harness/
 │   ├── tools/
 │   │   ├── git.ts                   # Clone, branch, commit, push
 │   │   ├── llm.ts                   # OpenAI / Anthropic wrappers
-│   │   ├── github.ts                # PR creation via GitHub API
-│   │   ├── jira.ts                  # Jira ticket integration
+│   │   ├── test-runner.ts           # Flutter toolchain (flutter test, dart analyze)
 │   │   ├── xcode-runner.ts          # iOS toolchain (swift, xcodebuild, swiftlint)
 │   │   └── gradle-runner.ts         # Android toolchain (gradle, ktlint)
 │   ├── types/
@@ -402,7 +405,9 @@ List all jobs. Optional query param: `?initiativeId=init-123`
 
 ## Platform Toolchains
 
-### Flutter (mobile)
+All toolchain logic lives in `src/skills/{platform}/index.ts`. Each skill implements the `PlatformSkill` interface (`verifyEnvironment`, `build`, `test`, `analyze`, `getPromptContext`).
+
+### Flutter (mobile) — `src/skills/flutter/`
 
 | Tool                                  | Purpose               |
 | ------------------------------------- | --------------------- |
@@ -410,9 +415,7 @@ List all jobs. Optional query param: `?initiativeId=init-123`
 | `flutter test`                        | Unit and widget tests |
 | `dart analyze`                        | Static analysis       |
 
-### Flutter Web
-
-Uses the same Dart/Flutter SDK as mobile but with web-specific constraints enforced at the agent level:
+### Flutter Web — `src/skills/flutter_web/`
 
 | Tool              | Purpose               |
 | ----------------- | --------------------- |
@@ -420,7 +423,7 @@ Uses the same Dart/Flutter SDK as mobile but with web-specific constraints enfor
 | `flutter test`    | Unit and widget tests |
 | `dart analyze`    | Static analysis       |
 
-**Additional agent-level checks:**
+**Additional skill-level checks:**
 
 | Check                  | Description                                                                                |
 | ---------------------- | ------------------------------------------------------------------------------------------ |
@@ -429,7 +432,7 @@ Uses the same Dart/Flutter SDK as mobile but with web-specific constraints enfor
 | go_router enforcement  | LLM prompts explicitly forbid `Navigator.push` / `MaterialPageRoute`                       |
 | File path conventions  | Pages → `lib/src/web/pages/`, components → `lib/src/web/components/`                       |
 
-### iOS / Swift
+### iOS / Swift — `src/skills/ios/`
 
 | Tool                             | Purpose                    |
 | -------------------------------- | -------------------------- |
@@ -438,7 +441,7 @@ Uses the same Dart/Flutter SDK as mobile but with web-specific constraints enfor
 | `swiftlint`                      | Lint and style enforcement |
 | `xcodebuild build`               | Full project build         |
 
-### Android / Kotlin
+### Android / Kotlin — `src/skills/android/`
 
 | Tool                          | Purpose                  |
 | ----------------------------- | ------------------------ |
@@ -471,20 +474,21 @@ Uses the same Dart/Flutter SDK as mobile but with web-specific constraints enfor
 
 ## Adding a New Platform
 
-1. Create `src/agents/{platform}/` with `spec-author.ts`, `implementer.ts`, `reviewer.ts` — each extending `BaseAgent`
-2. Export them from `src/agents/{platform}/index.ts`
-3. Import and register the new agent set in `src/agents/registry.ts`
-4. Add the platform string to the `Platform` type in `src/types/index.ts`
-5. The Leader picks it up automatically via `getAgentsForPlatform(job.platform)`
+Because agents are generic, **you only need to add a new Skill** — no agent code required:
+
+1. Create `src/skills/{platform}/index.ts` implementing the `PlatformSkill` interface
+2. Add a `case '{platform}'` in `loadSkill()` inside `src/skills/index.ts`
+3. Add the platform string to the `Platform` type in `src/types/index.ts`
+4. The three generic agents pick it up automatically — no changes to agents or registry
 
 **Currently supported platforms:**
 
-| Platform         | Value         | Agent directory           |
+| Platform         | Value         | Skill directory           |
 | ---------------- | ------------- | ------------------------- |
-| Flutter (mobile) | `flutter`     | `src/agents/flutter/`     |
-| Flutter Web      | `flutter_web` | `src/agents/flutter_web/` |
-| iOS / Swift      | `ios`         | `src/agents/ios/`         |
-| Android / Kotlin | `android`     | `src/agents/android/`     |
+| Flutter (mobile) | `flutter`     | `src/skills/flutter/`     |
+| Flutter Web      | `flutter_web` | `src/skills/flutter_web/` |
+| iOS / Swift      | `ios`         | `src/skills/ios/`         |
+| Android / Kotlin | `android`     | `src/skills/android/`     |
 
 ---
 

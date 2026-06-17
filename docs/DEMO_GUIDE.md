@@ -303,7 +303,7 @@ En esta demo el código es mock (plantilla fija). En producción se conectaría 
 No en esta demo. Necesitaría un token de GitHub configurado. En producción crearía un PR real que un dev puede revisar.
 
 **¿Solo funciona con Flutter?**
-No. Soporta **Flutter**, **iOS/Swift** y **Android/Kotlin**. Cada plataforma tiene sus propios agentes especializados (SpecAuthor, Implementer, Reviewer) con herramientas nativas (`flutter test`, `swift test`, `gradle test`).
+No. Soporta **Flutter**, **Flutter Web**, **iOS/Swift** y **Android/Kotlin**. Los tres agentes son genéricos; la lógica específica de cada plataforma (herramientas nativas, prompts, patrones de archivos) vive en `src/skills/{platform}/`. Cambia `"platform"` en el request para elegir la plataforma.
 
 **¿Puede tocar cualquier archivo del repo?**
 No. Tiene límites configurables (`maxFilesToTouch: 5`) y no puede tocar archivos de CI/CD, secrets, o infraestructura.

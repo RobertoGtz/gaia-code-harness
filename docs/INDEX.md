@@ -48,19 +48,16 @@ src/
 │       └── jobs.ts            # 6 endpoints REST
 ├── agents/
 │   ├── base.ts                # Clase base abstracta
-│   ├── registry.ts            # Registry: selecciona agentes según plataforma
-│   ├── flutter/               # Agentes Flutter/Dart
-│   │   ├── spec-author.ts     #   SpecAuthor Flutter
-│   │   ├── implementer.ts     #   Implementer (flutter test, pub get)
-│   │   └── reviewer.ts        #   Reviewer (dart analyze)
-│   ├── ios/                   # Agentes iOS/Swift
-│   │   ├── spec-author.ts     #   SpecAuthor iOS
-│   │   ├── implementer.ts     #   Implementer (swift test, SPM)
-│   │   └── reviewer.ts        #   Reviewer (swiftlint)
-│   └── android/               # Agentes Android/Kotlin
-│       ├── spec-author.ts     #   SpecAuthor Android
-│       ├── implementer.ts     #   Implementer (gradle test)
-│       └── reviewer.ts        #   Reviewer (gradle lint)
+│   ├── spec-author.ts         # SpecAuthorAgent genérico (todas las plataformas)
+│   ├── implementer.ts         # ImplementerAgent genérico (todas las plataformas)
+│   ├── reviewer.ts            # ReviewerAgent genérico (todas las plataformas)
+│   └── registry.ts            # getAgentsForPlatform() — retorna los 3 agentes
+├── skills/
+│   ├── index.ts               # PlatformSkill interface + loadSkill(platform)
+│   ├── flutter/index.ts       # Flutter mobile: pub get, flutter test, dart analyze
+│   ├── flutter_web/index.ts   # Flutter Web: web constraints + forbidden pkg check
+│   ├── ios/index.ts           # iOS: swift pkg resolve, swift test, swiftlint
+│   └── android/index.ts       # Android: gradlew deps, test, lintDebug, ktlint
 ├── harness/
 │   ├── leader.ts              # Orchestrador (10 estados)
 │   └── plugin-loader.ts       # Sistema de plugins
@@ -68,9 +65,9 @@ src/
     ├── file.ts                # File system ops
     ├── git.ts                 # Git + GitHub API (force push para re-runs)
     ├── repo.ts                # Setup repositorios (shared)
-    ├── test-runner.ts         # Flutter test runner
-    ├── xcode-runner.ts        # Swift test, swiftlint, xcodebuild
-    └── gradle-runner.ts       # Gradle test, lint, build
+    ├── test-runner.ts         # Flutter test runner (usado por skills flutter/flutter_web)
+    ├── xcode-runner.ts        # Swift test, swiftlint, xcodebuild (usado por skill ios)
+    └── gradle-runner.ts       # Gradle test, lint, build (usado por skill android)
 ```
 
 ---
@@ -122,14 +119,14 @@ curl http://localhost:3000/health
 ## 📊 Estadísticas del Proyecto
 
 - **Líneas de código:** ~2,500 TypeScript
-- **Archivos fuente:** 14
+- **Archivos fuente:** ~18
 - **Documentos:** 12
 - **Endpoints REST:** 6
 - **Estados de job:** 10
-- **Agentes:** 9 (3 por plataforma) + 1 base + 1 registry
-- **Plataformas:** Flutter, iOS, Android
+- **Agentes:** 3 genéricos + 1 base + 1 registry
+- **Skills:** 4 (flutter, flutter_web, ios, android)
+- **Plataformas:** Flutter, Flutter Web, iOS, Android
 - **Dependencias:** 19 paquetes
-- **Dudas documentadas:** 18
 
 ---
 
