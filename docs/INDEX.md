@@ -1,26 +1,33 @@
 # Índice de Documentación - Gaia Code Harness
 
-> Documentación completa del proyecto Gaia Code Harness
-> Ticket: **RPCO-37575**
+> Documentación completa del proyecto Gaia Code Harness  
+> Tres modos de operación: **HTTP + Postgres**, **Claude Code CLI**, **CI / Webhook**
 
 ---
 
-## 📚 Documentación Principal (12 documentos)
+## 📚 Documentación Principal
 
-| #   | Documento                                        | Descripción                          | Cuándo usar            |
-| --- | ------------------------------------------------ | ------------------------------------ | ---------------------- |
-| 1   | [README.md](../README.md)                        | Overview, instalación, API, 18 dudas | **Primero**            |
-| 2   | [SETUP.md](./SETUP.md)                           | Guía de instalación paso a paso      | Setup local            |
-| 3   | [SETUP_CHECKLIST.md](../SETUP_CHECKLIST.md)      | Checklist de lo que falta instalar   | Verificar setup        |
-| 4   | [TESTING.md](./TESTING.md)                       | Cómo probar el proyecto local        | Testing local          |
-| 5   | [ARCHITECTURE.md](./ARCHITECTURE.md)             | Arquitectura profunda, diagramas     | Entender internos      |
-| 6   | [GAIA_INTEGRATION.md](./GAIA_INTEGRATION.md)     | Input/Output Gaia ↔ Harness          | Integración            |
-| 7   | [HOW_REMOTE_WORKS.md](./HOW_REMOTE_WORKS.md)     | Flujo remoto visual                  | Deploy producción      |
-| 8   | [DEPLOYMENT.md](./DEPLOYMENT.md)                 | AWS/GCP/Azure deployment             | Subir a producción     |
-| 9   | [PLUGINS.md](../PLUGINS.md)                      | Sistema de plugins                   | Agentes personalizados |
-| 10  | [API.md](../API.md)                              | API REST reference                   | Desarrollo API         |
-| 11  | [PROJECT_REVIEW.md](../PROJECT_REVIEW.md)        | Revisión exhaustiva                  | Verificación           |
-| 12  | [GUION_PRESENTACION.md](./GUION_PRESENTACION.md) | Guion para presentar al equipo       | Presentación           |
+| #   | Documento                                        | Descripción                           | Cuándo usar          |
+| --- | ------------------------------------------------ | ------------------------------------- | -------------------- |
+| 1   | [README.md](../README.md)                        | Overview, instalación, quick start    | **Primero**          |
+| 2   | [AGENTS.md](../AGENTS.md)                        | Mapa de navegación para agentes IA    | Antes de usar Claude |
+| 3   | [CLAUDE.md](../CLAUDE.md)                        | Entry point para Claude Code mode     | Claude Code          |
+| 4   | [CHECKPOINTS.md](../CHECKPOINTS.md)              | Criterios objetivos C1–C7 de "done"   | Auto-evaluación      |
+| 5   | [API.md](../API.md)                              | REST API + Webhook trigger reference  | Desarrollo / CI      |
+| 6   | [SETUP.md](./SETUP.md)                           | Guía de instalación paso a paso       | Setup local          |
+| 7   | [TESTING.md](./TESTING.md)                       | Cómo probar el proyecto local         | Testing local        |
+| 8   | [ARCHITECTURE.md](./ARCHITECTURE.md)             | Arquitectura profunda, diagramas      | Entender internos    |
+| 9   | [DEMO_GUIDE.md](./DEMO_GUIDE.md)                 | Demo paso a paso (HTTP + Claude + CI) | Presentaciones       |
+| 10  | [GUION_PRESENTACION.md](./GUION_PRESENTACION.md) | Guion para presentar al equipo        | Presentación         |
+
+### Disciplina de ingeniería
+
+| Documento                                         | Descripción                          |
+| ------------------------------------------------- | ------------------------------------ |
+| [docs/workflow.md](./workflow.md)                 | Pipeline completo con anotaciones    |
+| [docs/tdd.md](./tdd.md)                           | Las Tres Leyes del TDD + ciclo R-V-R |
+| [docs/gherkin.md](./gherkin.md)                   | Formato Gherkin, reglas, ejemplos    |
+| [docs/mutation-testing.md](./mutation-testing.md) | mutate.py, umbrales, plataformas     |
 
 ---
 
@@ -43,31 +50,53 @@ src/
 ├── db/
 │   └── index.ts               # PostgreSQL CRUD
 ├── api/
-│   ├── server.ts              # Fastify server
+│   ├── server.ts              # Fastify server (registra jobs + webhook routes)
 │   └── routes/
-│       └── jobs.ts            # 6 endpoints REST
+│       ├── jobs.ts            # 6 endpoints REST (POST /jobs, GET, approve, retry…)
+│       └── webhook.ts         # POST /webhook/trigger — Jira / Slack / genérico
+├── notifiers/
+│   ├── base.ts                # JobNotifier interface + NullNotifier
+│   ├── slack.ts               # Slack Block Kit por estado
+│   ├── github-checks.ts       # GitHub Checks API (in_progress → completed)
+│   ├── generic.ts             # HTTP POST con firma HMAC-SHA256 opcional
+│   ├── jira.ts                # Jira: comentarios + transiciones de estado por evento
+│   └── index.ts               # buildNotifier() factory (lee env vars)
 ├── agents/
 │   ├── base.ts                # Clase base abstracta
-│   ├── spec-author.ts         # SpecAuthorAgent genérico (todas las plataformas)
-│   ├── implementer.ts         # ImplementerAgent genérico (todas las plataformas)
-│   ├── reviewer.ts            # ReviewerAgent genérico (todas las plataformas)
-│   └── registry.ts            # getAgentsForPlatform() — retorna los 3 agentes
+│   ├── spec-author.ts         # SpecAuthorAgent genérico
+│   ├── implementer.ts         # ImplementerAgent (bulk + executeTDD)
+│   ├── reviewer.ts            # ReviewerAgent
+│   ├── mutation-tester.ts     # MutationTesterAgent (mutate.py + LLM fallback)
+│   └── registry.ts            # getAgentsForPlatform()
 ├── skills/
 │   ├── index.ts               # PlatformSkill interface + loadSkill(platform)
-│   ├── flutter/index.ts       # Flutter mobile: pub get, flutter test, dart analyze
-│   ├── flutter_web/index.ts   # Flutter Web: web constraints + forbidden pkg check
-│   ├── ios/index.ts           # iOS: swift pkg resolve, swift test, swiftlint
-│   └── android/index.ts       # Android: gradlew deps, test, lintDebug, ktlint
+│   ├── flutter/index.ts       # Flutter mobile
+│   ├── flutter_web/index.ts   # Flutter Web
+│   ├── ios/index.ts           # iOS/Swift
+│   └── android/index.ts       # Android/Kotlin
 ├── harness/
-│   ├── leader.ts              # Orchestrador (10 estados)
+│   ├── leader.ts              # Máquina de estados (10 estados, emite notifier events)
 │   └── plugin-loader.ts       # Sistema de plugins
+├── cli/
+│   └── run.ts                 # CLI entry point (DiskBackend, sin Postgres)
 └── tools/
     ├── file.ts                # File system ops
-    ├── git.ts                 # Git + GitHub API (force push para re-runs)
-    ├── repo.ts                # Setup repositorios (shared)
-    ├── test-runner.ts         # Flutter test runner (usado por skills flutter/flutter_web)
-    ├── xcode-runner.ts        # Swift test, swiftlint, xcodebuild (usado por skill ios)
-    └── gradle-runner.ts       # Gradle test, lint, build (usado por skill android)
+    ├── git.ts                 # Git + GitHub API
+    ├── repo.ts                # Setup repositorios
+    ├── test-runner.ts         # Flutter test runner
+    ├── xcode-runner.ts        # Swift/Xcode runner
+    └── gradle-runner.ts       # Gradle runner
+
+tools/
+└── mutate.py                  # Mutador determinístico Python/TS/Swift/Kotlin
+
+.claude/agents/
+├── craftsman_lead.md          # Orquestador Claude Code
+├── spec_partner.md            # Conversación de spec
+├── gherkin_author.md          # Destilación Gherkin
+├── tdd_craftsman.md           # Ciclo Red-Green-Refactor
+├── judge.md                   # Reviewer bloqueante
+└── mutation_tester.md         # Mutation tester
 ```
 
 ---
@@ -118,15 +147,16 @@ curl http://localhost:3000/health
 
 ## 📊 Estadísticas del Proyecto
 
-- **Líneas de código:** ~2,500 TypeScript
-- **Archivos fuente:** ~18
-- **Documentos:** 12
-- **Endpoints REST:** 6
+- **Líneas de código:** ~3,500 TypeScript + ~300 Python
+- **Archivos fuente:** ~28
+- **Documentos:** 15+
+- **Endpoints REST:** 7 (+ `POST /webhook/trigger`)
 - **Estados de job:** 10
-- **Agentes:** 3 genéricos + 1 base + 1 registry
+- **Agentes TS:** 4 (spec-author, implementer, reviewer, mutation-tester)
+- **Agentes Claude:** 6 (craftsman_lead, spec_partner, gherkin_author, tdd_craftsman, judge, mutation_tester)
+- **Notifiers:** 3 (Slack, GitHub Checks, Generic) + NullNotifier
 - **Skills:** 4 (flutter, flutter_web, ios, android)
-- **Plataformas:** Flutter, Flutter Web, iOS, Android
-- **Dependencias:** 19 paquetes
+- **Modos de operación:** 3 (HTTP + Postgres, Claude Code CLI, CI / Webhook)
 
 ---
 

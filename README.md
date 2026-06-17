@@ -663,12 +663,14 @@ Requests without a valid signature return `401 Unauthorized`.
 
 Configure one or more notifiers by setting env vars. **If none are set, `NullNotifier` is used — no errors, zero overhead.**
 
-| Env var                                                | Notifier             | What is sent                                         |
-| ------------------------------------------------------ | -------------------- | ---------------------------------------------------- |
-| `SLACK_WEBHOOK_URL`                                    | Slack                | Block Kit message with job status, platform, PR link |
-| `GITHUB_CHECKS_TOKEN` + `GITHUB_OWNER` + `GITHUB_REPO` | GitHub Checks API    | Check Run updated at every state transition          |
-| `NOTIFY_WEBHOOK_URL`                                   | Generic HTTP         | Full `JobEvent` JSON payload                         |
-| `NOTIFY_WEBHOOK_SECRET`                                | _(optional signing)_ | Adds `X-GAIA-Signature` header to outbound POST      |
+| Env var                                                | Notifier             | What is sent                                                        |
+| ------------------------------------------------------ | -------------------- | ------------------------------------------------------------------- |
+| `SLACK_WEBHOOK_URL`                                    | Slack                | Block Kit message with job status, platform, PR link                |
+| `GITHUB_CHECKS_TOKEN` + `GITHUB_OWNER` + `GITHUB_REPO` | GitHub Checks API    | Check Run updated at every state transition                         |
+| `NOTIFY_WEBHOOK_URL`                                   | Generic HTTP         | Full `JobEvent` JSON payload                                        |
+| `NOTIFY_WEBHOOK_SECRET`                                | _(optional signing)_ | Adds `X-GAIA-Signature` header to outbound POST                     |
+| `JIRA_BASE_URL` + `JIRA_EMAIL` + `JIRA_API_TOKEN`      | Jira                 | Comments + state transitions on the linked ticket                   |
+| `JIRA_TRANSITION_MAP`                                  | _(configures Jira)_  | Override transition names: `{"done":"Resolved","failed":"Blocked"}` |
 
 **Events emitted at these pipeline states:**
 
@@ -1122,13 +1124,17 @@ docker run -p 3000:3000 --env-file .env gaia-code-harness
 
 ### Mode C — Outbound notifications
 
-| Variable                | Required | Description                                                           |
-| ----------------------- | -------- | --------------------------------------------------------------------- |
-| `SLACK_WEBHOOK_URL`     | Optional | Incoming webhook URL — sends Block Kit message on each job event      |
-| `GITHUB_CHECKS_TOKEN`   | Optional | GitHub PAT with `checks:write` — creates/updates Check Runs           |
-| `GITHUB_REPO`           | Optional | Repository name for GitHub Checks (e.g. `my-repo`)                    |
-| `NOTIFY_WEBHOOK_URL`    | Optional | Generic HTTP endpoint — receives full `JobEvent` JSON via POST        |
-| `NOTIFY_WEBHOOK_SECRET` | Optional | If set, signs outbound generic webhook with `X-GAIA-Signature` header |
+| Variable                | Required | Description                                                                 |
+| ----------------------- | -------- | --------------------------------------------------------------------------- |
+| `SLACK_WEBHOOK_URL`     | Optional | Incoming webhook URL — sends Block Kit message on each job event            |
+| `GITHUB_CHECKS_TOKEN`   | Optional | GitHub PAT with `checks:write` — creates/updates Check Runs                 |
+| `GITHUB_REPO`           | Optional | Repository name for GitHub Checks (e.g. `my-repo`)                          |
+| `NOTIFY_WEBHOOK_URL`    | Optional | Generic HTTP endpoint — receives full `JobEvent` JSON via POST              |
+| `NOTIFY_WEBHOOK_SECRET` | Optional | If set, signs outbound generic webhook with `X-GAIA-Signature` header       |
+| `JIRA_BASE_URL`         | Optional | Jira instance URL — activates ticket comments + state transitions           |
+| `JIRA_EMAIL`            | Optional | Jira user email (basic auth, same as existing Jira integration)             |
+| `JIRA_API_TOKEN`        | Optional | Jira API token (get from id.atlassian.com)                                  |
+| `JIRA_TRANSITION_MAP`   | Optional | JSON to override transition names: `{"done":"Resolved","failed":"Blocked"}` |
 
 > If no notification variable is set, `NullNotifier` is used automatically — no errors, no overhead.
 

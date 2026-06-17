@@ -1,7 +1,7 @@
 # API Reference - Gaia Code Harness
 
-> Documentación completa de la API REST
-> Ticket: RPCO-37575
+> Documentación completa de la API REST  
+> Modos soportados: **HTTP + Postgres**, **Claude Code CLI**, **CI / Webhook**
 
 ---
 
@@ -362,6 +362,128 @@ curl -s http://localhost:3000/jobs/$JOB_ID | jq -r '.job.prUrl'
 - O usar OAuth2/JWT
 
 ---
+
+---
+
+---
+
+## 🔔 CI / Webhook Mode
+
+### Trigger — Inbound webhook
+
+```http
+POST /webhook/trigger
+Content-Type: application/json
+```
+
+Acepta tres formatos de payload:
+
+**Formato A — Generic GAIA JSON (recomendado para integraciones propias):**
+
+```json
+{
+  "title": "Add loyalty points banner",
+  "platform": "flutter",
+  "repo": "rpp-pyme-multiplatform",
+  "targetBranch": "develop",
+  "tddMode": true,
+  "acceptanceCriteria": [
+    { "id": "ac-1", "text": "WHEN user has points THEN show banner" }
+  ]
+}
+```
+
+**Formato B — Jira issue webhook** (configura en Jira → Project settings → Webhooks):
+
+```json
+{
+  "webhookEvent": "jira:issue_created",
+  "issue": {
+    "key": "PROJ-123",
+    "fields": {
+      "summary": "Add loyalty points banner",
+      "labels": ["flutter", "tdd"]
+    }
+  }
+}
+```
+
+> La plataforma se detecta de los labels. Requiere `DEFAULT_REPO` en `.env`.
+
+**Formato C — Slack slash command** (`/gaia flutter my-repo Feature title here`):
+
+```
+POST /webhook/trigger
+Content-Type: application/x-www-form-urlencoded
+
+command=/gaia&text=flutter my-repo Feature title here
+```
+
+**Response (202 Accepted):**
+
+```json
+{
+  "jobId": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "accepted",
+  "title": "Add loyalty points banner",
+  "platform": "flutter",
+  "tddMode": true,
+  "message": "Job created and pipeline started"
+}
+```
+
+**Seguridad — firma HMAC-SHA256:**
+
+```bash
+# Configura WEBHOOK_SECRET en .env
+# El sistema verifica X-GAIA-Signature: sha256=<hmac>
+curl -X POST http://localhost:3000/webhook/trigger \
+  -H "Content-Type: application/json" \
+  -H "X-GAIA-Signature: sha256=$(echo -n '{"title":"..."}' | openssl dgst -sha256 -hmac $WEBHOOK_SECRET | cut -d' ' -f2)" \
+  -d '{"title":"Add loyalty points banner","platform":"flutter","repo":"my-repo"}'
+```
+
+---
+
+### Notificaciones — Outbound events
+
+Configura una o más variables en `.env` para activar notificaciones de salida:
+
+| Variable                                               | Notifier activado | Qué envía                                                                  |
+| ------------------------------------------------------ | ----------------- | -------------------------------------------------------------------------- |
+| `SLACK_WEBHOOK_URL`                                    | Slack             | Block Kit message por estado                                               |
+| `GITHUB_CHECKS_TOKEN` + `GITHUB_OWNER` + `GITHUB_REPO` | GitHub Checks API | Check Run por job                                                          |
+| `NOTIFY_WEBHOOK_URL`                                   | Generic HTTP      | JSON completo del evento                                                   |
+| `NOTIFY_WEBHOOK_SECRET`                                | (firma outbound)  | `X-GAIA-Signature` header                                                  |
+| `JIRA_BASE_URL` + `JIRA_EMAIL` + `JIRA_API_TOKEN`      | Jira              | Comentarios + transiciones de estado en el ticket                          |
+| `JIRA_TRANSITION_MAP`                                  | (configura Jira)  | JSON para renombrar transiciones: `{"done":"Resolved","failed":"Blocked"}` |
+
+**Eventos emitidos:**
+
+| Evento             | Cuándo                           |
+| ------------------ | -------------------------------- |
+| `job.created`      | Job creado (`pending`)           |
+| `job.spec_ready`   | Spec lista, esperando aprobación |
+| `job.implementing` | Implementación iniciada          |
+| `job.reviewing`    | Revisión en curso                |
+| `job.done`         | Job completado con PR            |
+| `job.failed`       | Error en el pipeline             |
+
+**Ejemplo payload outbound (Slack / Generic):**
+
+```json
+{
+  "jobId": "550e8400-e29b-41d4-a716-446655440000",
+  "event": "job.done",
+  "status": "done",
+  "title": "Add loyalty points banner",
+  "platform": "flutter",
+  "timestamp": "2024-01-15T10:35:42.000Z",
+  "tddMode": true,
+  "prUrl": "https://github.com/org/repo/pull/42",
+  "mutationScore": 87.5
+}
+```
 
 ---
 

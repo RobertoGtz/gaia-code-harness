@@ -267,6 +267,127 @@ Tú (Producto)                    Sistema (Harness)
 
 ---
 
+---
+
+## Demo — Modo CI / Webhook
+
+Este modo permite que sistemas externos (Jira, Slack, GitHub Actions, etc.) arranquen un job automáticamente y reciban notificaciones en tiempo real.
+
+### Paso A: Configurar notificaciones (opcional)
+
+Edita `.env` y añade las variables que quieras activar:
+
+```bash
+# Slack — recibirás un mensaje por cada cambio de estado
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T000/B000/xxxx
+
+# GitHub Checks — aparece un Check Run en el PR
+GITHUB_CHECKS_TOKEN=github_pat_xxxxx
+GITHUB_OWNER=tu-org
+GITHUB_REPO=tu-repo
+
+# Webhook genérico — cualquier endpoint HTTP
+NOTIFY_WEBHOOK_URL=https://tu-endpoint.com/gaia
+
+# Jira — comenta en el ticket y transiciona estados automáticamente
+# (usa las mismas vars que ya tienes para leer tickets)
+JIRA_BASE_URL=https://tu-org.atlassian.net
+JIRA_EMAIL=tu@email.com
+JIRA_API_TOKEN=tu-token
+# Opcional: renombra las transiciones si tu workflow usa nombres distintos
+# JIRA_TRANSITION_MAP={"implementing":"En Progreso","done":"Resuelto","failed":"Bloqueado"}
+```
+
+> Si no configuras ninguna, el sistema usa `NullNotifier` — cero overhead, sin errores.
+
+**Qué hace el JiraNotifier por evento:**
+
+| Evento             | Acción en Jira                                                       |
+| ------------------ | -------------------------------------------------------------------- |
+| `job.spec_ready`   | Agrega comentario con la spec generada + instrucciones de aprobación |
+| `job.implementing` | Transiciona el ticket → **In Progress** + comentario                 |
+| `job.done`         | Transiciona → **Done** + comentario con link al PR y mutation score  |
+| `job.failed`       | Transiciona → **Blocked** + comentario con el error y link de retry  |
+
+> El ticket se detecta automáticamente del título del job (busca patrón `PROJ-123`).
+
+### Paso B: Disparar un job vía webhook
+
+```bash
+curl -s -X POST http://localhost:3000/webhook/trigger \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Add loyalty points banner",
+    "platform": "flutter",
+    "repo": "demo-repo",
+    "targetBranch": "develop",
+    "tddMode": true,
+    "acceptanceCriteria": [
+      { "id": "ac-1", "text": "WHEN user has points THEN show banner" }
+    ]
+  }' | python3 -m json.tool
+```
+
+Respuesta inmediata (202):
+
+```json
+{
+  "jobId": "e22105e6-eb14-4f7d-9873-d55ab835ca57",
+  "status": "accepted",
+  "platform": "flutter",
+  "tddMode": true,
+  "message": "Job created and pipeline started"
+}
+```
+
+El pipeline arranca en background igual que `POST /jobs`. Monitorea con:
+
+```bash
+curl -s http://localhost:3000/jobs/e22105e6-eb14-4f7d-9873-d55ab835ca57 | python3 -m json.tool
+```
+
+### Paso C: Simular un webhook de Jira
+
+```bash
+curl -s -X POST http://localhost:3000/webhook/trigger \
+  -H "Content-Type: application/json" \
+  -H "X-Atlassian-Token: no-check" \
+  -d '{
+    "webhookEvent": "jira:issue_created",
+    "issue": {
+      "key": "PROJ-99",
+      "fields": {
+        "summary": "Add dark mode toggle",
+        "labels": ["flutter", "tdd"]
+      }
+    }
+  }' | python3 -m json.tool
+```
+
+> Requiere `DEFAULT_REPO=tu-org/tu-repo` en `.env`.
+
+### Paso D: Slack slash command
+
+Configura un Slash Command en tu workspace apuntando a `POST http://<tu-ip>:3000/webhook/trigger` y escribe en Slack:
+
+```
+/gaia flutter demo-repo Add dark mode toggle
+```
+
+### Seguridad con firma HMAC
+
+```bash
+BODY='{"title":"Test","platform":"flutter","repo":"demo-repo"}'
+SIG=$(echo -n "$BODY" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | cut -d' ' -f2)
+
+curl -s -X POST http://localhost:3000/webhook/trigger \
+  -H "Content-Type: application/json" \
+  -H "X-GAIA-Signature: sha256=$SIG" \
+  -d "$BODY" | python3 -m json.tool
+```
+
+---
+
 ## Si algo sale mal
 
 ### "Connection refused"
