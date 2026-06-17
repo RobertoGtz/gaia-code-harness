@@ -17,28 +17,25 @@ const execAsync = promisify(exec);
  * erroneously generates for single-target SPM projects.
  */
 async function stripInternalImports(workingDir: string): Promise<void> {
-  const sourcesDir = path.join(workingDir, 'Sources');
-  async function walk(dir: string): Promise<void> {
-    let names: string[];
-    try { names = await fs.readdir(dir); } catch { return; }
-    for (const name of names) {
-      const full = path.join(dir, name);
-      const stat = await fs.stat(full).catch(() => null);
-      if (!stat) continue;
-      if (stat.isDirectory()) { await walk(full); continue; }
-      if (!name.endsWith('.swift')) continue;
-      const src = await fs.readFile(full, 'utf8').catch(() => '');
-      // Remove lines like: import DemoApp, import DemoAppModels, import DemoAppViewModels, etc.
-      let fixed = src.split('\n').filter(l => !/^import DemoApp/.test(l.trim())).join('\n');
-      // Ensure import Foundation is present if Foundation types (Date, URL, Data) are used
-      const needsFoundation = /\b(Date|URL|Data|UUID|Decimal|TimeInterval)\b/.test(fixed);
-      if (needsFoundation && !/^import Foundation/m.test(fixed)) {
-        fixed = 'import Foundation\n' + fixed;
-      }
-      if (fixed !== src) await fs.writeFile(full, fixed, 'utf8');
-    }
+  // Use a shell script to reliably fix all Swift files in Sources/:
+  // 1. Remove any `import DemoApp*` lines (internal module imports that don't exist)
+  // 2. Prepend `import Foundation` to files that use Foundation types but lack the import
+  const script = `
+find "${workingDir}/Sources" -name "*.swift" | while read f; do
+  # Remove internal DemoApp imports
+  sed -i '' '/^import DemoApp/d' "$f" 2>/dev/null || sed -i '/^import DemoApp/d' "$f"
+  # Add import Foundation if needed
+  if grep -qE '\\b(Date|URL|UUID|Decimal|TimeInterval)\\b' "$f" && ! grep -q '^import Foundation' "$f"; then
+    tmpfile=$(mktemp)
+    echo 'import Foundation' | cat - "$f" > "$tmpfile" && mv "$tmpfile" "$f"
+  fi
+done
+`;
+  try {
+    await execAsync(script, { cwd: workingDir });
+  } catch {
+    // best-effort — ignore failures
   }
-  await walk(sourcesDir);
 }
 
 /**
