@@ -29,7 +29,12 @@ async function stripInternalImports(workingDir: string): Promise<void> {
       if (!name.endsWith('.swift')) continue;
       const src = await fs.readFile(full, 'utf8').catch(() => '');
       // Remove lines like: import DemoApp, import DemoAppModels, import DemoAppViewModels, etc.
-      const fixed = src.split('\n').filter(l => !/^import DemoApp/.test(l.trim())).join('\n');
+      let fixed = src.split('\n').filter(l => !/^import DemoApp/.test(l.trim())).join('\n');
+      // Ensure import Foundation is present if Foundation types (Date, URL, Data) are used
+      const needsFoundation = /\b(Date|URL|Data|UUID|Decimal|TimeInterval)\b/.test(fixed);
+      if (needsFoundation && !/^import Foundation/m.test(fixed)) {
+        fixed = 'import Foundation\n' + fixed;
+      }
       if (fixed !== src) await fs.writeFile(full, fixed, 'utf8');
     }
   }

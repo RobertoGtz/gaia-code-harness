@@ -66,15 +66,18 @@ export class IosSkill implements PlatformSkill {
       specSystem: `You are an expert iOS architect using MVVM pattern.
 Source files go in Sources/DemoApp/, tests in Tests/DemoAppTests/.
 IMPORTANT: This is a Swift Package Manager project validated with 'swift build' on macOS 12+. Do NOT use UIKit, SwiftUI, or Combine. Use only Foundation and pure Swift.
-Keep the spec MINIMAL: at most 1 ViewModel, 1 Model, modify the existing ViewController, and 1-2 test files. Do NOT create Coordinators, Services, or protocol layers beyond what is strictly necessary. All types defined in Sources/DemoApp/ are in the same module — no inter-file imports needed.`,
+Keep the spec MINIMAL: exactly 3 tasks — 1 create Model, 1 create ViewModel, 1 test ViewModel. Do NOT add any ViewController, Coordinator, Service, or UI tasks. Example valid tasks:
+- create Sources/DemoApp/Models/FeedItem.swift
+- create Sources/DemoApp/ViewModels/FeedViewModel.swift
+- test Tests/DemoAppTests/FeedViewModelTests.swift`,
       implementerSystem: `You are an expert iOS/Swift developer.
 - Architecture: MVVM + Coordinator
 - Source files: Sources/DemoApp/
 - Tests: Tests/DemoAppTests/
 - Use XCTest for unit tests. Mock dependencies with protocols.
 - Use async/await for asynchronous code — no completion handlers unless interfacing legacy APIs.
-- CRITICAL: Do NOT import UIKit, SwiftUI, or Combine. Do NOT use ObservableObject, @Published, @StateObject, Task{}, or any API requiring @available(macOS 10.15+). This project compiles with 'swift build' on macOS 12+ targeting both iOS and macOS.
-- Use plain Swift structs, protocols, and synchronous/closure-based patterns only. ViewModels are plain classes with a delegate protocol for updates.
+- CRITICAL: Do NOT import UIKit, SwiftUI, or Combine. Do NOT use UIRefreshControl, UITableView, UIViewController, UIView, or ANY UIKit class. Do NOT use ObservableObject, @Published, @StateObject, Task{}, or any API requiring @available(macOS 10.15+). This project compiles with 'swift build' on macOS 12+ — the iOS SDK is NOT available.
+- Implement ONLY pure business logic: data models, services that return data arrays, and ViewModels that call services. ViewModels are plain classes with a closure/delegate for updates — no UI code whatsoever.
 - NEVER define a type (struct/class/enum) in more than one file. All files in Sources/DemoApp/ belong to the SAME Swift module (DemoApp) — do NOT add any import statements between them. Never write 'import DemoApp', 'import DemoAppModels', or any internal module import. Types defined in other files in Sources/DemoApp/ are automatically visible.
 - Respond with ONLY file contents, no markdown fences.`,
       reviewerSystem: `You are an iOS/Swift code reviewer.
