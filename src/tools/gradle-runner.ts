@@ -52,14 +52,44 @@ export async function runGradleTests(workingDir: string, module?: string): Promi
       duration: Date.now() - startTime,
     };
   } catch (error: any) {
+    const xmlDetails = await readTestXmlFailures(workingDir);
     return {
       passed: false,
       command,
       stdout: error.stdout || '',
-      stderr: error.stderr || '',
+      stderr: [error.stderr || '', xmlDetails].filter(Boolean).join('\n\n--- Test Failures ---\n'),
       exitCode: error.code || 1,
       duration: Date.now() - startTime,
     };
+  }
+}
+
+async function findXmlFiles(dir: string, results: string[] = []): Promise<string[]> {
+  try {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    for (const e of entries) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) await findXmlFiles(full, results);
+      else if (e.name.endsWith('.xml') && dir.includes('test-results')) results.push(full);
+    }
+  } catch { /* ignore */ }
+  return results;
+}
+
+async function readTestXmlFailures(workingDir: string): Promise<string> {
+  try {
+    const xmlFiles = await findXmlFiles(workingDir);
+    const failures: string[] = [];
+    for (const f of xmlFiles.slice(0, 5)) {
+      const content = await fs.readFile(f, 'utf8');
+      const matches = [...content.matchAll(/<testcase name="([^"]+)"[^>]*>[\s\S]*?<failure[^>]*>([^<]+)/g)];
+      for (const m of matches) {
+        failures.push(`FAIL: ${m[1]}\n${m[2].slice(0, 400)}`);
+      }
+    }
+    return failures.join('\n\n');
+  } catch {
+    return '';
   }
 }
 
