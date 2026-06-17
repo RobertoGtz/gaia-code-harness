@@ -51,10 +51,11 @@
 - **Spec-Driven Development** — generates a structured `TechnicalSpec` (requirements, tasks, design decisions, risks) before writing any code
 - **Human-in-the-Loop** — mandatory approval checkpoint after spec generation; the system never touches code without explicit sign-off
 - **Multi-Platform** — Flutter (mobile), Flutter Web, iOS/Swift, and Android/Kotlin supported via platform **Skills** — no per-platform agent duplication
-- **Dual Orchestration Mode** — HTTP + PostgreSQL server mode _and_ Claude Code local mode (disk state, no DB required)
+- **Three Orchestration Modes** — HTTP + PostgreSQL (production), Claude Code CLI (local/conversational), and **CI / Webhook** (external triggers from Jira/Slack/GitHub Actions)
 - **TDD Craftsman** — optional `tddMode: true` flag switches Implementer to Red-Green-Refactor, one failing test at a time
 - **Mutation Tester** — automatically runs after every review; validates that tests detect real defects (≥80% kill rate required)
 - **State Machine Orchestration** — 10-state lifecycle with full audit trail persisted in PostgreSQL or on-disk JSON
+- **CI Notifications** — pluggable `JobNotifier` system emits events to Slack, GitHub Checks API, or any HTTP endpoint
 - **Rich Terminal Output** — color-coded, emoji-enhanced logs per agent with a detailed end-of-job summary box
 - **Pluggable Agents** — repos can override default agents via a `.gaia/` directory
 - **LLM-Agnostic** — supports OpenAI and Anthropic; model selection is configurable per-agent
@@ -64,45 +65,44 @@
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│               Orchestration Mode A — HTTP Server                 │
-│  POST /jobs  ·  GET /jobs/:id  ·  POST /jobs/:id/approve         │
-└──────────────────────┬───────────────────────────────────────────┘
-                       │
-              ┌────────┴────────┐
-              │                 │
-              ▼                 ▼
-   ┌──────────────────┐  ┌──────────────────────────────────────┐
-   │  Leader (state   │  │  Orchestration Mode B — Claude Code  │
-   │  machine)        │  │  npx ts-node src/cli/run.ts          │
-   └────────┬─────────┘  └──────────────┬───────────────────────┘
-            │                           │
-            └─────────────┬─────────────┘
-                          ▼
-             ┌────────────────────────────┐
-             │      State Backend         │
-             │  (interface: StateBackend) │
-             ├────────────┬───────────────┤
-             │ Postgres   │   Disk JSON   │
-             │ (HTTP mode)│ (Claude mode) │
-             └────────────┴───────────────┘
-                          │
-                          ▼
+┌─────────────────────┐  ┌─────────────────────┐  ┌──────────────────────────┐
+│   Mode A — HTTP     │  │  Mode B — Claude     │  │   Mode C — CI/Webhook    │
+│  POST /jobs         │  │  npx ts-node         │  │  POST /webhook/trigger   │
+│  GET  /jobs/:id     │  │  src/cli/run.ts      │  │  (Jira/Slack/generic)    │
+│  POST /jobs/approve │  │  DiskBackend         │  │  PostgresBackend         │
+└──────────┬──────────┘  └──────────┬───────────┘  └─────────────┬────────────┘
+           │                        │                             │
+           └────────────────────────┴─────────────────────────────┘
+                                    │
+                          leader.ts (state machine)
+                          + JobNotifier (optional)
+                                    │
+                    ┌───────────────┴───────────────┐
+                    │          Notifiers             │
+                    │  Slack · GitHub Checks · HTTP  │
+                    └───────────────────────────────┘
+                                    │
+             ┌──────────────────────┴──────────────────────┐
+             │      State Backend (interface)               │
+             ├────────────────────┬────────────────────────┤
+             │  PostgresBackend   │     DiskBackend         │
+             │  (HTTP / CI mode)  │   (Claude Code mode)    │
+             └────────────────────┴────────────────────────┘
+                                    │
   SpecAuthorAgent  ImplementerAgent   ReviewerAgent  MutationTesterAgent
-  (generic)        execute() / executeTDD()  (generic)  (auto, post-review)
-                          │
-                    loadSkill(platform)
-                          │
-                          ▼
-          ┌───────────────────────────────┐
-          │       Platform Skills         │
-          │    src/skills/{platform}/     │
-          ├──────────┬────────┬───────────┤
-          │ flutter  │  ios   │ android   │
-          │ pub get  │ spm    │ gradle    │
-          │ dart ana │ swift  │ ktlint    │
-          │ prompts  │ prompts│ prompts   │
-          └──────────┴────────┴───────────┘
+  (generic)        execute() / executeTDD()  (generic)  (mutate.py + LLM)
+                                    │
+                              loadSkill(platform)
+                                    │
+                                    ▼
+                  ┌─────────────────────────────────┐
+                  │         Platform Skills          │
+                  │     src/skills/{platform}/       │
+                  ├──────────┬────────┬──────────────┤
+                  │ flutter  │  ios   │  android     │
+                  │ pub get  │ spm    │  gradle      │
+                  │ dart ana │ swift  │  ktlint      │
+                  └──────────┴────────┴──────────────┘
 ```
 
 ### Job Lifecycle
@@ -160,15 +160,22 @@ gaia-code-harness/
 │   │   ├── postgres-backend.ts      # Adapter: Postgres (HTTP mode)
 │   │   └── disk-backend.ts          # Adapter: JSON files (Claude Code mode)
 │   ├── api/
-│   │   ├── server.ts                # Fastify setup — registers PostgresBackend
+│   │   ├── server.ts                # Fastify setup — registers all routes
 │   │   └── routes/
-│   │       └── jobs.ts              # REST endpoints
+│   │       ├── jobs.ts              # REST endpoints (6 endpoints)
+│   │       └── webhook.ts           # POST /webhook/trigger (CI mode)
+│   ├── notifiers/
+│   │   ├── base.ts                  # JobNotifier interface + NullNotifier
+│   │   ├── slack.ts                 # Slack Block Kit messages
+│   │   ├── github-checks.ts         # GitHub Checks API integration
+│   │   ├── generic.ts               # Generic HTTP webhook + HMAC signing
+│   │   └── index.ts                 # buildNotifier() factory (reads env vars)
 │   ├── cli/
 │   │   └── run.ts                   # Claude Code CLI entry point
 │   ├── db/
 │   │   └── index.ts                 # PostgreSQL pool + CRUD
 │   ├── harness/
-│   │   └── leader.ts                # State machine orchestrator
+│   │   └── leader.ts                # State machine orchestrator + notifier events
 │   ├── tools/
 │   │   ├── git.ts                   # Clone, branch, commit, push
 │   │   ├── llm.ts                   # OpenAI / Anthropic wrappers
@@ -283,9 +290,54 @@ npm run dev
 
 ---
 
-## Running a Demo
+## The Three Orchestration Modes
 
-### 1. Create a job — capture the job ID
+GAIA supports three independent ways to trigger and monitor jobs. All three share the **same pipeline** (`leader.ts` state machine), the same agents, and the same job lifecycle. What differs is how jobs are created and how state is persisted.
+
+|                   | Mode A — HTTP            | Mode B — Claude Code     | Mode C — CI / Webhook                         |
+| ----------------- | ------------------------ | ------------------------ | --------------------------------------------- |
+| **Trigger**       | REST API call            | Conversational CLI       | External event (Jira, Slack, GitHub Actions…) |
+| **Persistence**   | PostgreSQL               | Disk JSON (`progress/`)  | PostgreSQL                                    |
+| **Approval gate** | `POST /jobs/:id/approve` | Human message to agent   | `POST /jobs/:id/approve` (same API)           |
+| **Notifications** | Optional notifiers       | Terminal output          | Slack / GitHub Checks / HTTP                  |
+| **Best for**      | Production, integrations | Local dev, spec crafting | CI pipelines, automated workflows             |
+
+---
+
+## Mode A — HTTP + PostgreSQL
+
+The default production mode. A Fastify server exposes a REST API. State is persisted in PostgreSQL.
+
+### Requirements
+
+- Node.js ≥ 18, PostgreSQL 15+
+- At least one LLM key (`OPENAI_API_KEY` or `ANTHROPIC_API_KEY`)
+- `GITHUB_TOKEN` for real PR creation
+
+### Start
+
+```bash
+# 1. Launch Postgres
+docker run -d --name gaia-postgres \
+  -e POSTGRES_DB=gaia_harness \
+  -e POSTGRES_USER=gaia \
+  -e POSTGRES_PASSWORD=gaia \
+  -p 5432:5432 postgres:15
+
+# 2. Configure
+cp .env.example .env   # fill DATABASE_URL, GITHUB_TOKEN, OPENAI_API_KEY
+
+# 3. Install and start
+npm install
+npm run dev
+# ──────────────────────────────────────────────────
+#   GAIA Code Harness  —  ready on :3000
+# ──────────────────────────────────────────────────
+```
+
+### Demo walkthrough
+
+**Step 1 — Create a job**
 
 ```bash
 JOB=$(curl -s -X POST http://localhost:3000/jobs \
@@ -296,138 +348,393 @@ JOB=$(curl -s -X POST http://localhost:3000/jobs \
     "jiraTicketId": "DEMO-100",
     "repo": "demo-repo",
     "targetBranch": "develop",
+    "tddMode": false,
     "acceptanceCriteria": [
-      { "id": "ac-1", "text": "Settings screen shows a dark mode toggle switch" },
-      { "id": "ac-2", "text": "Toggle persists the preference using SharedPreferences" },
-      { "id": "ac-3", "text": "App applies dark theme immediately without restart" }
+      { "id": "ac-1", "text": "WHEN user opens settings THEN dark mode toggle is visible" },
+      { "id": "ac-2", "text": "WHEN toggle is switched THEN preference is persisted in SharedPreferences" },
+      { "id": "ac-3", "text": "WHEN app restarts THEN dark theme is applied immediately" }
     ]
   }')
-
-# Extract the job ID (requires jq)
 JOB_ID=$(echo $JOB | jq -r '.job.id')
-echo "Job ID: $JOB_ID"
+echo "Job: $JOB_ID"
 ```
 
-The response is a `201` with the full job object:
+> Change `"platform"` to `"ios"`, `"android"`, or `"flutter_web"` for other targets.  
+> Pass `"tddMode": true` for Red-Green-Refactor (one failing test per scenario before any production code).
 
-```json
-{
-  "job": {
-    "id": "3f2a1b4c-8d9e-4f0a-b1c2-d3e4f5a6b7c8",
-    "status": "pending",
-    "title": "Add dark mode toggle to settings screen",
-    "platform": "flutter",
-    "repo": "demo-repo"
-  }
-}
-```
-
-> Change `"platform"` to `"ios"`, `"android"`, or `"flutter_web"` to target those platforms.
-
-### 2. Poll until spec is ready
+**Step 2 — Wait for spec**
 
 ```bash
-curl -s http://localhost:3000/jobs/$JOB_ID | jq '{status: .job.status}'
+# Poll until spec_ready (typically 5–15 s)
+watch -n 3 "curl -s http://localhost:3000/jobs/$JOB_ID | jq '{status: .job.status}'"
 ```
 
-Run this every few seconds. The `status` field progresses through:
-
-```
-pending → fetching_jira → spec_generating → spec_ready
-```
-
-When `status` is `spec_ready`, the full `TechnicalSpec` is available:
+Status progression: `pending → fetching_jira → spec_generating → spec_ready`
 
 ```bash
+# Inspect the generated spec
 curl -s http://localhost:3000/jobs/$JOB_ID | jq '.job.spec'
 ```
 
-### 3. Approve the spec
+**Step 3 — Approve (or reject) the spec**
 
 ```bash
+# Approve
 curl -s -X POST http://localhost:3000/jobs/$JOB_ID/approve \
   -H "Content-Type: application/json" \
   -d '{"approved": true}'
-```
 
-Reject with feedback:
-
-```bash
+# Reject with feedback — spec is regenerated
 curl -s -X POST http://localhost:3000/jobs/$JOB_ID/approve \
   -H "Content-Type: application/json" \
-  -d '{"approved": false, "feedback": "Needs analytics tracking"}'
+  -d '{"approved": false, "feedback": "Needs analytics event on toggle"}'
 ```
 
-### 4. Poll to completion
-
-```bash
-curl -s http://localhost:3000/jobs/$JOB_ID | jq '{status: .job.status, pr: .job.prUrl}'
-```
-
-After approval, status progresses:
-
-```
-spec_approved → implementing → reviewing → pr_created → done
-```
-
-Full polling loop example (bash):
+**Step 4 — Monitor to completion**
 
 ```bash
 while true; do
   STATUS=$(curl -s http://localhost:3000/jobs/$JOB_ID | jq -r '.job.status')
-  echo "$(date +%T)  status: $STATUS"
+  echo "$(date +%T)  $STATUS"
   case $STATUS in
-    done)         echo "✅ Done!"; break ;;
-    pr_created)   echo "🔗 PR: $(curl -s http://localhost:3000/jobs/$JOB_ID | jq -r '.job.prUrl')"; break ;;
-    *_error|failed) echo "❌ Error — check errorContext below"
-                  curl -s http://localhost:3000/jobs/$JOB_ID | jq '.job.errorContext'
-                  break ;;
+    done)           echo "✅  PR: $(curl -s http://localhost:3000/jobs/$JOB_ID | jq -r '.job.prUrl')"; break ;;
+    *_error|failed) curl -s http://localhost:3000/jobs/$JOB_ID | jq '.job.errorContext'; break ;;
   esac
   sleep 5
 done
 ```
 
-### End-of-job summary box
+Status after approval: `spec_approved → implementing → reviewing → pr_created → done`
 
-When the job completes, a detailed summary is printed to the terminal:
+**Step 5 — Retry on error**
+
+```bash
+curl -s -X POST http://localhost:3000/jobs/$JOB_ID/retry
+```
+
+Works for any error state: `env_error`, `repo_error`, `build_error`, `test_error`, `review_error`, `spec_error`, `failed`.
+
+### End-of-job terminal summary
 
 ```
 ╔══════════════════════════════════════════════════════════════════╗
-║                                                                  ║
 ║ ✅  GAIA — JOB COMPLETED SUCCESSFULLY                             ║
-║ 13/06/2026, 11:25:38  ·  35.2s total                             ║
-║                                                                  ║
+║ 17/06/2026, 12:25:38  ·  35.2s total                             ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║ JOB DETAILS                                                      ║
-║  ──────────────────────────────────────────────────────────────  ║
 ║ Ticket          DEMO-100                                         ║
 ║ Title           Add dark mode toggle to settings screen          ║
 ║ Platform        Flutter                                          ║
 ║ Repository      demo-repo                                        ║
 ║ Branch          feature/DEMO-100-add-dark-mode-toggle-to-setti…  ║
 ║ Base branch     develop                                          ║
-║                                                                  ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║ ACCEPTANCE CRITERIA  (3)                                         ║
-║  ──────────────────────────────────────────────────────────────  ║
-║ ✔  [ac-1] Settings screen shows a dark mode toggle switch        ║
-║ ✔  [ac-2] Toggle persists the preference using SharedPreferences ║
-║ ✔  [ac-3] App applies dark theme immediately without restart     ║
-║                                                                  ║
+║ ✔  [ac-1] WHEN user opens settings THEN dark mode toggle…        ║
+║ ✔  [ac-2] WHEN toggle is switched THEN preference is persisted…  ║
+║ ✔  [ac-3] WHEN app restarts THEN dark theme is applied…          ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║ IMPLEMENTED TASKS  (4)                                           ║
-║  ──────────────────────────────────────────────────────────────  ║
 ║ +  [create ]  lib/src/presentation/screens/settings_screen.dart  ║
 ║ ~  [modify ]  lib/main.dart                                      ║
-║ ~  [modify ]  lib/src/presentation/screens/home_screen.dart      ║
 ║ T  [test   ]  test/settings_screen_test.dart                     ║
-║                                                                  ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║ PULL REQUEST                                                     ║
-║  ──────────────────────────────────────────────────────────────  ║
 ║ https://github.com/your-org/demo-repo/pull/42                    ║
-║                                                                  ║
 ╚══════════════════════════════════════════════════════════════════╝
+```
+
+---
+
+## Mode B — Claude Code CLI
+
+A conversational, agent-driven mode built on top of **Claude Code subagents** (`.claude/agents/`). No server, no PostgreSQL — state lives in `progress/` as JSON files on disk.
+
+### When to use
+
+- Local development and experimentation
+- Crafting specs interactively with a human in the loop
+- Strict TDD (the `tdd_craftsman` agent enforces one-test-at-a-time)
+- Mutation testing with `tools/mutate.py` before declaring done
+
+### Pipeline (Claude Code mode)
+
+```
+craftsman_lead (orchestrator)
+    │
+    ├─ spec_partner        ← conversational spec debate → project-spec.md
+    │
+    ├─ gherkin_author      ← project-spec.md → features/<name>.feature
+    │
+    │  ⏸  HUMAN APPROVES the .feature file  (only gate)
+    │
+    ├─ tdd_craftsman       ← Red: write failing test → Green: make it pass → Refactor
+    │                         (one Gherkin scenario at a time)
+    │
+    ├─ judge               ← blocking code review (refuses to pass if tests are weak)
+    │
+    └─ mutation_tester     ← python3 tools/mutate.py — must reach ≥80% kill rate
+```
+
+### Requirements
+
+- Claude Code CLI installed
+- No PostgreSQL needed
+- `ANTHROPIC_API_KEY` (Claude Code uses Anthropic by default)
+
+### Start a session
+
+```bash
+# 1. Verify environment
+./init.sh
+
+# 2. Check what's pending
+cat feature_list.json   # features with "status": "pending"
+cat progress/current.md  # last session state
+
+# 3. Start Claude Code — craftsman_lead takes over
+claude
+```
+
+Alternatively, run a job directly via the TypeScript CLI (uses DiskBackend):
+
+```bash
+# Create a job file
+cat > job.json << 'EOF'
+{
+  "platform": "flutter",
+  "title": "Add dark mode toggle",
+  "repo": "demo-repo",
+  "targetBranch": "develop",
+  "tddMode": true,
+  "acceptanceCriteria": [
+    { "id": "ac-1", "text": "WHEN user opens settings THEN toggle is visible", "testable": true }
+  ]
+}
+EOF
+
+# Run it
+npx ts-node src/cli/run.ts --job job.json
+
+# Resume an existing job by ID
+npx ts-node src/cli/run.ts --id <uuid>
+
+# List all disk jobs
+npx ts-node src/cli/run.ts --list
+```
+
+### Session lifecycle
+
+```bash
+# During the session: craftsman_lead documents progress
+# → progress/current.md is updated automatically
+
+# At the end of every session:
+./init.sh                              # all green?
+python3 tools/mutate.py src/           # ≥80% kill rate?
+
+# Mark feature done in feature_list.json, then archive the session:
+# Move progress/current.md → progress/history.md (append)
+```
+
+### Mapping: Claude agents ↔ TypeScript agents
+
+| Claude Code agent | TypeScript equivalent           | Key difference                          |
+| ----------------- | ------------------------------- | --------------------------------------- |
+| `spec_partner`    | `SpecAuthorAgent`               | Conversational (Claude) vs bulk (TS)    |
+| `gherkin_author`  | _(part of SpecAuthorAgent)_     | Separate step in Claude mode            |
+| `tdd_craftsman`   | `ImplementerAgent.executeTDD()` | Active only when `tddMode: true`        |
+| _(bulk mode)_     | `ImplementerAgent.execute()`    | `tddMode: false` default                |
+| `judge`           | `ReviewerAgent`                 | Judge blocks; TS reviewer emits warning |
+| `mutation_tester` | `MutationTesterAgent`           | Both use `tools/mutate.py`              |
+
+---
+
+## Mode C — CI / Webhook
+
+The CI mode receives **inbound webhooks** from external systems (Jira, Slack, GitHub Actions, or any HTTP client), creates a job automatically, and emits **outbound notifications** at every pipeline state change.
+
+### How it works
+
+```
+External system                   GAIA Harness
+──────────────                    ─────────────
+Jira issue created  ──POST──▶  /webhook/trigger
+Slack /gaia command ──POST──▶  /webhook/trigger   ──▶  createJob()
+GitHub Actions step ──POST──▶  /webhook/trigger         │
+                                                   orchestrateJob()
+                                                         │
+                                               emit JobEvent at each state
+                                                         │
+                                          ┌──────────────┼──────────────┐
+                                          ▼              ▼              ▼
+                                       Slack        GitHub Checks   HTTP endpoint
+                                    Block Kit         Check Run      your-server
+```
+
+### Requirements
+
+- Server running (`npm run dev`)
+- PostgreSQL (same as Mode A)
+- At least one LLM key
+
+### Inbound trigger — 3 supported payload formats
+
+**Format 1 — Generic GAIA JSON (recommended)**
+
+```bash
+curl -s -X POST http://localhost:3000/webhook/trigger \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Add loyalty points banner",
+    "platform": "flutter",
+    "repo": "demo-repo",
+    "targetBranch": "develop",
+    "tddMode": true,
+    "acceptanceCriteria": [
+      { "id": "ac-1", "text": "WHEN user has points THEN banner is visible" }
+    ]
+  }'
+```
+
+**Format 2 — Jira issue webhook**
+
+Configure in Jira → Project settings → Webhooks → point to `POST /webhook/trigger`.
+
+```json
+{
+  "webhookEvent": "jira:issue_created",
+  "issue": {
+    "key": "PROJ-123",
+    "fields": {
+      "summary": "Add loyalty points banner",
+      "labels": ["flutter", "tdd"]
+    }
+  }
+}
+```
+
+> Platform is read from `labels`. Set `DEFAULT_REPO=your-org/your-repo` in `.env`.
+
+**Format 3 — Slack slash command**
+
+Create a Slack app → Slash commands → set Request URL to `POST http://<host>:3000/webhook/trigger`.
+
+```
+/gaia flutter demo-repo Add loyalty points banner
+#     ───────  ─────────  ────────────────────────
+#     platform  repo       title (rest of text)
+```
+
+**Response (all formats) — 202 Accepted:**
+
+```json
+{
+  "jobId": "3f2a1b4c-8d9e-4f0a-b1c2-d3e4f5a6b7c8",
+  "status": "accepted",
+  "title": "Add loyalty points banner",
+  "platform": "flutter",
+  "tddMode": true,
+  "message": "Job created and pipeline started"
+}
+```
+
+Pipeline runs in background. Poll with `GET /jobs/:jobId` as in Mode A.
+
+### Securing inbound webhooks (HMAC-SHA256)
+
+```bash
+# .env
+WEBHOOK_SECRET=my-secret-32-chars-minimum
+
+# Send a signed request
+BODY='{"title":"Add banner","platform":"flutter","repo":"demo-repo"}'
+SIG=$(echo -n "$BODY" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | awk '{print $2}')
+
+curl -s -X POST http://localhost:3000/webhook/trigger \
+  -H "Content-Type: application/json" \
+  -H "X-GAIA-Signature: sha256=$SIG" \
+  -d "$BODY"
+```
+
+Requests without a valid signature return `401 Unauthorized`.
+
+### Outbound notifications
+
+Configure one or more notifiers by setting env vars. **If none are set, `NullNotifier` is used — no errors, zero overhead.**
+
+| Env var                                                | Notifier             | What is sent                                         |
+| ------------------------------------------------------ | -------------------- | ---------------------------------------------------- |
+| `SLACK_WEBHOOK_URL`                                    | Slack                | Block Kit message with job status, platform, PR link |
+| `GITHUB_CHECKS_TOKEN` + `GITHUB_OWNER` + `GITHUB_REPO` | GitHub Checks API    | Check Run updated at every state transition          |
+| `NOTIFY_WEBHOOK_URL`                                   | Generic HTTP         | Full `JobEvent` JSON payload                         |
+| `NOTIFY_WEBHOOK_SECRET`                                | _(optional signing)_ | Adds `X-GAIA-Signature` header to outbound POST      |
+
+**Events emitted at these pipeline states:**
+
+| Event              | When                              |
+| ------------------ | --------------------------------- |
+| `job.created`      | Job accepted (`pending`)          |
+| `job.spec_ready`   | Spec generated, awaiting approval |
+| `job.implementing` | Implementation started            |
+| `job.reviewing`    | Reviewer running lint + tests     |
+| `job.done`         | PR created, job complete          |
+| `job.failed`       | Pipeline entered an error state   |
+
+**Example Slack message (job.done):**
+
+```
+✅  GAIA Job Completed
+─────────────────────────────────
+Title      Add loyalty points banner
+Platform   Flutter  •  TDD: on
+Status     done
+PR         https://github.com/org/repo/pull/42
+Job ID     3f2a1b4c
+```
+
+**Example outbound JSON payload (generic / GitHub Checks):**
+
+```json
+{
+  "jobId": "3f2a1b4c-8d9e-4f0a-b1c2-d3e4f5a6b7c8",
+  "event": "job.done",
+  "status": "done",
+  "title": "Add loyalty points banner",
+  "platform": "flutter",
+  "timestamp": "2026-06-17T12:25:00.000Z",
+  "tddMode": true,
+  "prUrl": "https://github.com/org/repo/pull/42",
+  "mutationScore": 87.5
+}
+```
+
+### Using Mode C from GitHub Actions
+
+```yaml
+# .github/workflows/gaia.yml
+name: GAIA — trigger code generation
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  trigger:
+    if: contains(github.event.issue.labels.*.name, 'gaia')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger GAIA job
+        run: |
+          curl -s -X POST ${{ secrets.GAIA_URL }}/webhook/trigger \
+            -H "Content-Type: application/json" \
+            -H "X-GAIA-Signature: sha256=$(echo -n '${{ toJson(github.event.issue) }}' \
+              | openssl dgst -sha256 -hmac '${{ secrets.GAIA_WEBHOOK_SECRET }}' | awk '{print $2}')" \
+            -d '{
+              "title": "${{ github.event.issue.title }}",
+              "platform": "flutter",
+              "repo": "${{ github.repository }}",
+              "tddMode": true
+            }'
 ```
 
 ---
@@ -785,19 +1092,45 @@ docker run -p 3000:3000 --env-file .env gaia-code-harness
 
 ## Environment Variables Reference
 
+### Core (all modes)
+
 | Variable            | Required | Description                                           |
 | ------------------- | -------- | ----------------------------------------------------- |
-| `DATABASE_URL`      | ✅       | PostgreSQL connection string                          |
-| `GITHUB_TOKEN`      | ✅       | GitHub PAT with `repo` scope                          |
+| `DATABASE_URL`      | ✅ A, C  | PostgreSQL connection string (not needed for Mode B)  |
+| `GITHUB_TOKEN`      | ✅       | GitHub PAT with `repo` scope — PR creation            |
 | `GITHUB_OWNER`      | ✅       | GitHub org or user name                               |
 | `OPENAI_API_KEY`    | ⚠️       | Required for OpenAI-based agents                      |
 | `ANTHROPIC_API_KEY` | ⚠️       | Required for Claude-based agents                      |
-| `JIRA_BASE_URL`     | Optional | e.g. `https://your-org.atlassian.net`                 |
-| `JIRA_EMAIL`        | Optional | Jira user email                                       |
-| `JIRA_API_TOKEN`    | Optional | Jira API token                                        |
-| `LOCAL_REPOS_PATH`  | Optional | Local path to repos for faster cloning in demo        |
-| `REPOS_BASE_PATH`   | Optional | Workspace scratch dir (default `/tmp/gaia-workspace`) |
 | `PORT`              | Optional | Server port (default `3000`)                          |
+| `REPOS_BASE_PATH`   | Optional | Workspace scratch dir (default `/tmp/gaia-workspace`) |
+| `LOCAL_REPOS_PATH`  | Optional | Local path to repos for faster cloning in demo        |
+
+### Jira integration (all modes)
+
+| Variable         | Required | Description                           |
+| ---------------- | -------- | ------------------------------------- |
+| `JIRA_BASE_URL`  | Optional | e.g. `https://your-org.atlassian.net` |
+| `JIRA_EMAIL`     | Optional | Jira user email                       |
+| `JIRA_API_TOKEN` | Optional | Jira API token                        |
+
+### Mode C — Inbound webhook security
+
+| Variable         | Required | Description                                                                                                      |
+| ---------------- | -------- | ---------------------------------------------------------------------------------------------------------------- |
+| `WEBHOOK_SECRET` | Optional | HMAC-SHA256 secret for verifying `X-GAIA-Signature` on inbound requests. If not set, signature check is skipped. |
+| `DEFAULT_REPO`   | Optional | Fallback `org/repo` when not present in payload (e.g. Jira webhooks)                                             |
+
+### Mode C — Outbound notifications
+
+| Variable                | Required | Description                                                           |
+| ----------------------- | -------- | --------------------------------------------------------------------- |
+| `SLACK_WEBHOOK_URL`     | Optional | Incoming webhook URL — sends Block Kit message on each job event      |
+| `GITHUB_CHECKS_TOKEN`   | Optional | GitHub PAT with `checks:write` — creates/updates Check Runs           |
+| `GITHUB_REPO`           | Optional | Repository name for GitHub Checks (e.g. `my-repo`)                    |
+| `NOTIFY_WEBHOOK_URL`    | Optional | Generic HTTP endpoint — receives full `JobEvent` JSON via POST        |
+| `NOTIFY_WEBHOOK_SECRET` | Optional | If set, signs outbound generic webhook with `X-GAIA-Signature` header |
+
+> If no notification variable is set, `NullNotifier` is used automatically — no errors, no overhead.
 
 ---
 
