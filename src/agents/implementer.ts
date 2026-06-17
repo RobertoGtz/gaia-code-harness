@@ -90,13 +90,12 @@ export class ImplementerAgent extends BaseAgent {
         this.logStep(`Tests failed (attempt ${attempt}/${MAX_FIX_ATTEMPTS}) — asking LLM to fix errors...`);
         this.log(errorOutput.slice(0, 300));
 
-        for (const change of changes) {
-          const filePath = path.join(repoPath, change.path);
-          const current = await readFile(filePath).catch(() => '');
-          if (!current) continue;
-          const fixed = await this.fixCode(change.path, current, errorOutput, promptCtx.implementerSystem, job.title, pubspecRaw);
-          await writeFile(filePath, fixed);
-          change.newContent = fixed;
+        const fixedFiles = await this.fixAllFiles(changes.map(c => c.path), repoPath, errorOutput, promptCtx.implementerSystem, job.title, pubspecRaw);
+        for (const [relPath, content] of Object.entries(fixedFiles)) {
+          const filePath = path.join(repoPath, relPath);
+          await writeFile(filePath, content);
+          const change = changes.find(c => c.path === relPath);
+          if (change) change.newContent = content;
         }
 
         this.logStep(`Retrying tests (attempt ${attempt + 1})...`);
@@ -168,6 +167,41 @@ export class ImplementerAgent extends BaseAgent {
       return response.text.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '');
     } catch (err) {
       throw new Error(`LLM unavailable: ${err}`);
+    }
+  }
+
+  private async fixAllFiles(
+    relPaths: string[],
+    repoPath: string,
+    errorOutput: string,
+    systemPrompt: string,
+    featureTitle: string,
+    pubspec = ''
+  ): Promise<Record<string, string>> {
+    const fileContents: string[] = [];
+    const validPaths: string[] = [];
+    for (const relPath of relPaths) {
+      const content = await readFile(path.join(repoPath, relPath)).catch(() => '');
+      if (!content) continue;
+      fileContents.push(`=== FILE: ${relPath} ===\n${content}`);
+      validPaths.push(relPath);
+    }
+    const pubspecCtx = pubspec ? `\n\npubspec.yaml (use ONLY packages listed here):\n${pubspec}` : '';
+    const userPrompt = `Feature: ${featureTitle}${pubspecCtx}\n\nThe following build/test errors occurred:\n${errorOutput}\n\nFix ALL files below so they are consistent with each other and all errors are resolved.\nReturn ONLY a JSON object mapping file path to corrected file contents, e.g.:\n{"path/to/file.dart": "...contents..."}\n\nFiles to fix:\n${fileContents.join('\n\n')}`;
+    try {
+      const response = await callLLM([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ]);
+      const raw = response.text.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '');
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const result: Record<string, string> = {};
+      for (const [k, v] of Object.entries(parsed)) {
+        if (typeof v === 'string') result[k] = v;
+      }
+      return result;
+    } catch {
+      return {};
     }
   }
 

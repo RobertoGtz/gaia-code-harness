@@ -18,7 +18,10 @@ const execAsync = promisify(exec);
 export async function runGradleTests(workingDir: string, module?: string): Promise<TestRunResult> {
   const startTime = Date.now();
   const gradleCmd = await getGradleCommand(workingDir);
-  const taskPath = module ? `:${module}:testDebugUnitTest` : 'testDebugUnitTest';
+  // Kotlin JVM projects use 'test'; Android app modules use 'testDebugUnitTest'
+  const isAndroidApp = await fileExists(path.join(workingDir, 'app', 'src', 'main', 'AndroidManifest.xml'));
+  const baseTask = isAndroidApp ? 'testDebugUnitTest' : 'test';
+  const taskPath = module ? `:${module}:${baseTask}` : baseTask;
   const command = `${gradleCmd} ${taskPath}`;
 
   try {
