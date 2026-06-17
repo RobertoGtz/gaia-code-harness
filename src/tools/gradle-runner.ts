@@ -176,7 +176,7 @@ export async function runGradleBuild(workingDir: string, module?: string): Promi
 export async function runGradleSync(workingDir: string): Promise<TestRunResult> {
   const startTime = Date.now();
   const gradleCmd = await getGradleCommand(workingDir);
-  const command = `${gradleCmd} dependencies --configuration implementation`;
+  const command = `${gradleCmd} dependencies`;
 
   try {
     const { stdout, stderr } = await execAsync(command, {
