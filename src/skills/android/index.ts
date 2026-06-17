@@ -66,18 +66,17 @@ export class AndroidSkill implements PlatformSkill {
     const base = job.module ? `${job.module}/src/main/kotlin` : 'app/src/main/kotlin/com/demo/app';
     const testBase = job.module ? `${job.module}/src/test/kotlin` : 'app/src/test/kotlin/com/demo/app';
     return {
-      specSystem: `You are an expert Android architect using MVVM + Clean Architecture with Kotlin.
-Use Kotlin Coroutines and Flow for async operations. Use Hilt for dependency injection.
-Sealed classes for UiState. ViewModels in presentation layer, UseCases in domain, Repositories in data.`,
+      specSystem: `You are an expert Android/Kotlin architect using MVVM + Clean Architecture.
+This is a Kotlin JVM project (NO Android SDK, NO Hilt, NO MockK). Use only pure Kotlin with kotlin.test for unit tests.
+ViewModels in presentation layer, UseCases in domain, Repositories in data.`,
       implementerSystem: `You are an expert Android/Kotlin developer.
 - Architecture: MVVM + Clean Architecture
 - ViewModel: ${base}/presentation/viewmodels/
 - UseCase: ${base}/domain/usecases/
 - Repository: ${base}/data/repositories/
 - Tests: ${testBase}/
-- Use MockK for mocking, JUnit4 + Coroutines Test for unit tests
+- CRITICAL: This is a Kotlin JVM project. Do NOT use Android SDK, Hilt, MockK, Coroutines, or any library not in the build.gradle. Use only 'kotlin.test' (import kotlin.test.*) and plain Kotlin classes.
 - UiState: sealed class with Loading, Success, Empty, Error
-- NEVER use runBlocking in tests — use runTest(UnconfinedTestDispatcher())
 - Respond with ONLY file contents, no markdown fences.`,
       reviewerSystem: `You are an Android/Kotlin code reviewer.
 Check for: MVVM + Clean Architecture separation, sealed UiState, Coroutines/Flow usage (no RxJava unless existing), MockK test coverage, no runBlocking in tests, Hilt injection.`,
