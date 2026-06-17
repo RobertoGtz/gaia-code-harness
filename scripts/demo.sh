@@ -200,7 +200,6 @@ run_mode_a() {
   show_spec_summary "$JOB_ID"
 
   approve_and_monitor "$JOB_ID"
-  echo "$JOB_ID"
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -290,17 +289,21 @@ EOF
   show_spec_summary "$JOB_ID"
 
   approve_and_monitor "$JOB_ID"
-  echo "$JOB_ID"
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Run selected mode
 # ═══════════════════════════════════════════════════════════════════════════════
+JOB_ID_FILE=$(mktemp /tmp/gaia-jobid-XXXX)
+
 case "$MODE" in
-  a) JOB_ID=$(run_mode_a) ;;
+  a) run_mode_a; echo "$JOB_ID" > "$JOB_ID_FILE" ;;
   b) run_mode_b; exit 0 ;;
-  c) JOB_ID=$(run_mode_c) ;;
+  c) run_mode_c; echo "$JOB_ID" > "$JOB_ID_FILE" ;;
 esac
+
+JOB_ID=$(cat "$JOB_ID_FILE" 2>/dev/null | tail -1)
+rm -f "$JOB_ID_FILE"
 
 # ── Footer ────────────────────────────────────────────────────────────────────
 echo ""

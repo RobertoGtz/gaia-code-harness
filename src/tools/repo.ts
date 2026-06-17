@@ -47,7 +47,9 @@ export async function setupRepository(
   // Check if LOCAL_REPOS_PATH is configured
   const localReposPath = process.env.LOCAL_REPOS_PATH;
   if (localReposPath) {
-    const localRepo = path.join(localReposPath, job.repo);
+    // job.repo may be 'owner/name' or just 'name'
+    const repoName = job.repo.includes('/') ? job.repo.split('/').pop()! : job.repo;
+    const localRepo = path.join(localReposPath, repoName);
     if (await fileExists(localRepo)) {
       try {
         // Use git clone from local path to preserve .git history
@@ -70,9 +72,14 @@ export async function setupRepository(
 
   // Fallback: clone from remote
   try {
-    const owner = process.env.GITHUB_OWNER || 'rappi';
-    const repoUrl = `https://github.com/${owner}/${job.repo}.git`;
-    await cloneRepository(repoUrl, repoPath, job.targetBranch);
+    // job.repo may be 'owner/name' or just 'name'
+    const fullRepo = job.repo.includes('/')
+      ? job.repo
+      : `${process.env.GITHUB_OWNER || 'rappi'}/${job.repo}`;
+    const repoUrl = `https://github.com/${fullRepo}.git`;
+    const token = process.env.GITHUB_TOKEN;
+    const auth = token ? { username: 'x-access-token', password: token } : undefined;
+    await cloneRepository(repoUrl, repoPath, job.targetBranch, auth);
     return { success: true, output: `Repository cloned from ${repoUrl}` };
   } catch (error) {
     return {
