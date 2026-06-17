@@ -4,7 +4,7 @@
  * @module harness/leader
  */
 
-import { getJob, updateJobStatus, addProgressLog, setErrorContext } from '../db';
+import { getJob, updateJobStatus, addProgressLog, setErrorContext } from '../state';
 import { getAgentsForPlatform } from '../agents/registry';
 import { AgentContext, JobStatus, CodeGenerationJob, ErrorCode, ErrorContext } from '../types';
 import * as path from 'path';

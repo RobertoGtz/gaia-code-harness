@@ -7,6 +7,8 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { initDatabase } from '../db';
+import { setStateBackend } from '../state';
+import { PostgresBackend } from '../state/postgres-backend';
 import { setupJobRoutes } from './routes/jobs';
 
 // ─── Terminal helpers ──────────────────────────────────────────────────────
@@ -44,8 +46,9 @@ function serverLog(method: string, url: string, status: number, ms: number): voi
  * @returns Fastify instance
  */
 export async function startServer(port: number = 3000) {
-  // Initialize database connection
+  // Initialize database connection and register Postgres state backend
   await initDatabase();
+  setStateBackend(new PostgresBackend());
 
   const app = Fastify({
     logger: false,

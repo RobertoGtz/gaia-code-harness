@@ -5,7 +5,7 @@
  */
 
 import { FastifyInstance } from 'fastify';
-import { createJob, getJob, updateJobStatus, addProgressLog, listJobs } from '../../db';
+import { createJob, getJob, updateJobStatus, addProgressLog, listJobs } from '../../state';
 import { orchestrateJob } from '../../harness/leader';
 import { CreateJobRequest, ApproveSpecRequest, CodeGenerationJob, JobStatus } from '../../types';
 

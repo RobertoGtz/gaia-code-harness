@@ -141,6 +141,165 @@ export class ImplementerAgent extends BaseAgent {
     }
   }
 
+  /**
+   * TDD mode: Red-Green-Refactor one task at a time.
+   * Separates test tasks from implementation tasks and interleaves:
+   *   for each test task → write test (RED) → write impl (GREEN) → run build → log
+   */
+  async executeTDD(context: AgentContext): Promise<AgentResult> {
+    const { job, workspacePath } = context;
+    const repoPath = path.join(workspacePath, 'repo');
+    this.logStep(`[TDD] Implementing: ${job.title} [${job.platform}]`);
+
+    try {
+      const skill = await loadSkill(job.platform);
+      this.log(`Loaded skill: ${skill.displayName}`);
+
+      const repoSetup = await setupRepository(job, repoPath);
+      if (!repoSetup.success) throw new GaiaRepoError(`[${job.platform}] Cannot clone '${job.repo}'`, repoSetup.error);
+      this.logSuccess(repoSetup.output);
+
+      await skill.verifyEnvironment(repoPath);
+
+      const git = initGit(repoPath);
+      const branchName = generateBranchName(job.jiraTicketId || job.id.slice(0, 8), job.title);
+      try { await createBranch(git, branchName, job.targetBranch); }
+      catch (err) { throw new GaiaRepoError(`[${job.platform}] Failed to create branch '${branchName}'`, String(err)); }
+      this.logSuccess(`Branch created: ${branchName}`);
+
+      this.logStep('Resolving dependencies...');
+      await skill.build(repoPath, job.module);
+
+      const spec = job.spec;
+      if (!spec) return { success: false, output: '', error: 'No spec found' };
+
+      const promptCtx = skill.getPromptContext(job);
+      const pubspecRaw = await fs.readFile(path.join(repoPath, 'pubspec.yaml'), 'utf-8').catch(() => '');
+      const changes: FileChange[] = [];
+
+      // Pair test tasks with their corresponding create/modify tasks
+      const testTasks   = spec.tasks.filter(t => t.type === 'test');
+      const implTasks   = spec.tasks.filter(t => t.type !== 'test');
+
+      // First write all non-test impl files (models, viewmodels) so tests can import them
+      for (const task of implTasks) {
+        this.logStep(`[RED prep] Task [${task.type}]: ${task.description}`);
+        if ((task.type === 'create' || task.type === 'modify') && task.filePath) {
+          const filePath = path.join(repoPath, task.filePath);
+          const original = task.type === 'modify' ? await readFile(filePath).catch(() => '') : '';
+          const content  = task.type === 'modify'
+            ? await this.modifyCode(task, original, promptCtx.implementerSystem, job.title, pubspecRaw)
+            : await this.generateCode(task, promptCtx.implementerSystem, job.title, pubspecRaw);
+          await writeFile(filePath, content);
+          changes.push({ path: task.filePath, operation: task.type === 'modify' ? 'modify' : 'create', originalContent: original, newContent: content, diff: `${task.type === 'modify' ? '~' : '+'} ${task.filePath}` });
+          task.status = 'done';
+        }
+      }
+
+      // Confirm impl compiles before writing tests (GREEN baseline)
+      let baseline = await skill.test(repoPath, job.module).catch((e: any) => ({
+        passed: false, command: '', stdout: String(e?.message ?? ''), stderr: String(e?.detail ?? e), exitCode: 1, duration: 0,
+      } as import('../tools/test-runner').TestRunResult));
+
+      if (!baseline.passed) {
+        // Fix impl before moving to test cycle
+        const err = [baseline.stdout, baseline.stderr].filter(Boolean).join('\n').slice(0, 3000);
+        this.logStep(`Impl build failed — fixing before RED...`);
+        const fixed = await this.fixAllFiles(changes.map(c => c.path), repoPath, err, promptCtx.implementerSystem, job.title, pubspecRaw);
+        for (const [rel, content] of Object.entries(fixed)) {
+          await writeFile(path.join(repoPath, rel), content);
+          const ch = changes.find(c => c.path === rel);
+          if (ch) ch.newContent = content;
+        }
+      }
+
+      // Red-Green-Refactor per test task
+      for (const testTask of testTasks) {
+        this.logStep(`[RED] Writing test: ${testTask.description}`);
+        if (!testTask.filePath) continue;
+
+        const testFilePath = path.join(repoPath, testTask.filePath);
+        const testContent  = await this.generateCode(testTask, promptCtx.implementerSystem, job.title, pubspecRaw);
+        await writeFile(testFilePath, testContent);
+        changes.push({ path: testTask.filePath, operation: 'create', newContent: testContent, diff: `+ ${testTask.filePath}` });
+
+        // Confirm RED: build should fail only because behavior not yet tested (compile OK)
+        let redResult = await skill.test(repoPath, job.module).catch((e: any) => ({
+          passed: false, command: '', stdout: String(e?.message ?? ''), stderr: String(e?.detail ?? e), exitCode: 1, duration: 0,
+        } as import('../tools/test-runner').TestRunResult));
+
+        if (redResult.passed) {
+          this.log(`[RED] Test passed immediately — test may not be asserting anything meaningful`);
+        } else {
+          this.log(`[RED] Confirmed failing (expected)`);
+          // GREEN: fix impl to make this test pass
+          const errOut = [redResult.stdout, redResult.stderr].filter(Boolean).join('\n').slice(0, 3000);
+          const greenFiles = await this.fixAllFiles(
+            changes.map(c => c.path), repoPath, errOut, promptCtx.implementerSystem, job.title, pubspecRaw
+          );
+          for (const [rel, content] of Object.entries(greenFiles)) {
+            await writeFile(path.join(repoPath, rel), content);
+            const ch = changes.find(c => c.path === rel);
+            if (ch) ch.newContent = content;
+          }
+
+          const greenResult = await skill.test(repoPath, job.module).catch((e: any) => ({
+            passed: false, command: '', stdout: String(e?.message ?? ''), stderr: String(e?.detail ?? e), exitCode: 1, duration: 0,
+          } as import('../tools/test-runner').TestRunResult));
+
+          if (greenResult.passed) {
+            this.logSuccess(`[GREEN] Tests passing after impl fix`);
+          } else {
+            this.log(`[GREEN] Still failing — will be caught in final fix loop`);
+          }
+        }
+        testTask.status = 'done';
+      }
+
+      // Final fix loop (same as normal mode) to catch any remaining failures
+      this.logStep('Final test run...');
+      const MAX_FIX = 3;
+      let testResult = await skill.test(repoPath, job.module).catch((e: any) => ({
+        passed: false, command: '', stdout: String(e?.message ?? ''), stderr: String(e?.detail ?? e), exitCode: 1, duration: 0,
+      } as import('../tools/test-runner').TestRunResult));
+
+      for (let attempt = 1; !testResult.passed && attempt <= MAX_FIX; attempt++) {
+        const errorOutput = [testResult.stdout, testResult.stderr].filter(Boolean).join('\n').slice(0, 3000);
+        this.logStep(`Tests failed (attempt ${attempt}/${MAX_FIX}) — fixing...`);
+        const fixedFiles = await this.fixAllFiles(changes.map(c => c.path), repoPath, errorOutput, promptCtx.implementerSystem, job.title, pubspecRaw);
+        for (const [rel, content] of Object.entries(fixedFiles)) {
+          await writeFile(path.join(repoPath, rel), content);
+          const ch = changes.find(c => c.path === rel);
+          if (ch) ch.newContent = content;
+        }
+        testResult = await skill.test(repoPath, job.module).catch((e: any) => ({
+          passed: false, command: '', stdout: String(e?.message ?? ''), stderr: String(e?.detail ?? e), exitCode: 1, duration: 0,
+        } as import('../tools/test-runner').TestRunResult));
+        if (testResult.passed) this.logSuccess('Tests passed after fix!');
+      }
+
+      if (!testResult.passed) {
+        const stderr = [testResult.stdout, testResult.stderr].filter(Boolean).join('\n').slice(0, 500);
+        throw new GaiaTestError(`[${job.platform}] \`${testResult.command || 'test'}\` failed after ${MAX_FIX} fix attempts`, stderr);
+      }
+
+      this.logStep('Committing & pushing changes...');
+      try { await commitAndPush(git, `feat: ${job.title}\n\nCloses ${job.jiraTicketId || 'N/A'}`, ['.'], branchName, job.repo); }
+      catch (err) { throw new GaiaRepoError(`[${job.platform}] Failed to push '${branchName}'`, String(err)); }
+
+      return {
+        success: true,
+        output: `TDD implementation completed. ${changes.length} files. Tests passing.`,
+        changes,
+        testResults: [this.toTestResult(testResult)],
+        branchName,
+      };
+    } catch (error) {
+      if (error instanceof GaiaError) return { success: false, output: '', error: error.message, errorCode: error.code };
+      return { success: false, output: '', error: `TDD implementation failed: ${error}`, errorCode: 'UNKNOWN' };
+    }
+  }
+
   private toTestResult(r: TestRunResult): TestResult {
     return {
       passed: r.passed,

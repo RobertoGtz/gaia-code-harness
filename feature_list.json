@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "name": "example_feature",
+    "title": "Add pull-to-refresh on feed",
+    "platform": "ios",
+    "repo": "demo-repo-ios",
+    "targetBranch": "develop",
+    "acceptanceCriteria": [
+      "Feed data refreshes when user pulls down",
+      "Loading indicator shown during refresh",
+      "Items list updates after refresh completes"
+    ],
+    "status": "pending",
+    "sdd": true,
+    "jobId": null
+  }
+]
