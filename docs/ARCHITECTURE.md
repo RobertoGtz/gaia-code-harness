@@ -39,15 +39,25 @@
 ┌──────────────────────────────────────────────────────────────┐
 │                   AGENT REGISTRY                             │
 │            getAgentsForPlatform(job.platform)                 │
+│                                                              │
+│      SpecAuthorAgent   ImplementerAgent   ReviewerAgent       │
+│      (generic)         (generic)          (generic)           │
+│            │                  │                  │           │
+│            └──────────────────┴──────────────────┘           │
+│                        loadSkill(platform)                    │
+└──────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌──────────────────────────────────────────────────────────────┐
+│                    PLATFORM SKILLS                           │
+│                   src/skills/{platform}/                     │
 ├──────────────┬──────────────────┬────────────────────────────┤
-│   flutter/   │      ios/        │       android/             │
-│  SpecAuthor  │   SpecAuthor     │     SpecAuthor             │
-│  Implementer │   Implementer    │     Implementer            │
-│  Reviewer    │   Reviewer       │     Reviewer               │
+│  flutter     │      ios         │     android / flutter_web  │
 ├──────────────┼──────────────────┼────────────────────────────┤
 │ flutter test │  swift test      │ gradle test                │
 │ dart analyze │  swiftlint       │ lintDebug                  │
-│ melos / pub  │  xcodebuild      │ ktlintCheck                │
+│ melos / pub  │  swift pkg res.  │ gradleSync                 │
+│ prompt ctx   │  prompt ctx      │ prompt ctx                 │
 └──────────────┴──────────────────┴────────────────────────────┘
         │                  │                  │
         ▼                  ▼                  ▼
@@ -190,206 +200,104 @@ CREATE INDEX idx_jobs_initiative ON code_generation_jobs(initiative_id);
 
 ---
 
-## 🧠 Agentes
+## 🧠 Agentes y Skills
 
-### Arquitectura Multi-Plataforma
+### Arquitectura Genérica + Skills
 
-Los agentes están organizados por plataforma en `src/agents/{platform}/`. El Leader usa el **Agent Registry** (`src/agents/registry.ts`) para obtener los agentes correctos según `job.platform`:
+Todos los jobs comparten **tres agentes genéricos**. La lógica específica de plataforma vive en `src/skills/{platform}/`. Los agentes cargan el skill correcto en runtime con `loadSkill(job.platform)`:
 
-```typescript
-const agents = getAgentsForPlatform(job.platform); // 'flutter', 'ios', etc.
-await agents.specAuthor.execute(context);
-await agents.implementer.execute(context);
-await agents.reviewer.execute(context);
+```
+src/
+├── agents/
+│   ├── spec-author.ts      ← único para todas las plataformas
+│   ├── implementer.ts      ← único para todas las plataformas
+│   ├── reviewer.ts         ← único para todas las plataformas
+│   └── registry.ts
+└── skills/
+    ├── flutter/index.ts    ← PlatformSkill impl
+    ├── flutter_web/index.ts
+    ├── ios/index.ts
+    └── android/index.ts
 ```
 
-**Plataformas registradas:**
+**Flujo de ejecución:**
 
-- `flutter` / `flutter_web` → `src/agents/flutter/` (implementado)
-- `ios` → `src/agents/ios/` (implementado)
-- `android` → `src/agents/android/` (implementado)
+```typescript
+const agents = getAgentsForPlatform(job.platform); // siempre los mismos 3 agentes
+await agents.specAuthor.execute(context);
+// internamente: const skill = await loadSkill(job.platform)
+//               const ctx = skill.getPromptContext(job)
+//               const result = await skill.build(repoPath)
+```
 
-Para agregar una plataforma nueva:
+**Para agregar una plataforma nueva:**
 
-1. Crear directorio `src/agents/{platform}/` con `spec-author.ts`, `implementer.ts`, `reviewer.ts`
-2. Registrar en `src/agents/registry.ts`
-3. El Leader lo usa automáticamente
+1. Crear `src/skills/{nueva_plataforma}/index.ts` implementando `PlatformSkill`
+2. Añadir el `case` en `loadSkill()` dentro de `src/skills/index.ts`
+3. Los tres agentes genéricos lo usan automáticamente — sin tocar agentes
 
-### FlutterSpecAuthorAgent
+---
 
-**Responsabilidad:** Generar especificación técnica desde requerimientos de producto
+### PlatformSkill Interface
 
-**Input:**
+Define el contrato que cada skill debe cumplir (`src/skills/index.ts`):
 
-- Job con acceptance criteria
-- Path al repo
+| Método                        | Responsabilidad                                              |
+| ----------------------------- | ------------------------------------------------------------ |
+| `verifyEnvironment(repoPath)` | Verifica toolchain disponible                                |
+| `build(repoPath, module?)`    | Resuelve dependencias (pub get, gradle sync, spm resolve…)   |
+| `test(repoPath, module?)`     | Corre el test suite completo                                 |
+| `analyze(repoPath)`           | Lint / análisis estático                                     |
+| `getPromptContext(job)`       | Devuelve system prompts + file patterns + forbidden packages |
 
-**Output:**
+---
 
-- TechnicalSpec (requirements, design, tasks, risks)
-- Archivos JSON guardados en workspace
-
-**Proceso:**
-
-1. Setup repo via shared `setupRepository` (clona desde path local o GitHub)
-2. Explora estructura del repo
-3. Identifica archivos relevantes (lib/, test/)
-4. Genera lista de tareas
-5. Identifica riesgos
-6. Guarda spec en disco
-
-### FlutterImplementerAgent
-
-**Responsabilidad:** Modificar código Flutter/Dart según la spec aprobada
-
-**Input:**
-
-- Job con spec aprobado
-- Workspace path
-
-**Output:**
-
-- Archivos modificados/creados
-- Branch en GitHub
-- Tests pasando
+### SpecAuthorAgent (genérico)
 
 **Proceso:**
 
-1. Verifica Flutter environment
-2. Setup repo via shared `setupRepository` (clona desde path local o GitHub)
-3. Create branch
-4. Resolver dependencias:
-   - Si existe `melos.yaml` → `melos bootstrap`
-   - Si no → `flutter pub get`
-5. Por cada task:
-   - Genera código (mock por ahora, LLM en futuro)
-   - Escribe archivo
-6. Ejecuta `flutter test`
-7. Commit & push
+1. `loadSkill(platform)` → obtiene `promptCtx`
+2. Setup repo via `setupRepository`
+3. Explora estructura del repo
+4. Identifica archivos relevantes
+5. Llama LLM con `promptCtx.specSystem` + criterios de aceptación
+6. Guarda `TechnicalSpec` en disco (requirements.json, design.json, tasks.json)
 
-**Retry Logic:**
-
-- Si falla, reintenta hasta 3 veces
-- Cada retry incluye el error previo como contexto
-
-### FlutterReviewerAgent
-
-**Responsabilidad:** Validar implementación Flutter y crear PR
-
-**Input:**
-
-- Job con código implementado
-- Workspace path
-
-**Output:**
-
-- Validación exitosa/fallida
-- GitHub PR URL
-- Comentario en Jira (opcional)
-
-**Validaciones:**
-
-1. dart analyze - sin errores
-2. flutter test - todos pasan
-3. Número de archivos ≤ maxFilesToTouch
-4. Traceability: cada cambio linkea a spec
-
-**GitHub PR:**
-
-- Título: `[TICKET-123] Feature description`
-- Body: Checklist de requirements + design decisions
-- **Dry-run mode:** Si `GITHUB_TOKEN` no está configurado, retorna un PR mock sin llamar a la API de GitHub
-
-### IosSpecAuthorAgent
-
-**Responsabilidad:** Generar especificación técnica para proyectos iOS/Swift
+### ImplementerAgent (genérico)
 
 **Proceso:**
 
-1. Setup repo via shared `setupRepository`
-2. Explora estructura del proyecto (Sources/, Tests/, Package.swift, .xcodeproj)
-3. Identifica archivos Swift relevantes
-4. Genera spec con patrones iOS: MVVM, UIKit/SwiftUI, Coordinators
-5. Guarda spec en disco
+1. `loadSkill(platform)` → `verifyEnvironment`, `build`, `getPromptContext`
+2. Setup repo + crea branch
+3. `skill.build()` → resuelve deps
+4. Por cada task: genera/modifica código con LLM usando `promptCtx.implementerSystem`
+5. `skill.test()` → verifica que tests pasen
+6. Commit & push
 
-### IosImplementerAgent
-
-**Responsabilidad:** Modificar código Swift según la spec aprobada
-
-**Proceso:**
-
-1. Verifica iOS environment (swift, xcodebuild)
-2. Setup repo via shared `setupRepository`
-3. Create branch
-4. Resolver dependencias: `swift package resolve` (SPM)
-5. Genera código Swift (mock por ahora, LLM en futuro)
-6. Ejecuta `swift test` o `xcodebuild test`
-7. Commit & push
-
-**Toolchain:** `src/tools/xcode-runner.ts`
-
-- `runSwiftTests()` — swift test o xcodebuild test
-- `runSwiftLint()` — swiftlint lint
-- `runXcodeBuild()` — xcodebuild build
-- `runSwiftPackageResolve()` — swift package resolve
-- `verifyIosEnvironment()` — verifica swift, xcodebuild, project files
-
-### IosReviewerAgent
-
-**Responsabilidad:** Validar implementación iOS y crear PR
-
-**Validaciones:**
-
-1. swiftlint - sin warnings
-2. swift test / xcodebuild test - todos pasan
-3. Número de archivos ≤ maxFilesToTouch
-4. Traceability: cada cambio linkea a spec
-
-### AndroidSpecAuthorAgent
-
-**Responsabilidad:** Generar especificación técnica para proyectos Android/Kotlin
+### ReviewerAgent (genérico)
 
 **Proceso:**
 
-1. Setup repo via shared `setupRepository`
-2. Explora estructura Gradle (app/, feature modules, build.gradle.kts)
-3. Identifica archivos Kotlin relevantes
-4. Genera spec con patrones Android: MVVM, ViewModel, View Binding
-5. Guarda spec en disco
+1. `loadSkill(platform)` → `verifyEnvironment`, `analyze`, `test`
+2. `skill.analyze()` → lint (non-blocking, solo warnings)
+3. `skill.test()` → tests deben pasar (blocking)
+4. Verifica `modifiedFiles ≤ maxFilesToTouch`
+5. Traceability: spec debe existir
+6. Crea GitHub PR con body generado por `generatePRBody()`
+7. Comenta en Jira (opcional)
 
-### AndroidImplementerAgent
+**Dry-run mode:** Si `GITHUB_TOKEN` no está configurado, retorna un PR mock.
 
-**Responsabilidad:** Modificar código Kotlin según la spec aprobada
+---
 
-**Proceso:**
+### Toolchains por plataforma
 
-1. Verifica Android environment (java, gradle/gradlew)
-2. Setup repo via shared `setupRepository`
-3. Create branch
-4. Resolver dependencias: `./gradlew dependencies`
-5. Genera código Kotlin + XML layouts (mock por ahora)
-6. Ejecuta `./gradlew testDebugUnitTest`
-7. Commit & push
-
-**Toolchain:** `src/tools/gradle-runner.ts`
-
-- `runGradleTests()` — testDebugUnitTest (soporta módulos)
-- `runAndroidLint()` — lintDebug
-- `runKtlint()` — ktlintCheck
-- `runGradleBuild()` — assembleDebug
-- `runGradleSync()` — dependencies
-- `verifyAndroidEnvironment()` — verifica java, gradlew, build.gradle
-
-### AndroidReviewerAgent
-
-**Responsabilidad:** Validar implementación Android y crear PR
-
-**Validaciones:**
-
-1. lintDebug - sin errores
-2. gradle testDebugUnitTest - todos pasan
-3. Número de archivos ≤ maxFilesToTouch
-4. Traceability: cada cambio linkea a spec
+| Platform      | build                                 | test                        | analyze                              | Tool file          |
+| ------------- | ------------------------------------- | --------------------------- | ------------------------------------ | ------------------ |
+| `flutter`     | `flutter pub get` / `melos bootstrap` | `flutter test`              | `dart analyze`                       | `test-runner.ts`   |
+| `flutter_web` | `flutter pub get`                     | `flutter test`              | `dart analyze` + forbidden pkg check | `test-runner.ts`   |
+| `ios`         | `swift package resolve`               | `swift test`                | `swiftlint`                          | `xcode-runner.ts`  |
+| `android`     | `gradlew dependencies`                | `gradlew testDebugUnitTest` | `lintDebug`                          | `gradle-runner.ts` |
 
 ---
 
