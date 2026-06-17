@@ -12,6 +12,7 @@ import { setupRepository } from '../tools/repo';
 import { initGit, createBranch, generateBranchName, commitAndPush } from '../tools/git';
 import { callLLM } from '../tools/llm';
 import { loadSkill } from '../skills';
+import { GaiaError, GaiaRepoError } from '../errors';
 import * as path from 'path';
 
 export class ImplementerAgent extends BaseAgent {
@@ -27,24 +28,30 @@ export class ImplementerAgent extends BaseAgent {
       this.log(`Loaded skill: ${skill.displayName}`);
 
       const repoSetup = await setupRepository(job, repoPath);
-      if (!repoSetup.success) return { success: false, output: '', error: repoSetup.error };
+      if (!repoSetup.success) {
+        throw new GaiaRepoError(
+          `[${job.platform}] Cannot clone repository '${job.repo}' (branch: ${job.targetBranch}). Check GITHUB_TOKEN and repo permissions.`,
+          repoSetup.error
+        );
+      }
       this.logSuccess(repoSetup.output);
 
-      const env = await skill.verifyEnvironment(repoPath);
-      if (!env.valid) {
-        return { success: false, output: '', error: `${skill.displayName} environment invalid: ${env.errors.join(', ')}` };
-      }
+      await skill.verifyEnvironment(repoPath); // throws GaiaEnvError on failure
 
       const git = initGit(repoPath);
       const branchName = generateBranchName(job.jiraTicketId || job.id.slice(0, 8), job.title);
-      await createBranch(git, branchName, job.targetBranch);
+      try {
+        await createBranch(git, branchName, job.targetBranch);
+      } catch (err) {
+        throw new GaiaRepoError(
+          `[${job.platform}] Failed to create branch '${branchName}' from '${job.targetBranch}' in '${job.repo}'. Branch may already exist or base branch is invalid.`,
+          String(err)
+        );
+      }
       this.logSuccess(`Branch created: ${branchName}`);
 
       this.logStep('Resolving dependencies...');
-      const buildResult = await skill.build(repoPath, job.module);
-      if (!buildResult.passed) {
-        return { success: false, output: '', error: `Dependency resolution failed: ${buildResult.stderr}` };
-      }
+      await skill.build(repoPath, job.module); // throws GaiaBuildError on failure
 
       const spec = job.spec;
       if (!spec) return { success: false, output: '', error: 'No spec found in job' };
@@ -73,13 +80,17 @@ export class ImplementerAgent extends BaseAgent {
       }
 
       this.logStep('Running tests...');
-      const testResult = await skill.test(repoPath, job.module);
-      if (!testResult.passed) {
-        return { success: false, output: testResult.stdout, error: `Tests failed: ${testResult.stderr}`, testResults: [this.toTestResult(testResult)] };
-      }
+      const testResult = await skill.test(repoPath, job.module); // throws GaiaTestError on failure
 
       this.logStep('Committing & pushing changes...');
-      await commitAndPush(git, `feat: ${job.title}\n\nCloses ${job.jiraTicketId || 'N/A'}`, ['.'], branchName, job.repo);
+      try {
+        await commitAndPush(git, `feat: ${job.title}\n\nCloses ${job.jiraTicketId || 'N/A'}`, ['.'], branchName, job.repo);
+      } catch (err) {
+        throw new GaiaRepoError(
+          `[${job.platform}] Failed to push branch '${branchName}' to '${job.repo}'. Check push permissions and GITHUB_TOKEN scope.`,
+          String(err)
+        );
+      }
 
       return {
         success: true,
@@ -89,7 +100,10 @@ export class ImplementerAgent extends BaseAgent {
         branchName,
       };
     } catch (error) {
-      return { success: false, output: '', error: `Implementation failed: ${error}` };
+      if (error instanceof GaiaError) {
+        return { success: false, output: '', error: error.message, errorCode: error.code };
+      }
+      return { success: false, output: '', error: `Implementation failed: ${error}`, errorCode: 'UNKNOWN' };
     }
   }
 

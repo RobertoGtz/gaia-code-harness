@@ -21,7 +21,47 @@ export type JobStatus =
   | 'reviewing'
   | 'pr_created'
   | 'done'
-  | 'failed';
+  // ── Granular error states ────────────────────────────────────
+  | 'failed'        // Generic / unknown failure (always retryable)
+  | 'env_error'     // Platform toolchain missing (flutter/xcode/gradle not found)
+  | 'repo_error'    // Repo access failed (clone, push, permissions)
+  | 'build_error'   // Dependency resolution failed (pub get, gradle sync, spm)
+  | 'test_error'    // Tests or lint failed after implementation
+  | 'review_error'  // PR creation or reviewer validation failed
+  | 'spec_error';   // LLM could not produce a valid spec
+
+/**
+ * Machine-readable error category — matches granular JobStatus error states.
+ * Used in AgentResult and ErrorContext to allow the Leader to route
+ * to the correct error state without string-parsing.
+ */
+export type ErrorCode =
+  | 'ENV_ERROR'
+  | 'REPO_ERROR'
+  | 'BUILD_ERROR'
+  | 'TEST_ERROR'
+  | 'REVIEW_ERROR'
+  | 'SPEC_ERROR'
+  | 'UNKNOWN';
+
+/**
+ * Structured error context persisted in the DB alongside the job.
+ * Visible via GET /jobs/:id for observability and debugging.
+ */
+export interface ErrorContext {
+  /** Machine-readable error category */
+  code: ErrorCode;
+  /** Job status at the time the error occurred */
+  stage: JobStatus;
+  /** Human-readable error message */
+  message: string;
+  /** Raw stack trace or tool output (trimmed to 2000 chars) */
+  detail?: string;
+  /** ISO timestamp of the failure */
+  timestamp: string;
+  /** How many retries have been attempted for this stage */
+  retryCount: number;
+}
 
 /**
  * Supported target platforms for code generation.
@@ -117,6 +157,8 @@ export interface CodeGenerationJob {
   createdAt: Date;
   /** When the job was last updated */
   updatedAt: Date;
+  /** Structured error context — set when job enters an error state */
+  errorContext?: ErrorContext;
 }
 
 export interface TechnicalSpec {
@@ -179,6 +221,8 @@ export interface AgentResult {
   branchName?: string;
   nextStatus?: JobStatus;
   error?: string;
+  /** Machine-readable error category — used by Leader to pick the right error state */
+  errorCode?: ErrorCode;
 }
 
 // Request/Response para API

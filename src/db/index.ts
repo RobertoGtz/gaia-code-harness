@@ -5,7 +5,7 @@
  */
 
 import { Pool } from 'pg';
-import { CodeGenerationJob, JobStatus } from '../types';
+import { CodeGenerationJob, ErrorContext, JobStatus } from '../types';
 
 // PostgreSQL connection pool
 const pool = new Pool({
@@ -52,8 +52,12 @@ export async function initDatabase(): Promise<void> {
         pr_id TEXT,
         
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        error_context JSONB
       );
+
+      ALTER TABLE code_generation_jobs
+        ADD COLUMN IF NOT EXISTS error_context JSONB;
       
       CREATE INDEX IF NOT EXISTS idx_jobs_status ON code_generation_jobs(status);
       CREATE INDEX IF NOT EXISTS idx_jobs_initiative ON code_generation_jobs(initiative_id);
@@ -223,6 +227,37 @@ export async function addProgressLog(jobId: string, message: string): Promise<vo
 }
 
 /**
+ * Persist structured error context when a job enters a granular error state.
+ * Overwrites any previous error context.
+ *
+ * @param jobId  - Job UUID
+ * @param ctx    - Structured error context to store
+ * @example
+ * await setErrorContext(jobId, {
+ *   code: 'ENV_ERROR',
+ *   stage: 'implementing',
+ *   message: 'Flutter SDK not found',
+ *   detail: 'which flutter returned exit code 1',
+ *   timestamp: new Date().toISOString(),
+ *   retryCount: 0,
+ * });
+ */
+export async function setErrorContext(jobId: string, ctx: ErrorContext): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query(
+      `UPDATE code_generation_jobs
+         SET error_context = $2::jsonb,
+             updated_at    = NOW()
+       WHERE id = $1`,
+      [jobId, JSON.stringify(ctx)]
+    );
+  } finally {
+    client.release();
+  }
+}
+
+/**
  * List all jobs, optionally filtered by initiative.
  * Results ordered by createdAt descending (newest first).
  * 
@@ -290,5 +325,6 @@ function mapRowToJob(row: any): CodeGenerationJob {
     
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    errorContext: row.error_context ?? undefined,
   };
 }

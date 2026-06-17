@@ -7,7 +7,12 @@
 import { FastifyInstance } from 'fastify';
 import { createJob, getJob, updateJobStatus, addProgressLog, listJobs } from '../../db';
 import { orchestrateJob } from '../../harness/leader';
-import { CreateJobRequest, ApproveSpecRequest, CodeGenerationJob } from '../../types';
+import { CreateJobRequest, ApproveSpecRequest, CodeGenerationJob, JobStatus } from '../../types';
+
+const ERROR_STATUSES = new Set<JobStatus>([
+  'failed', 'env_error', 'repo_error', 'build_error',
+  'test_error', 'review_error', 'spec_error',
+]);
 
 /**
  * Configure job management routes on the Fastify instance.
@@ -222,13 +227,14 @@ export async function setupJobRoutes(app: FastifyInstance) {
    * POST /jobs/:id/retry
    * Retry a failed job from the beginning.
    * Resets status to 'pending' and restarts orchestration.
-   * Only works for jobs in 'failed' status.
+   * Works for jobs in any error state: failed, env_error, repo_error,
+   * build_error, test_error, review_error, spec_error.
    * 
    * Path Parameters:
    * - id: Job UUID
    * 
    * Response: { job: CodeGenerationJob }
-   * Errors: 404 if job not found, 400 if job not in 'failed' status
+   * Errors: 404 if job not found, 400 if job not in an error state
    */
   app.post('/jobs/:id/retry', async (request, reply) => {
     const { id } = request.params as { id: string };
@@ -238,12 +244,15 @@ export async function setupJobRoutes(app: FastifyInstance) {
       return reply.status(404).send({ error: 'Job not found' });
     }
     
-    if (job.status !== 'failed') {
-      return reply.status(400).send({ error: 'Can only retry failed jobs' });
+    if (!ERROR_STATUSES.has(job.status)) {
+      return reply.status(400).send({
+        error: `Cannot retry job in status '${job.status}'. Only error states can be retried.`,
+        retryableStatuses: [...ERROR_STATUSES],
+      });
     }
     
     await updateJobStatus(id, 'pending', { currentAgent: undefined });
-    await addProgressLog(id, 'Job retried by user');
+    await addProgressLog(id, `Job retried by user (was: ${job.status})`);
     
     orchestrateJob(id).catch(console.error);
     

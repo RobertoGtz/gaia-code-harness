@@ -9,6 +9,7 @@ import { AgentContext, AgentResult, TestResult } from '../types';
 import { TestRunResult } from '../tools/test-runner';
 import { initGit, createGitHubPR, addJiraComment, getModifiedFiles } from '../tools/git';
 import { loadSkill } from '../skills';
+import { GaiaError, GaiaReviewError } from '../errors';
 import * as path from 'path';
 
 export class ReviewerAgent extends BaseAgent {
@@ -23,41 +24,34 @@ export class ReviewerAgent extends BaseAgent {
       const skill = await loadSkill(job.platform);
       this.log(`Loaded skill: ${skill.displayName}`);
 
-      const env = await skill.verifyEnvironment(repoPath);
-      if (!env.valid) {
-        return { success: false, output: '', error: `${skill.displayName} environment invalid: ${env.errors.join(', ')}` };
-      }
+      await skill.verifyEnvironment(repoPath); // throws GaiaEnvError on failure
 
-      // 1. Static analysis (non-blocking — warnings logged)
+      // 1. Static analysis (non-blocking — warns but does not fail)
       this.logStep('Running static analysis...');
-      const analyzeResult = await skill.analyze(repoPath);
-      if (!analyzeResult.passed) {
-        this.logWarn(`Analysis issues (non-blocking): ${analyzeResult.stderr.slice(0, 300)}`);
+      try {
+        await skill.analyze(repoPath);
+      } catch (analyzeErr) {
+        this.logWarn(`Analysis issues (non-blocking): ${String(analyzeErr).slice(0, 300)}`);
       }
 
-      // 2. Tests
+      // 2. Tests — throws GaiaTestError on failure
       this.logStep('Running tests...');
       const testResult = await skill.test(repoPath, job.module);
-      if (!testResult.passed) {
-        return {
-          success: false,
-          output: testResult.stdout,
-          error: `Tests failed: ${testResult.stderr}`,
-          testResults: [this.toTestResult(testResult)],
-        };
-      }
       this.logSuccess(`Tests passed`);
 
       // 3. File count guard
       const git = initGit(repoPath);
       const modifiedFiles = await getModifiedFiles(git);
       if (modifiedFiles.length > job.maxFilesToTouch) {
-        return { success: false, output: '', error: `Too many files modified: ${modifiedFiles.length} > ${job.maxFilesToTouch}` };
+        throw new GaiaReviewError(
+          `Too many files modified: ${modifiedFiles.length} > ${job.maxFilesToTouch}`,
+          `Files: ${modifiedFiles.join(', ')}`
+        );
       }
 
       // 4. Traceability
       if (!job.spec) {
-        return { success: false, output: '', error: 'No spec found for traceability verification' };
+        throw new GaiaReviewError('No spec found for traceability verification');
       }
 
       // 5. GitHub PR
@@ -95,7 +89,10 @@ export class ReviewerAgent extends BaseAgent {
         testResults: [this.toTestResult(testResult)],
       };
     } catch (error) {
-      return { success: false, output: '', error: `Review failed: ${error}` };
+      if (error instanceof GaiaError) {
+        return { success: false, output: '', error: error.message, errorCode: error.code };
+      }
+      return { success: false, output: '', error: `Review failed: ${error}`, errorCode: 'UNKNOWN' };
     }
   }
 

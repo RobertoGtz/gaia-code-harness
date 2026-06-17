@@ -4,9 +4,9 @@
  * @module harness/leader
  */
 
-import { getJob, updateJobStatus, addProgressLog } from '../db';
+import { getJob, updateJobStatus, addProgressLog, setErrorContext } from '../db';
 import { getAgentsForPlatform } from '../agents/registry';
-import { AgentContext, JobStatus, CodeGenerationJob } from '../types';
+import { AgentContext, JobStatus, CodeGenerationJob, ErrorCode, ErrorContext } from '../types';
 import * as path from 'path';
 
 // Base path where repos will be cloned/worked on
@@ -35,8 +35,33 @@ const STATUS_COLOR: Partial<Record<JobStatus, string>> = {
   implementing:      R.blue,
   reviewing:         R.magenta,
   pr_created:        R.green,
+  done:              R.green,
   failed:            R.red,
+  env_error:         R.red,
+  repo_error:        R.red,
+  build_error:       R.red,
+  test_error:        R.yellow,
+  review_error:      R.yellow,
+  spec_error:        R.red,
 };
+
+/** Map ErrorCode → granular JobStatus */
+const ERROR_STATUS: Record<ErrorCode, JobStatus> = {
+  ENV_ERROR:    'env_error',
+  REPO_ERROR:   'repo_error',
+  BUILD_ERROR:  'build_error',
+  TEST_ERROR:   'test_error',
+  REVIEW_ERROR: 'review_error',
+  SPEC_ERROR:   'spec_error',
+  UNKNOWN:      'failed',
+};
+
+/** Which error statuses can be directly retried without human intervention */
+const RETRYABLE_ERROR_STATUSES = new Set<JobStatus>([
+  'test_error',
+  'review_error',
+  'failed',
+]);
 
 function ts(): string {
   return `${R.gray}${new Date().toLocaleTimeString('en-GB')}${R.reset}`;
@@ -106,7 +131,6 @@ export async function orchestrateJob(jobId: string): Promise<void> {
         await handleSpecGenerating(job);
         break;
       case 'spec_ready':
-        // Esperando aprobación humana - no hacemos nada
         leaderWarn(`Job ${jobId} waiting for human approval (spec_ready)`);
         break;
       case 'spec_approved':
@@ -123,6 +147,25 @@ export async function orchestrateJob(jobId: string): Promise<void> {
         break;
       case 'done':
         leaderSuccess(`Job ${jobId} already completed`);
+        break;
+      // ── Granular error states ──────────────────────────────────────────
+      case 'env_error':
+        leaderError(`Job ${jobId} — ENV_ERROR: platform toolchain missing. Fix the environment and retry.`);
+        break;
+      case 'repo_error':
+        leaderError(`Job ${jobId} — REPO_ERROR: repository access failed. Check credentials/permissions and retry.`);
+        break;
+      case 'build_error':
+        leaderError(`Job ${jobId} — BUILD_ERROR: dependency resolution failed. Fix dependencies and retry.`);
+        break;
+      case 'test_error':
+        leaderError(`Job ${jobId} — TEST_ERROR: tests/lint failed. Will retry implementation.`);
+        break;
+      case 'review_error':
+        leaderError(`Job ${jobId} — REVIEW_ERROR: reviewer validation failed. Will retry.`);
+        break;
+      case 'spec_error':
+        leaderError(`Job ${jobId} — SPEC_ERROR: spec generation failed. Check LLM config and retry.`);
         break;
       case 'failed':
         leaderError(`Job ${jobId} failed — waiting for retry`);
@@ -275,16 +318,34 @@ async function handleImplementing(job: CodeGenerationJob): Promise<void> {
   const result = await agents.implementer.execute(context);
 
   if (!result.success) {
+    const errorCode = result.errorCode ?? 'UNKNOWN';
+    const errorStatus = ERROR_STATUS[errorCode];
     const retryCount = job.progressLogs.filter(l => l.includes('Implementation retry')).length;
-    
-    if (retryCount < 3) {
-      await addProgressLog(job.id, `Implementation retry ${retryCount + 1}/3`);
-      await addProgressLog(job.id, `Error to fix: ${result.error}`);
+
+    const ctx: ErrorContext = {
+      code: errorCode,
+      stage: 'implementing',
+      message: result.error ?? 'Unknown error',
+      timestamp: new Date().toISOString(),
+      retryCount,
+    };
+    await setErrorContext(job.id, ctx);
+
+    // test_error and unknown/failed can retry up to 3 times automatically
+    if (RETRYABLE_ERROR_STATUSES.has(errorStatus) && retryCount < 3) {
+      await addProgressLog(job.id, `Implementation retry ${retryCount + 1}/3 [${errorCode}]`);
+      await addProgressLog(job.id, `Error: ${result.error}`);
+      await updateJobStatus(job.id, 'implementing');
       await orchestrateJob(job.id);
       return;
     }
-    
-    throw new Error(`Implementer failed after 3 retries: ${result.error}`);
+
+    // Non-retryable or max retries reached → granular error state
+    leaderError(`Implementation failed [${errorCode}]: ${result.error}`);
+    await addProgressLog(job.id, `Failed [${errorCode}]: ${result.error}`);
+    await updateJobStatus(job.id, errorStatus);
+    printErrorBox(job, ctx);
+    return;
   }
 
   leaderSuccess(`Implementation complete — ${result.changes?.length || 0} files modified, branch: ${R.cyan}${result.branchName || 'unknown'}${R.reset}`);
@@ -344,19 +405,32 @@ async function handleReviewing(job: CodeGenerationJob): Promise<void> {
   const result = await agents.reviewer.execute(context);
 
   if (!result.success) {
-    // Si falló review, puede ser:
-    // 1. Tests fallaron -> volver a implementing
-    // 2. No cumple spec -> volver a implementing
-    // 3. Problema de infra -> retry review
-    
-    const error = result.error || 'Unknown review failure';
-    leaderError(`Review failed: ${error}`);
-    await addProgressLog(job.id, `Review failed: ${error}`);
-    
-    // Por simplicidad, si falla review volvemos a implementing
-    // En implementación real podríamos ser más específicos
-    await updateJobStatus(job.id, 'implementing');
-    await orchestrateJob(job.id);
+    const errorCode = result.errorCode ?? 'UNKNOWN';
+    const errorStatus = ERROR_STATUS[errorCode];
+    const retryCount = job.progressLogs.filter(l => l.includes('Review retry')).length;
+
+    const ctx: ErrorContext = {
+      code: errorCode,
+      stage: 'reviewing',
+      message: result.error ?? 'Unknown review failure',
+      timestamp: new Date().toISOString(),
+      retryCount,
+    };
+    await setErrorContext(job.id, ctx);
+    leaderError(`Review failed [${errorCode}]: ${result.error}`);
+    await addProgressLog(job.id, `Review failed [${errorCode}]: ${result.error}`);
+
+    if (errorCode === 'TEST_ERROR' && retryCount < 2) {
+      // Tests failed after review — retry implementation
+      await addProgressLog(job.id, `Review retry ${retryCount + 1}/2 — returning to implementing`);
+      await updateJobStatus(job.id, 'implementing');
+      await orchestrateJob(job.id);
+      return;
+    }
+
+    // Other failures or max retries — set granular error state
+    await updateJobStatus(job.id, errorStatus);
+    printErrorBox(job, ctx);
     return;
   }
 
@@ -511,4 +585,73 @@ async function handlePRCreated(job: CodeGenerationJob, reviewResult?: import('..
 /** Strip ANSI escape codes for length calculation */
 function stripAnsi(s: string): string {
   return s.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
+/**
+ * Print a color-coded error summary box when a job enters a granular error state.
+ */
+function printErrorBox(job: CodeGenerationJob, ctx: ErrorContext): void {
+  const W   = 66;
+  const B   = R.red;
+  const RST = R.reset;
+
+  const top   = `${B}╔${'═'.repeat(W)}╗${RST}`;
+  const bot   = `${B}╚${'═'.repeat(W)}╝${RST}`;
+  const sep   = `${B}╠${'═'.repeat(W)}╣${RST}`;
+  const blank = `${B}║${' '.repeat(W)}║${RST}`;
+
+  const ln = (content: string) => {
+    const visible = stripAnsi(content).length;
+    const pad = Math.max(0, W - 2 - visible);
+    console.log(`${B}║${RST} ${content}${' '.repeat(pad)} ${B}║${RST}`);
+  };
+
+  const ERROR_LABEL: Record<ErrorCode, string> = {
+    ENV_ERROR:    '⚙  ENV ERROR    — Platform toolchain not installed',
+    REPO_ERROR:   '🔒  REPO ERROR   — Repository access / permissions failed',
+    BUILD_ERROR:  '📦  BUILD ERROR  — Dependency resolution failed',
+    TEST_ERROR:   '🧪  TEST ERROR   — Tests or lint failed',
+    REVIEW_ERROR: '🔍  REVIEW ERROR — Reviewer validation failed',
+    SPEC_ERROR:   '📝  SPEC ERROR   — Spec generation failed',
+    UNKNOWN:      '❓  UNKNOWN ERROR',
+  };
+
+  const NEXT_STEP: Record<ErrorCode, string> = {
+    ENV_ERROR:    'Install/configure the platform toolchain, then POST /jobs/:id/retry',
+    REPO_ERROR:   'Check GITHUB_TOKEN, repo name, branch permissions, then POST /jobs/:id/retry',
+    BUILD_ERROR:  'Fix pubspec.yaml / build.gradle / Package.swift, then POST /jobs/:id/retry',
+    TEST_ERROR:   'Tests will be retried automatically (up to 3x). If still failing: POST /jobs/:id/retry',
+    REVIEW_ERROR: 'Check PR constraints (maxFilesToTouch, spec presence), then POST /jobs/:id/retry',
+    SPEC_ERROR:   'Check LLM API keys and acceptance criteria, then POST /jobs/:id/retry',
+    UNKNOWN:      'Check server logs, then POST /jobs/:id/retry',
+  };
+
+  console.log(`\n${top}`);
+  console.log(blank);
+  ln(`${R.bold}${R.red}✖  GAIA — JOB FAILED${RST}`);
+  ln(`${R.gray}${new Date().toLocaleString('en-GB')}${RST}`);
+  console.log(blank);
+  console.log(sep);
+  ln(`${R.bold}${R.white}ERROR DETAILS${RST}`);
+  ln(`${R.gray}${'─'.repeat(W - 4)}${RST}`);
+  ln(`${R.bold}${R.red}${ERROR_LABEL[ctx.code]}${RST}`);
+  ln(`${R.gray}Stage:${RST}   ${ctx.stage}`);
+  ln(`${R.gray}Message:${RST} ${ctx.message.slice(0, W - 12)}`);
+  if (ctx.retryCount > 0) ln(`${R.gray}Retries:${RST} ${ctx.retryCount}`);
+  console.log(blank);
+  console.log(sep);
+  ln(`${R.bold}${R.white}JOB${RST}`);
+  ln(`${R.gray}${'─'.repeat(W - 4)}${RST}`);
+  ln(`${R.gray}ID:${RST}       ${job.id}`);
+  ln(`${R.gray}Title:${RST}    ${job.title.slice(0, W - 12)}`);
+  ln(`${R.gray}Platform:${RST} ${job.platform}`);
+  ln(`${R.gray}Repo:${RST}     ${job.repo}`);
+  console.log(blank);
+  console.log(sep);
+  ln(`${R.bold}${R.white}NEXT STEP${RST}`);
+  ln(`${R.gray}${'─'.repeat(W - 4)}${RST}`);
+  const nextLines = NEXT_STEP[ctx.code].match(/.{1,62}/g) ?? [];
+  nextLines.forEach(l => ln(`${R.yellow}${l}${RST}`));
+  console.log(blank);
+  console.log(`${bot}\n`);
 }

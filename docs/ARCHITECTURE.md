@@ -26,13 +26,16 @@
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                         LEADER / ORCHESTRATOR                                │
 │                                                                              │
-│  Máquina de estados con 10 estados:                                           │
+│  Máquina de estados:                                                         │
 │                                                                              │
 │  pending ──► fetching_jira ──► spec_generating ──► spec_ready              │
 │                                                          │                   │
 │  done ◄── pr_created ◄── reviewing ◄── implementing ◄── spec_approved       │
+│                 │                │                │                         │
+│           review_error      test_error       repo_error                      │
+│           spec_error        build_error      env_error   failed              │
 │                                                                              │
-│  Cada estado tiene un handler que ejecuta el agente correspondiente         │
+│  Todos los estados de error aceptan POST /retry → vuelven a pending          │
 └──────────┬─────────────────┬─────────────────┬──────────────────────────────┘
            │                 │                 │
            ▼                 ▼                 ▼
@@ -113,18 +116,21 @@ Tech Lead → POST /jobs/:id/approve
 
 ```
 ImplementerAgent (seleccionado por platform):
-  1. Setup repo (shared setupRepository tool)
-  2. Verifica environment (Flutter / Xcode / Gradle)
-  3. Crea branch
-  4. Resuelve dependencias:
+  1. Setup repo → GaiaRepoError si clone falla
+  2. skill.verifyEnvironment() → GaiaEnvError si SDK no encontrado
+  3. Crea branch → GaiaRepoError si branch creation falla
+  4. skill.build() → GaiaBuildError si resolución de dependencias falla
      - Flutter: melos bootstrap || flutter pub get
      - iOS:    swift package resolve
      - Android: gradle dependencies
-  5. Escribe/modifica archivos
-  6. Ejecuta tests (flutter test / swift test / gradle test)
-  7. Commit & push
-         ↓
+  5. Escribe/modifica archivos (LLM)
+  6. skill.test() → GaiaTestError si tests fallan
+  7. commit & push → GaiaRepoError si push falla
+         ↓ success
   DB: status='reviewing'
+         ↓ catch GaiaError
+  return { success: false, error: err.message, errorCode: err.code }
+  Leader → ERROR_STATUS[errorCode] → estado granular
 ```
 
 ### 5. Review y PR
@@ -162,7 +168,7 @@ CREATE TABLE code_generation_jobs (
 
   -- Requerimientos
   title TEXT NOT NULL,
-  platform TEXT NOT NULL,  -- flutter | ios | android | backend
+  platform TEXT NOT NULL,  -- flutter | flutter_web | ios | android
   repo TEXT NOT NULL,
   module TEXT,             -- ej: pay_multiplatform_home_web
   target_branch TEXT NOT NULL DEFAULT 'develop',
@@ -188,6 +194,9 @@ CREATE TABLE code_generation_jobs (
   pr_url TEXT,
   pr_id TEXT,
 
+  -- Error handling
+  error_context JSONB,     -- ErrorContext cuando el job entra en estado de error
+
   -- Metadata
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -196,6 +205,109 @@ CREATE TABLE code_generation_jobs (
 -- Índices
 CREATE INDEX idx_jobs_status ON code_generation_jobs(status);
 CREATE INDEX idx_jobs_initiative ON code_generation_jobs(initiative_id);
+```
+
+### ErrorContext (columna `error_context` JSONB)
+
+Cuando un job falla, el Leader persiste un objeto estructurado con toda la información de diagnóstico:
+
+```json
+{
+  "code": "BUILD_ERROR",
+  "stage": "implementing",
+  "message": "[Flutter] `flutter pub get` failed — dependency resolution error in my-repo",
+  "detail": "Because dependency_x >=2.0.0 requires sdk >=3.0.0…\n… (truncated at 1500 chars)",
+  "timestamp": "2026-06-16T19:00:00.000Z",
+  "retryCount": 1
+}
+```
+
+| Campo        | Tipo        | Descripción                                                    |
+| ------------ | ----------- | -------------------------------------------------------------- |
+| `code`       | `ErrorCode` | Categoría machine-readable (`ENV_ERROR`, `REPO_ERROR`, etc.)   |
+| `stage`      | `JobStatus` | Estado en el que falló el job                                  |
+| `message`    | `string`    | Resumen legible con plataforma y comando fallido               |
+| `detail`     | `string?`   | stderr recortado (máx 1 500 chars) vía `trim()` en `errors.ts` |
+| `timestamp`  | `string`    | ISO 8601                                                       |
+| `retryCount` | `number`    | Reintentos automáticos antes de entrar en estado de error      |
+
+---
+
+## 🚨 Error Handling
+
+### Estados de error granulares
+
+En lugar de un estado genérico `failed`, el Leader transiciona a estados específicos según el tipo de error reportado por el agente:
+
+| Estado         | `ErrorCode`    | Causa                                                     | Retry automático |
+| -------------- | -------------- | --------------------------------------------------------- | ---------------- |
+| `env_error`    | `ENV_ERROR`    | SDK no instalado (Flutter, Xcode, JDK/Android SDK)        | No               |
+| `repo_error`   | `REPO_ERROR`   | Clone, branch creation o push fallaron                    | No               |
+| `build_error`  | `BUILD_ERROR`  | `pub get` / `gradle sync` / `swift package resolve` falló | No               |
+| `test_error`   | `TEST_ERROR`   | Tests o lint fallaron tras implementación                 | Sí (hasta 3×)    |
+| `review_error` | `REVIEW_ERROR` | Validación del reviewer falló (file count, spec ausente)  | Sí (hasta 2×)    |
+| `spec_error`   | `SPEC_ERROR`   | LLM no pudo generar un spec válido                        | No               |
+| `failed`       | `UNKNOWN`      | Error inesperado                                          | Sí (hasta 3×)    |
+
+### Flujo de errores
+
+```
+Skill lanza GaiaError (subclase tipificada)
+  ↓
+Agente.execute() — catch block
+  return { success: false, error: err.message, errorCode: err.code }
+  ↓
+Leader.handleImplementing() / handleReviewing()
+  1. Lee result.errorCode
+  2. ERROR_STATUS[errorCode] → JobStatus granular
+  3. setErrorContext(jobId, ctx)  ← persiste en DB
+  4. Si retryable && retryCount < max → reintenta automáticamente
+  5. Si no → updateJobStatus(jobId, errorStatus)
+  6. printErrorBox(job, ctx)  ← box de error en terminal
+```
+
+### Clases de error (`src/errors.ts`)
+
+| Clase             | `ErrorCode`    | Lanzada desde                                   |
+| ----------------- | -------------- | ----------------------------------------------- |
+| `GaiaEnvError`    | `ENV_ERROR`    | `skill.verifyEnvironment()`                     |
+| `GaiaRepoError`   | `REPO_ERROR`   | `setupRepository()`, `createBranch()`, `push()` |
+| `GaiaBuildError`  | `BUILD_ERROR`  | `skill.build()`                                 |
+| `GaiaTestError`   | `TEST_ERROR`   | `skill.test()`, `skill.analyze()`               |
+| `GaiaReviewError` | `REVIEW_ERROR` | File count guard, traceability check            |
+| `GaiaSpecError`   | `SPEC_ERROR`   | `SpecAuthorAgent` (LLM failures)                |
+
+Todas heredan de `GaiaError` que expone `code: ErrorCode`, `message`, y `detail?`.
+
+### Terminal error box
+
+Cuando un job entra en estado de error, se imprime:
+
+```
+╔══════════════════════════════════════════════════════════════════╗
+║                                                                  ║
+║ ✖  GAIA — JOB FAILED                                            ║
+║ 16/06/2026, 19:00:00                                            ║
+║                                                                  ║
+╠══════════════════════════════════════════════════════════════════╣
+║ ERROR DETAILS                                                    ║
+║  ────────────────────────────────────────────────────────────  ║
+║ 📦  BUILD ERROR  — Dependency resolution failed                  ║
+║ Stage:   implementing                                           ║
+║ Message: [Flutter] `flutter pub get` failed — my-repo           ║
+║                                                                  ║
+╠══════════════════════════════════════════════════════════════════╣
+║ JOB                                                              ║
+║ ID:       3f2a1b4c-...                                          ║
+║ Platform: flutter                                               ║
+║ Repo:     my-repo                                               ║
+║                                                                  ║
+╠══════════════════════════════════════════════════════════════════╣
+║ NEXT STEP                                                        ║
+║ Fix pubspec.yaml / build.gradle / Package.swift,                ║
+║ then POST /jobs/:id/retry                                        ║
+║                                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
 ```
 
 ---

@@ -9,25 +9,55 @@ import {
   runSwiftLint,
   verifyIosEnvironment,
 } from '../../tools/xcode-runner';
+import { GaiaEnvError, GaiaBuildError, GaiaTestError, trim } from '../../errors';
+import * as path from 'path';
 
 export class IosSkill implements PlatformSkill {
   readonly displayName = 'iOS / Swift';
   readonly sourceExtension = 'swift';
 
   async verifyEnvironment(repoPath: string) {
-    return verifyIosEnvironment(repoPath);
+    const result = await verifyIosEnvironment(repoPath);
+    if (!result.valid) {
+      throw new GaiaEnvError(
+        '[iOS] Xcode / Swift toolchain not found or misconfigured. Run `xcode-select --install` and ensure Xcode is installed.',
+        result.errors?.join('\n')
+      );
+    }
+    return result;
   }
 
   async build(repoPath: string): Promise<BuildResult> {
-    return runSwiftPackageResolve(repoPath);
+    const result = await runSwiftPackageResolve(repoPath);
+    if (!result.passed) {
+      throw new GaiaBuildError(
+        `[iOS] \`swift package resolve\` failed — check Package.swift in ${path.basename(repoPath)}`,
+        trim(result.stderr)
+      );
+    }
+    return result;
   }
 
   async test(repoPath: string): Promise<TestResult> {
-    return runSwiftTests(repoPath);
+    const result = await runSwiftTests(repoPath);
+    if (!result.passed) {
+      throw new GaiaTestError(
+        `[iOS] \`swift test\` failed in ${path.basename(repoPath)}`,
+        trim(result.stderr)
+      );
+    }
+    return result;
   }
 
   async analyze(repoPath: string): Promise<AnalyzeResult> {
-    return runSwiftLint(repoPath);
+    const result = await runSwiftLint(repoPath);
+    if (!result.passed) {
+      throw new GaiaTestError(
+        `[iOS] SwiftLint found violations in ${path.basename(repoPath)}. Fix lint issues before review.`,
+        trim(result.stderr)
+      );
+    }
+    return result;
   }
 
   getPromptContext(job: { title: string; module?: string; repo: string }): PromptContext {

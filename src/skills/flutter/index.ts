@@ -11,6 +11,7 @@ import {
   verifyFlutterEnvironment,
 } from '../../tools/test-runner';
 import { fileExists } from '../../tools/file';
+import { GaiaEnvError, GaiaBuildError, GaiaTestError, trim } from '../../errors';
 import * as path from 'path';
 
 export class FlutterSkill implements PlatformSkill {
@@ -18,23 +19,52 @@ export class FlutterSkill implements PlatformSkill {
   readonly sourceExtension = 'dart';
 
   async verifyEnvironment(repoPath: string) {
-    return verifyFlutterEnvironment(repoPath);
+    const result = await verifyFlutterEnvironment(repoPath);
+    if (!result.valid) {
+      throw new GaiaEnvError(
+        '[Flutter] SDK not found or misconfigured. Run `flutter doctor` to diagnose.',
+        result.errors?.join('\n')
+      );
+    }
+    return result;
   }
 
   async build(repoPath: string, module?: string): Promise<BuildResult> {
     const isMonorepo = await fileExists(path.join(repoPath, 'melos.yaml'));
-    if (isMonorepo) {
-      return runMelosBootstrap(repoPath);
+    const cmd = isMonorepo ? 'melos bootstrap' : 'flutter pub get';
+    const result = isMonorepo
+      ? await runMelosBootstrap(repoPath)
+      : await runFlutterPubGet(repoPath);
+    if (!result.passed) {
+      throw new GaiaBuildError(
+        `[Flutter] \`${cmd}\` failed — dependency resolution error in ${path.basename(repoPath)}`,
+        trim(result.stderr)
+      );
     }
-    return runFlutterPubGet(repoPath);
+    return result;
   }
 
   async test(repoPath: string, module?: string): Promise<TestResult> {
-    return runFlutterTests({ workingDir: repoPath, module });
+    const target = module ? `module '${module}'` : path.basename(repoPath);
+    const result = await runFlutterTests({ workingDir: repoPath, module });
+    if (!result.passed) {
+      throw new GaiaTestError(
+        `[Flutter] \`flutter test\` failed in ${target}`,
+        trim(result.stderr)
+      );
+    }
+    return result;
   }
 
   async analyze(repoPath: string): Promise<AnalyzeResult> {
-    return runDartAnalyze(repoPath);
+    const result = await runDartAnalyze(repoPath);
+    if (!result.passed) {
+      throw new GaiaTestError(
+        `[Flutter] \`dart analyze\` found issues in ${path.basename(repoPath)}`,
+        trim(result.stderr)
+      );
+    }
+    return result;
   }
 
   getPromptContext(job: { title: string; module?: string; repo: string }): PromptContext {

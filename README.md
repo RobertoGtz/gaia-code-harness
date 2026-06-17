@@ -96,6 +96,8 @@
 
 ### Job Lifecycle
 
+#### Normal flow
+
 | Status            | Description                                         |
 | ----------------- | --------------------------------------------------- |
 | `pending`         | Job received, queued for processing                 |
@@ -107,7 +109,20 @@
 | `reviewing`       | Reviewer running lint, tests, creating PR           |
 | `pr_created`      | Pull Request created on GitHub                      |
 | `done`            | Job complete ✅                                     |
-| `failed`          | Terminal error — retry available                    |
+
+#### Error states
+
+When a job fails, it transitions to a **granular error state** instead of a generic `failed` status. Each state carries a structured `errorContext` object with the cause, stage, stderr detail, and retry count.
+
+| Status         | Cause                                                       | Retryable?         |
+| -------------- | ----------------------------------------------------------- | ------------------ |
+| `env_error`    | Platform toolchain missing (Flutter SDK, Xcode, JDK)        | Manual fix + retry |
+| `repo_error`   | Repository clone, branch creation, or push failed           | Manual fix + retry |
+| `build_error`  | Dependency resolution failed (pub get, gradle sync, spm)    | Manual fix + retry |
+| `test_error`   | Tests or lint failed after implementation                   | Auto (up to 3×)    |
+| `review_error` | Reviewer validation failed (file count, spec missing, etc.) | Auto (up to 2×)    |
+| `spec_error`   | LLM could not produce a valid spec                          | Manual fix + retry |
+| `failed`       | Unknown / unexpected error                                  | Auto (up to 3×)    |
 
 ---
 
@@ -144,6 +159,7 @@ gaia-code-harness/
 │   │   └── gradle-runner.ts         # Android toolchain (gradle, ktlint)
 │   ├── types/
 │   │   └── index.ts                 # All TypeScript interfaces
+│   ├── errors.ts                    # Typed error classes (GaiaEnvError, GaiaRepoError…)
 │   └── index.ts                     # Entry point
 ├── docs/
 │   ├── ARCHITECTURE.md              # Deep-dive technical architecture
@@ -238,10 +254,10 @@ npm run dev
 
 ## Running a Demo
 
-### Create a job
+### 1. Create a job — capture the job ID
 
 ```bash
-curl -s -X POST http://localhost:3000/jobs \
+JOB=$(curl -s -X POST http://localhost:3000/jobs \
   -H "Content-Type: application/json" \
   -d '{
     "platform": "flutter",
@@ -254,28 +270,91 @@ curl -s -X POST http://localhost:3000/jobs \
       { "id": "ac-2", "text": "Toggle persists the preference using SharedPreferences" },
       { "id": "ac-3", "text": "App applies dark theme immediately without restart" }
     ]
-  }'
+  }')
+
+# Extract the job ID (requires jq)
+JOB_ID=$(echo $JOB | jq -r '.job.id')
+echo "Job ID: $JOB_ID"
 ```
 
-> Change `"platform"` to `"ios"` or `"android"` to target those platforms.
+The response is a `201` with the full job object:
 
-### Poll for spec
-
-```bash
-curl -s http://localhost:3000/jobs/<JOB_ID>
+```json
+{
+  "job": {
+    "id": "3f2a1b4c-8d9e-4f0a-b1c2-d3e4f5a6b7c8",
+    "status": "pending",
+    "title": "Add dark mode toggle to settings screen",
+    "platform": "flutter",
+    "repo": "demo-repo"
+  }
+}
 ```
 
-When `status` reaches `spec_ready`, the SpecAuthor has produced a full `TechnicalSpec`.
+> Change `"platform"` to `"ios"`, `"android"`, or `"flutter_web"` to target those platforms.
 
-### Approve the spec
+### 2. Poll until spec is ready
 
 ```bash
-curl -s -X POST http://localhost:3000/jobs/<JOB_ID>/approve \
+curl -s http://localhost:3000/jobs/$JOB_ID | jq '{status: .job.status}'
+```
+
+Run this every few seconds. The `status` field progresses through:
+
+```
+pending → fetching_jira → spec_generating → spec_ready
+```
+
+When `status` is `spec_ready`, the full `TechnicalSpec` is available:
+
+```bash
+curl -s http://localhost:3000/jobs/$JOB_ID | jq '.job.spec'
+```
+
+### 3. Approve the spec
+
+```bash
+curl -s -X POST http://localhost:3000/jobs/$JOB_ID/approve \
   -H "Content-Type: application/json" \
   -d '{"approved": true}'
 ```
 
-> Reject with feedback: `{"approved": false, "feedback": "Needs analytics tracking"}`
+Reject with feedback:
+
+```bash
+curl -s -X POST http://localhost:3000/jobs/$JOB_ID/approve \
+  -H "Content-Type: application/json" \
+  -d '{"approved": false, "feedback": "Needs analytics tracking"}'
+```
+
+### 4. Poll to completion
+
+```bash
+curl -s http://localhost:3000/jobs/$JOB_ID | jq '{status: .job.status, pr: .job.prUrl}'
+```
+
+After approval, status progresses:
+
+```
+spec_approved → implementing → reviewing → pr_created → done
+```
+
+Full polling loop example (bash):
+
+```bash
+while true; do
+  STATUS=$(curl -s http://localhost:3000/jobs/$JOB_ID | jq -r '.job.status')
+  echo "$(date +%T)  status: $STATUS"
+  case $STATUS in
+    done)         echo "✅ Done!"; break ;;
+    pr_created)   echo "🔗 PR: $(curl -s http://localhost:3000/jobs/$JOB_ID | jq -r '.job.prUrl')"; break ;;
+    *_error|failed) echo "❌ Error — check errorContext below"
+                  curl -s http://localhost:3000/jobs/$JOB_ID | jq '.job.errorContext'
+                  break ;;
+  esac
+  sleep 5
+done
+```
 
 ### End-of-job summary box
 
@@ -393,7 +472,61 @@ Approve or reject the generated spec.
 
 ### `POST /jobs/:id/retry`
 
-Retry a failed job from its last successful state.
+Retry a job from any error state. Resets to `pending` and restarts orchestration.
+
+Accepted statuses: `failed`, `env_error`, `repo_error`, `build_error`, `test_error`, `review_error`, `spec_error`.
+
+**Error response (400) if not in an error state:**
+
+```json
+{
+  "error": "Cannot retry job in status 'implementing'. Only error states can be retried.",
+  "retryableStatuses": [
+    "failed",
+    "env_error",
+    "repo_error",
+    "build_error",
+    "test_error",
+    "review_error",
+    "spec_error"
+  ]
+}
+```
+
+---
+
+### Error response shape (`GET /jobs/:id` when job has failed)
+
+When a job enters any error state, `errorContext` is populated:
+
+```json
+{
+  "job": {
+    "id": "3f2a1b4c-...",
+    "status": "build_error",
+    "errorContext": {
+      "code": "BUILD_ERROR",
+      "stage": "implementing",
+      "message": "[Flutter] `flutter pub get` failed — dependency resolution error in my-repo",
+      "detail": "Because my_package >=2.0.0 requires sdk >=3.0.0 …\n… (truncated)",
+      "timestamp": "2026-06-16T19:00:00.000Z",
+      "retryCount": 0
+    },
+    "progressLogs": [
+      "[19:00:00] Failed [BUILD_ERROR]: [Flutter] `flutter pub get` failed…"
+    ]
+  }
+}
+```
+
+| Field        | Description                                                     |
+| ------------ | --------------------------------------------------------------- |
+| `code`       | Machine-readable error code (`ENV_ERROR`, `REPO_ERROR`, etc.)   |
+| `stage`      | Job status at the time of failure (`implementing`, `reviewing`) |
+| `message`    | Human-readable summary including platform and command           |
+| `detail`     | Trimmed stderr output (max 1 500 chars)                         |
+| `timestamp`  | ISO 8601 timestamp of the failure                               |
+| `retryCount` | Number of automatic retries attempted before giving up          |
 
 ---
 

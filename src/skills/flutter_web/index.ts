@@ -10,6 +10,7 @@ import {
   verifyFlutterEnvironment,
 } from '../../tools/test-runner';
 import { readFile } from '../../tools/file';
+import { GaiaEnvError, GaiaBuildError, GaiaTestError, trim } from '../../errors';
 import * as path from 'path';
 
 const FORBIDDEN_PACKAGES = [
@@ -30,30 +31,56 @@ export class FlutterWebSkill implements PlatformSkill {
 
   async verifyEnvironment(repoPath: string) {
     const base = await verifyFlutterEnvironment(repoPath);
-    if (!base.valid) return base;
-
+    if (!base.valid) {
+      throw new GaiaEnvError(
+        '[Flutter Web] SDK not found or misconfigured. Run `flutter doctor` to diagnose.',
+        base.errors?.join('\n')
+      );
+    }
     const pubspecPath = path.join(repoPath, 'pubspec.yaml');
     const content = await readFile(pubspecPath).catch(() => '');
     const found = FORBIDDEN_PACKAGES.filter(pkg => content.includes(pkg));
     if (found.length > 0) {
-      return {
-        valid: false,
-        errors: [`Mobile-only packages not supported on Flutter Web: ${found.join(', ')}`],
-      };
+      throw new GaiaEnvError(
+        `[Flutter Web] Mobile-only packages detected in pubspec.yaml — these are not supported on Flutter Web: ${found.join(', ')}`,
+        `Remove or replace the following from pubspec.yaml: ${found.join(', ')}`
+      );
     }
     return { valid: true, errors: [] };
   }
 
   async build(repoPath: string): Promise<BuildResult> {
-    return runFlutterPubGet(repoPath);
+    const result = await runFlutterPubGet(repoPath);
+    if (!result.passed) {
+      throw new GaiaBuildError(
+        `[Flutter Web] \`flutter pub get\` failed — dependency resolution error in ${path.basename(repoPath)}`,
+        trim(result.stderr)
+      );
+    }
+    return result;
   }
 
   async test(repoPath: string, module?: string): Promise<TestResult> {
-    return runFlutterTests({ workingDir: repoPath, module });
+    const target = module ? `module '${module}'` : path.basename(repoPath);
+    const result = await runFlutterTests({ workingDir: repoPath, module });
+    if (!result.passed) {
+      throw new GaiaTestError(
+        `[Flutter Web] \`flutter test\` failed in ${target}`,
+        trim(result.stderr)
+      );
+    }
+    return result;
   }
 
   async analyze(repoPath: string): Promise<AnalyzeResult> {
-    return runDartAnalyze(repoPath);
+    const result = await runDartAnalyze(repoPath);
+    if (!result.passed) {
+      throw new GaiaTestError(
+        `[Flutter Web] \`dart analyze\` found issues in ${path.basename(repoPath)}`,
+        trim(result.stderr)
+      );
+    }
+    return result;
   }
 
   getPromptContext(job: { title: string; module?: string; repo: string }): PromptContext {

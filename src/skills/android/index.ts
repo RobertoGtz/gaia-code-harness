@@ -9,25 +9,56 @@ import {
   runAndroidLint,
   verifyAndroidEnvironment,
 } from '../../tools/gradle-runner';
+import { GaiaEnvError, GaiaBuildError, GaiaTestError, trim } from '../../errors';
+import * as path from 'path';
 
 export class AndroidSkill implements PlatformSkill {
   readonly displayName = 'Android / Kotlin';
   readonly sourceExtension = 'kt';
 
   async verifyEnvironment(repoPath: string) {
-    return verifyAndroidEnvironment(repoPath);
+    const result = await verifyAndroidEnvironment(repoPath);
+    if (!result.valid) {
+      throw new GaiaEnvError(
+        '[Android] JDK / Android SDK not found or misconfigured. Ensure JAVA_HOME and ANDROID_HOME are set.',
+        result.errors?.join('\n')
+      );
+    }
+    return result;
   }
 
   async build(repoPath: string): Promise<BuildResult> {
-    return runGradleSync(repoPath);
+    const result = await runGradleSync(repoPath);
+    if (!result.passed) {
+      throw new GaiaBuildError(
+        `[Android] \`./gradlew dependencies\` failed — check build.gradle in ${path.basename(repoPath)}`,
+        trim(result.stderr)
+      );
+    }
+    return result;
   }
 
   async test(repoPath: string, module?: string): Promise<TestResult> {
-    return runGradleTests(repoPath, module);
+    const target = module ? `module '${module}'` : path.basename(repoPath);
+    const result = await runGradleTests(repoPath, module);
+    if (!result.passed) {
+      throw new GaiaTestError(
+        `[Android] \`./gradlew testDebugUnitTest\` failed in ${target}`,
+        trim(result.stderr)
+      );
+    }
+    return result;
   }
 
   async analyze(repoPath: string): Promise<AnalyzeResult> {
-    return runAndroidLint(repoPath);
+    const result = await runAndroidLint(repoPath);
+    if (!result.passed) {
+      throw new GaiaTestError(
+        `[Android] \`./gradlew lintDebug\` found issues in ${path.basename(repoPath)}. Fix lint violations before review.`,
+        trim(result.stderr)
+      );
+    }
+    return result;
   }
 
   getPromptContext(job: { title: string; module?: string; repo: string }): PromptContext {
