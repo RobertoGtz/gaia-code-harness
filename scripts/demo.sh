@@ -1,181 +1,326 @@
 #!/bin/bash
 
-# Gaia Code Harness - Multi-Platform Demo Script
-# Demonstrates the full workflow for Flutter, iOS, and Android
+# Gaia Code Harness - Multi-Platform, Multi-Mode Demo Script
+#
+# Three orchestration modes:
+#   A — HTTP API    POST /jobs           (production/demo default)
+#   B — CLI         npx ts-node run.ts   (artisan / Claude Code mode)
+#   C — Webhook     POST /webhook/trigger (CI/CD / Jira / Slack trigger)
 #
 # Usage:
-#   ./scripts/demo.sh              # Default: flutter
-#   ./scripts/demo.sh flutter      # Flutter demo
-#   ./scripts/demo.sh ios          # iOS demo
-#   ./scripts/demo.sh android      # Android demo
+#   ./scripts/demo.sh                        # Mode A, Flutter
+#   ./scripts/demo.sh [flutter|ios|android]  # Mode A, chosen platform
+#   ./scripts/demo.sh flutter a              # Mode A explicit
+#   ./scripts/demo.sh ios     b              # Mode B — CLI
+#   ./scripts/demo.sh android c              # Mode C — Webhook
 
 set -e
 
-# Colors
+# ── Colors ────────────────────────────────────────────────────────────────────
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+MAGENTA='\033[0;35m'
+BOLD='\033[1m'
+NC='\033[0m'
 
-# Platform selection
+# ── Args ──────────────────────────────────────────────────────────────────────
 PLATFORM="${1:-flutter}"
+MODE="${2:-a}"
+MODE=$(echo "$MODE" | tr '[:upper:]' '[:lower:]')
 
+# ── Platform config ───────────────────────────────────────────────────────────
 case "$PLATFORM" in
   flutter)
-    REPO="demo-repo"
+    REPO="RobertoGtz/demo-repo"
     TICKET="DEMO-FLUTTER-001"
     PLATFORM_LABEL="Flutter/Dart"
     ;;
   ios)
-    REPO="demo-repo-ios"
+    REPO="RobertoGtz/demo-repo-ios"
     TICKET="DEMO-IOS-001"
     PLATFORM_LABEL="iOS/Swift"
     ;;
   android)
-    REPO="demo-repo-android"
+    REPO="RobertoGtz/demo-repo-android"
     TICKET="DEMO-ANDROID-001"
     PLATFORM_LABEL="Android/Kotlin"
     ;;
   *)
     echo -e "${RED}Unknown platform: $PLATFORM${NC}"
-    echo "Usage: $0 [flutter|ios|android]"
+    echo "Usage: $0 [flutter|ios|android] [a|b|c]"
     exit 1
     ;;
 esac
 
-echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}  Gaia Code Harness - Demo${NC}"
-echo -e "${CYAN}  Platform: $PLATFORM_LABEL${NC}"
-echo -e "${BLUE}========================================${NC}"
-echo ""
+# ── Shared job payload ────────────────────────────────────────────────────────
+JOB_TITLE="Add promotional banner to home screen"
+JOB_PAYLOAD=$(cat <<EOF
+{
+  "title": "$JOB_TITLE",
+  "platform": "$PLATFORM",
+  "repo": "$REPO",
+  "targetBranch": "develop",
+  "jiraTicketId": "$TICKET",
+  "requireTests": true,
+  "maxFilesToTouch": 6,
+  "acceptanceCriteria": [
+    { "id": "ac-1", "text": "WHEN user opens home screen THEN display promotional banner carousel", "testable": true },
+    { "id": "ac-2", "text": "WHEN there are more than 3 promotions THEN show pagination dots",     "testable": true },
+    { "id": "ac-3", "text": "WHEN user taps a banner THEN navigate to promotion details",          "testable": true }
+  ]
+}
+EOF
+)
 
-# Check if server is running
-echo -e "${YELLOW}[1/6] Checking server status...${NC}"
-if curl -s http://localhost:3000/health > /dev/null; then
-    echo -e "${GREEN}✓ Server is running${NC}"
-else
-    echo -e "${RED}✗ Server is not running${NC}"
-    echo "Start the server with: npm run dev"
+# ── Mode labels ───────────────────────────────────────────────────────────────
+case "$MODE" in
+  a) MODE_LABEL="Mode A — HTTP API (POST /jobs)" ;;
+  b) MODE_LABEL="Mode B — CLI (npx ts-node)" ;;
+  c) MODE_LABEL="Mode C — Webhook (POST /webhook/trigger)" ;;
+  *)
+    echo -e "${RED}Unknown mode: $MODE${NC}"
+    echo "Usage: $0 [flutter|ios|android] [a|b|c]"
     exit 1
-fi
+    ;;
+esac
 
+# ── Header ────────────────────────────────────────────────────────────────────
+echo -e "${BLUE}${BOLD}════════════════════════════════════════════${NC}"
+echo -e "${BLUE}${BOLD}  Gaia Code Harness — Demo${NC}"
+echo -e "${CYAN}  Platform : $PLATFORM_LABEL${NC}"
+echo -e "${MAGENTA}  $MODE_LABEL${NC}"
+echo -e "${BLUE}${BOLD}════════════════════════════════════════════${NC}"
 echo ""
-echo -e "${YELLOW}[2/6] Creating a new $PLATFORM_LABEL job...${NC}"
 
-JOB_RESPONSE=$(curl -s -X POST http://localhost:3000/jobs \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"jiraTicketId\": \"$TICKET\",
-    \"fullContext\": {
-      \"title\": \"Add promotional banner to home screen\",
-      \"description\": \"Display a carousel of promotions on the home screen\",
-      \"acceptanceCriteria\": [
-        \"WHEN user opens home screen THEN display promotional banner carousel\",
-        \"WHEN there are more than 3 promotions THEN show pagination dots\",
-        \"WHEN user taps a banner THEN navigate to promotion details\"
-      ],
-      \"platform\": \"$PLATFORM\",
-      \"repo\": \"$REPO\",
-      \"targetBranch\": \"develop\"
-    }
-  }")
+# ═══════════════════════════════════════════════════════════════════════════════
+# Shared helpers
+# ═══════════════════════════════════════════════════════════════════════════════
 
-JOB_ID=$(echo $JOB_RESPONSE | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+wait_for_status() {
+  local JOB_ID=$1
+  local TARGET_STATUS=$2
+  local MAX_RETRIES=${3:-15}
+  local PREV_STATUS=""
 
-if [ -z "$JOB_ID" ]; then
-    echo -e "${RED}✗ Failed to create job${NC}"
-    echo "Response: $JOB_RESPONSE"
-    exit 1
-fi
+  for i in $(seq 1 $MAX_RETRIES); do
+    STATUS=$(curl -s http://localhost:3000/jobs/$JOB_ID \
+      | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)
 
-echo -e "${GREEN}✓ Job created: $JOB_ID${NC}"
-
-echo ""
-echo -e "${YELLOW}[3/6] Waiting for spec generation...${NC}"
-
-# Wait for spec_ready
-for i in {1..10}; do
-    STATUS=$(curl -s http://localhost:3000/jobs/$JOB_ID | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)
-    echo "  Status: $STATUS"
-    
-    if [ "$STATUS" = "spec_ready" ]; then
-        echo -e "${GREEN}✓ Spec is ready for review${NC}"
-        break
-    elif [ "$STATUS" = "failed" ]; then
-        echo -e "${RED}✗ Job failed${NC}"
-        exit 1
-    fi
-    
-    sleep 2
-done
-
-# Get and display the spec
-echo ""
-echo -e "${BLUE}Generated Specification:${NC}"
-curl -s http://localhost:3000/jobs/$JOB_ID | python3 -c "import sys,json; d=json.load(sys.stdin)['job']; s=d.get('spec',{}); print('Tasks:', len(s.get('tasks',[])), '| Risks:', len(s.get('risks',[])), '| Files:', len(s.get('design',{}).get('affectedFiles',[])))" 2>/dev/null || echo '(spec details available via API)'
-
-echo ""
-echo -e "${YELLOW}[4/6] Approving the spec...${NC}"
-
-APPROVE_RESPONSE=$(curl -s -X POST http://localhost:3000/jobs/$JOB_ID/approve \
-  -H "Content-Type: application/json" \
-  -d '{"approved": true}')
-
-if echo "$APPROVE_RESPONSE" | grep -q '"spec_approved"\|"implementing"\|"job"'; then
-    echo -e "${GREEN}✓ Spec approved${NC}"
-else
-    echo -e "${YELLOW}Note: Approval may have auto-proceeded${NC}"
-fi
-
-echo ""
-echo -e "${YELLOW}[5/6] Monitoring implementation progress...${NC}"
-
-# Monitor progress
-for i in {1..20}; do
-    STATUS=$(curl -s http://localhost:3000/jobs/$JOB_ID | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)
-    
     if [ "$STATUS" != "$PREV_STATUS" ]; then
-        echo "  Status: $STATUS"
-        PREV_STATUS=$STATUS
+      echo "  → $STATUS"
+      PREV_STATUS=$STATUS
     fi
-    
-    if [ "$STATUS" = "done" ]; then
-        echo -e "${GREEN}✓ Implementation completed!${NC}"
-        break
-    elif [ "$STATUS" = "failed" ]; then
-        echo -e "${RED}✗ Implementation failed${NC}"
-        break
+
+    if [ "$STATUS" = "$TARGET_STATUS" ]; then
+      return 0
+    elif [[ "$STATUS" == *"error"* ]] || [ "$STATUS" = "failed" ]; then
+      echo -e "${RED}✗ Job entered error state: $STATUS${NC}"
+      return 1
     fi
-    
-    sleep 2
-done
+    sleep 3
+  done
 
-echo ""
-echo -e "${YELLOW}[6/6] Final result:${NC}"
+  echo -e "${YELLOW}⚠ Timed out waiting for status: $TARGET_STATUS (current: $STATUS)${NC}"
+  return 1
+}
 
-FINAL_RESULT=$(curl -s http://localhost:3000/jobs/$JOB_ID)
-PR_URL=$(echo $FINAL_RESULT | grep -o '"prUrl":"[^"]*"' | cut -d'"' -f4)
+show_spec_summary() {
+  local JOB_ID=$1
+  curl -s http://localhost:3000/jobs/$JOB_ID \
+    | python3 -c "
+import sys, json
+d = json.load(sys.stdin).get('job', {})
+s = d.get('spec', {})
+tasks = len(s.get('tasks', []))
+risks = len(s.get('risks', []))
+files = len(s.get('design', {}).get('affectedFiles', []))
+print(f'  Tasks: {tasks}  |  Risks: {risks}  |  Affected files: {files}')
+" 2>/dev/null || echo "  (spec details available via GET /jobs/$JOB_ID)"
+}
 
-if [ -n "$PR_URL" ] && [ "$PR_URL" != "null" ]; then
+approve_and_monitor() {
+  local JOB_ID=$1
+
+  echo ""
+  echo -e "${YELLOW}[4] Approving the spec...${NC}"
+  APPROVE=$(curl -s -X POST http://localhost:3000/jobs/$JOB_ID/approve \
+    -H "Content-Type: application/json" \
+    -d '{"approved": true}')
+  echo -e "${GREEN}✓ Spec approved${NC}"
+
+  echo ""
+  echo -e "${YELLOW}[5] Monitoring implementation...${NC}"
+  wait_for_status "$JOB_ID" "done" 30 || true
+
+  echo ""
+  echo -e "${YELLOW}[6] Final result:${NC}"
+  FINAL=$(curl -s http://localhost:3000/jobs/$JOB_ID)
+  PR_URL=$(echo "$FINAL" | grep -o '"prUrl":"[^"]*"' | cut -d'"' -f4)
+  FINAL_STATUS=$(echo "$FINAL" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+  if [ -n "$PR_URL" ] && [ "$PR_URL" != "null" ]; then
     echo -e "${GREEN}✓ PR created: $PR_URL${NC}"
-else
-    echo "Final status: $(echo $FINAL_RESULT | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)"
-fi
+  else
+    echo "  Status: $FINAL_STATUS"
+  fi
+}
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# MODE A — HTTP API  (POST /jobs)
+# ═══════════════════════════════════════════════════════════════════════════════
+run_mode_a() {
+  echo -e "${YELLOW}[1] Checking server...${NC}"
+  if ! curl -s http://localhost:3000/health > /dev/null; then
+    echo -e "${RED}✗ Server not running. Start with: npm run dev${NC}"
+    exit 1
+  fi
+  echo -e "${GREEN}✓ Server is up${NC}"
+
+  echo ""
+  echo -e "${YELLOW}[2] Creating job via POST /jobs...${NC}"
+  JOB_RESPONSE=$(curl -s -X POST http://localhost:3000/jobs \
+    -H "Content-Type: application/json" \
+    -d "$JOB_PAYLOAD")
+
+  JOB_ID=$(echo "$JOB_RESPONSE" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+  if [ -z "$JOB_ID" ]; then
+    echo -e "${RED}✗ Failed to create job${NC}"
+    echo "$JOB_RESPONSE"
+    exit 1
+  fi
+  echo -e "${GREEN}✓ Job created: $JOB_ID${NC}"
+
+  echo ""
+  echo -e "${YELLOW}[3] Waiting for spec generation...${NC}"
+  wait_for_status "$JOB_ID" "spec_ready" 15
+  echo -e "${GREEN}✓ Spec ready${NC}"
+  show_spec_summary "$JOB_ID"
+
+  approve_and_monitor "$JOB_ID"
+  echo "$JOB_ID"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MODE B — CLI  (npx ts-node src/cli/run.ts)
+# ═══════════════════════════════════════════════════════════════════════════════
+run_mode_b() {
+  echo -e "${YELLOW}[1] Checking environment...${NC}"
+  if ! command -v npx &> /dev/null; then
+    echo -e "${RED}✗ npx not found. Install Node.js first.${NC}"
+    exit 1
+  fi
+  echo -e "${GREEN}✓ npx available${NC}"
+
+  # Write job JSON to a temp file
+  TMP_JOB=$(mktemp /tmp/gaia-job-XXXX.json)
+  echo "$JOB_PAYLOAD" > "$TMP_JOB"
+  echo -e "${CYAN}  Job file: $TMP_JOB${NC}"
+
+  echo ""
+  echo -e "${YELLOW}[2] Launching CLI job...${NC}"
+  echo -e "${CYAN}  npx ts-node src/cli/run.ts --job $TMP_JOB${NC}"
+  echo ""
+
+  # Run CLI — it blocks until done (disk backend, no HTTP server needed)
+  npx ts-node src/cli/run.ts --job "$TMP_JOB"
+
+  echo ""
+  echo -e "${YELLOW}[3] Listing completed jobs:${NC}"
+  npx ts-node src/cli/run.ts --list 2>/dev/null | tail -10 || true
+
+  rm -f "$TMP_JOB"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MODE C — Webhook  (POST /webhook/trigger)
+# ═══════════════════════════════════════════════════════════════════════════════
+run_mode_c() {
+  echo -e "${YELLOW}[1] Checking server...${NC}"
+  if ! curl -s http://localhost:3000/health > /dev/null; then
+    echo -e "${RED}✗ Server not running. Start with: npm run dev${NC}"
+    exit 1
+  fi
+  echo -e "${GREEN}✓ Server is up${NC}"
+
+  echo ""
+  echo -e "${YELLOW}[2] Sending webhook payload (generic format)...${NC}"
+
+  WEBHOOK_PAYLOAD=$(cat <<EOF
+{
+  "title": "$JOB_TITLE",
+  "platform": "$PLATFORM",
+  "repo": "$REPO",
+  "targetBranch": "develop",
+  "jiraTicketId": "$TICKET",
+  "tddMode": false,
+  "acceptanceCriteria": [
+    { "id": "ac-1", "text": "WHEN user opens home screen THEN display promotional banner carousel" },
+    { "id": "ac-2", "text": "WHEN there are more than 3 promotions THEN show pagination dots" },
+    { "id": "ac-3", "text": "WHEN user taps a banner THEN navigate to promotion details" }
+  ]
+}
+EOF
+)
+
+  WEBHOOK_RESPONSE=$(curl -s -X POST http://localhost:3000/webhook/trigger \
+    -H "Content-Type: application/json" \
+    -d "$WEBHOOK_PAYLOAD")
+
+  JOB_ID=$(echo "$WEBHOOK_RESPONSE" | grep -o '"jobId":"[^"]*"' | cut -d'"' -f4)
+  ACCEPTED=$(echo "$WEBHOOK_RESPONSE" | grep -o '"status":"accepted"')
+
+  if [ -z "$JOB_ID" ] || [ -z "$ACCEPTED" ]; then
+    echo -e "${RED}✗ Webhook rejected${NC}"
+    echo "$WEBHOOK_RESPONSE"
+    exit 1
+  fi
+  echo -e "${GREEN}✓ Webhook accepted — Job: $JOB_ID${NC}"
+
+  echo ""
+  echo -e "${CYAN}  Simulated trigger: Jira issue created → webhook → POST /webhook/trigger${NC}"
+  echo -e "${CYAN}  The harness parsed the payload and created a job asynchronously.${NC}"
+
+  echo ""
+  echo -e "${YELLOW}[3] Waiting for spec generation...${NC}"
+  wait_for_status "$JOB_ID" "spec_ready" 15
+  echo -e "${GREEN}✓ Spec ready${NC}"
+  show_spec_summary "$JOB_ID"
+
+  approve_and_monitor "$JOB_ID"
+  echo "$JOB_ID"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Run selected mode
+# ═══════════════════════════════════════════════════════════════════════════════
+case "$MODE" in
+  a) JOB_ID=$(run_mode_a) ;;
+  b) run_mode_b; exit 0 ;;
+  c) JOB_ID=$(run_mode_c) ;;
+esac
+
+# ── Footer ────────────────────────────────────────────────────────────────────
 echo ""
-echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}  Demo completed! ($PLATFORM_LABEL)${NC}"
-echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}${BOLD}════════════════════════════════════════════${NC}"
+echo -e "${BLUE}${BOLD}  Demo completed!${NC}"
+echo -e "${CYAN}  Platform : $PLATFORM_LABEL${NC}"
+echo -e "${MAGENTA}  $MODE_LABEL${NC}"
+echo -e "${BLUE}${BOLD}════════════════════════════════════════════${NC}"
 echo ""
-echo "Job ID for reference: $JOB_ID"
-echo "Platform: $PLATFORM_LABEL"
+echo "Job ID : $JOB_ID"
 echo ""
-echo "To view job details:"
+echo "Inspect:"
 echo "  curl http://localhost:3000/jobs/$JOB_ID | jq ."
 echo ""
-echo "Run demos for other platforms:"
-echo "  ./scripts/demo.sh flutter"
-echo "  ./scripts/demo.sh ios"
-echo "  ./scripts/demo.sh android"
+echo "Try other modes:"
+echo "  ./scripts/demo.sh $PLATFORM a   # HTTP API"
+echo "  ./scripts/demo.sh $PLATFORM b   # CLI (no server needed)"
+echo "  ./scripts/demo.sh $PLATFORM c   # Webhook"
+echo ""
+echo "Try other platforms:"
+echo "  ./scripts/demo.sh flutter $MODE"
+echo "  ./scripts/demo.sh ios     $MODE"
+echo "  ./scripts/demo.sh android $MODE"

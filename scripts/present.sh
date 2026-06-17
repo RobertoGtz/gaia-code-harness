@@ -1,173 +1,229 @@
 #!/bin/bash
 
 # Gaia Code Harness - Presentation Script
-# Interactive presentation for the team
+# Interactive presentation covering all 3 orchestration modes
 
 set -e
 
-# Colors
+# ── Colors ────────────────────────────────────────────────────────────────────
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+MAGENTA='\033[0;35m'
+BOLD='\033[1m'
+NC='\033[0m'
 
-# Presentation slides
+# ── Slides ────────────────────────────────────────────────────────────────────
 slides=()
-slides+=(
-"${BLUE}========================================
-  GAIA CODE HARNESS
-  Controlled AI Code Generation
-========================================${NC}
 
-What if we could use AI to generate code,
-but with the same level of control and quality
-we expect from a senior developer?
+slides+=("${BLUE}${BOLD}
+  ╔══════════════════════════════════════════╗
+  ║       GAIA CODE HARNESS                 ║
+  ║       Controlled AI Code Generation     ║
+  ╚══════════════════════════════════════════╝
+${NC}
+What if AI could generate production-ready code
+with the same control and quality we expect
+from a senior developer?
 
-It's not magic. It's Harness Engineering.
+It's not magic. It's ${BOLD}Harness Engineering${NC}.
 
-Press Enter to continue..."
+Platforms: Flutter · iOS (Swift) · Android (Kotlin)
+Modes    : HTTP API · CLI · Webhook
 
-"${YELLOW}[SLIDE 1] The Problem${NC}
+Press Enter to continue...")
+
+slides+=("${YELLOW}[SLIDE 1] The Problem${NC}
 
 Three main pain points:
 
 1. ${RED}AI generates code that doesn't match requirements${NC}
-   - Hallucinations
-   - Wrong assumptions
-   - Missing context
+   → Hallucinations, wrong assumptions, missing context
 
 2. ${RED}No visibility into what changed${NC}
-   - "Magic" black box
-   - Hard to review
-   - Quality concerns
+   → Magic black box, hard to review, quality concerns
 
-3. ${RED}Integration friction${NC}
-   - Manual copy-paste
-   - Formatting issues
-   - Context switching
+3. ${RED}No integration with existing tools${NC}
+   → Manual copy-paste, no Jira/GitHub link, context switching
 
-Press Enter to continue..."
+Press Enter to continue...")
 
-"${YELLOW}[SLIDE 2] The Solution: Harness Engineering${NC}
+slides+=("${YELLOW}[SLIDE 2] The Solution: Harness Engineering${NC}
 
-Instead of letting AI run wild, we put it in a harness:
+Instead of letting AI run wild, we ${BOLD}constrain${NC} it:
 
-${GREEN}✓${NC} Limited, powerful tools
-${GREEN}✓${NC} External memory (PostgreSQL)
-${GREEN}✓${NC} Multi-agent system
-${GREEN}✓${NC} Human checkpoints
-${GREEN}✓${NC} Verification required
+${GREEN}✓${NC} Spec-first — AI must articulate a plan before coding
+${GREEN}✓${NC} Human approval gate — you sign off the spec
+${GREEN}✓${NC} File change limits — no surprise rewrites
+${GREEN}✓${NC} Tests required — every feature has green tests
+${GREEN}✓${NC} Traceability — every PR links back to its spec
+${GREEN}✓${NC} Notifications — Jira / Slack / GitHub Checks
 
 Three specialized agents:
-1. SpecAuthor - Creates technical specs
-2. Implementer - Writes code
-3. Reviewer - Validates and creates PRs
+  1. ${CYAN}SpecAuthor${NC}  — creates technical spec from requirements
+  2. ${CYAN}Implementer${NC} — writes code following the spec
+  3. ${CYAN}Reviewer${NC}    — validates tests + creates the GitHub PR
 
-Press Enter to continue..."
+Press Enter to continue...")
 
-"${YELLOW}[SLIDE 3] Spec-Driven Development${NC}
+slides+=("${YELLOW}[SLIDE 3] Spec-Driven Development (SDD)${NC}
 
-The specification is the source of truth:
+The specification is the ${BOLD}contract${NC}:
 
-${CYAN}requirements.md${NC} - What to build
-${CYAN}design.md${NC} - How to build it
-${CYAN}tasks.json${NC} - Executable steps
+  ${CYAN}Feature title${NC}       — what to build
+  ${CYAN}Acceptance Criteria${NC} — EARS format: WHEN/THEN
+  ${CYAN}Tasks${NC}               — file-level implementation plan
+  ${CYAN}Risks${NC}               — identified edge cases
+  ${CYAN}Affected files${NC}      — scope boundary
 
-Format: EARS (Easy Approach to Requirements Syntax)
-${GREEN}WHEN [condition] THEN [action]${NC}
+Example AC:
+  ${GREEN}WHEN${NC} user opens home screen
+  ${GREEN}THEN${NC} display promotional banner carousel
 
-Example:
-  WHEN user opens home screen
-  THEN display promotional banner
+  ${GREEN}WHEN${NC} there are more than 3 promotions
+  ${GREEN}THEN${NC} show pagination dots
 
-Press Enter to continue..."
+Press Enter to continue...")
 
-"${YELLOW}[SLIDE 4] The Workflow${NC}
+slides+=("${YELLOW}[SLIDE 4] The Workflow (all modes)${NC}
 
-${GREEN}1. PM creates initiative in Gaia${NC}
+${GREEN}1. Trigger a job${NC} ← mode-specific (A / B / C)
    ↓
 ${GREEN}2. SpecAuthor generates technical spec${NC}
    ↓
 ${CYAN}3. HUMAN REVIEWS and APPROVES spec${NC} ⭐
    ↓
-${GREEN}4. Implementer writes code${NC}
+${GREEN}4. Implementer writes code + tests${NC}
    ↓
-${GREEN}5. Reviewer validates and creates PR${NC}
+${GREEN}5. Reviewer validates + creates GitHub PR${NC}
    ↓
-${CYAN}6. Human code review (normal process)${NC}
+${CYAN}6. Normal code review by team${NC}
 
-Key: Two human checkpoints for quality control
+Two human checkpoints: spec approval + PR review.
 
-Press Enter to continue..."
+Press Enter to continue...")
 
-"${YELLOW}[SLIDE 5] Technical Architecture${NC}
+slides+=("${YELLOW}[SLIDE 5] Three Orchestration Modes${NC}
 
-${BLUE}Components:${NC}
-- Fastify API server
-- PostgreSQL for persistence
-- 3 Agent system
-- Plugin system for custom agents
-- GitHub/Jira integration
+${MAGENTA}Mode A — HTTP API${NC}  (production / Gaia Platform)
+  POST /jobs   →   full JSON job payload
+  Best for: PM tools, internal dashboards, CI integration
+  ${CYAN}./scripts/demo.sh flutter a${NC}
 
-${BLUE}State Machine:${NC}
-10 states from 'pending' to 'done'
+${MAGENTA}Mode B — CLI${NC}  (artisan / Claude Code / local)
+  npx ts-node src/cli/run.ts --job job.json
+  No server, no Postgres — runs entirely on disk
+  Best for: developers, code reviews, debugging
+  ${CYAN}./scripts/demo.sh ios b${NC}
 
-${BLUE}Security:${NC}
-- Human approval required
-- File change limits
-- Test verification
-- Traceability to spec
+${MAGENTA}Mode C — Webhook${NC}  (CI/CD, Jira, Slack)
+  POST /webhook/trigger  ← Jira issue / Slack slash / generic
+  Inbound trigger from any external system
+  Best for: automated pipelines, Jira automation
+  ${CYAN}./scripts/demo.sh android c${NC}
 
-Press Enter to continue..."
+Press Enter to continue...")
 
-"${YELLOW}[SLIDE 6] Demo${NC}
+slides+=("${YELLOW}[SLIDE 6] Plugin System${NC}
 
-Let's see it in action!
+Every target repo can customize agent behavior
+by placing files in ${CYAN}docs/${NC}:
 
-Make sure the server is running:
-  ${CYAN}npm run dev${NC}
+  ${CYAN}docs/gaia.json${NC}         — manifest: platform, config, agents
+  ${CYAN}docs/RULES.md${NC}          — injected into every agent prompt
+  ${CYAN}docs/UNIT_TESTS.md${NC}     — test patterns for the Implementer
+  ${CYAN}docs/agents/${NC}           — custom agent overrides per platform
 
-Then run the demo:
-  ${CYAN}./scripts/demo.sh${NC}
+Custom agents for demo repos (already committed):
+  ${GREEN}flutter-spec-author.ts${NC}  ios-spec-author.ts  android-spec-author.ts
+  ${GREEN}flutter-implementer.ts${NC}  ios-implementer.ts  android-implementer.ts
+  ${GREEN}flutter-reviewer.ts${NC}     ios-reviewer.ts     android-reviewer.ts
 
-This will:
-1. Create a job
-2. Generate a spec
-3. Wait for approval
-4. Implement the code
-5. Create a PR
+Press Enter to continue...")
 
-Press Enter to start demo (or 'q' to skip)..."
-)
+slides+=("${YELLOW}[SLIDE 7] Notifications${NC}
 
-# Show slides
+Every job event triggers outbound notifications:
+
+  ${CYAN}job.started${NC}   → Jira comment: 'Spec generation started'
+  ${CYAN}job.spec_ready${NC} → Jira comment: 'Spec ready for review'
+  ${CYAN}job.done${NC}      → Jira transition to DONE + PR link comment
+  ${CYAN}job.failed${NC}    → Jira comment: error details
+
+Supported notifiers:
+  ${GREEN}✓${NC} Jira REST API  (JIRA_BASE_URL + JIRA_API_TOKEN)
+  ${GREEN}✓${NC} Slack          (SLACK_WEBHOOK_URL)
+  ${GREEN}✓${NC} GitHub Checks  (GITHUB_TOKEN)
+  ${GREEN}✓${NC} Generic HTTP   (NOTIFIER_WEBHOOK_URL)
+
+Press Enter to continue...")
+
+slides+=("${YELLOW}[SLIDE 8] Live Demo${NC}
+
+Choose your platform and mode:
+
+  Platform: ${CYAN}flutter${NC} | ${CYAN}ios${NC} | ${CYAN}android${NC}
+  Mode:     ${MAGENTA}a${NC} (HTTP) | ${MAGENTA}b${NC} (CLI) | ${MAGENTA}c${NC} (Webhook)
+
+Prerequisites for Mode A / C:
+  ${CYAN}npm run dev${NC}    ← starts Fastify + Postgres
+
+Example commands:
+  ${CYAN}./scripts/demo.sh flutter a${NC}   # HTTP API, Flutter
+  ${CYAN}./scripts/demo.sh ios b${NC}       # CLI, no server needed
+  ${CYAN}./scripts/demo.sh android c${NC}   # Webhook trigger, Android
+
+Press Enter to choose and run the demo (or 'q' to skip)...")
+
+# ── Show slides ───────────────────────────────────────────────────────────────
 for slide in "${slides[@]}"; do
     clear
     echo -e "$slide"
-    read -r
-    if [ "$REPLY" = "q" ]; then
+    read -r INPUT
+    if [ "$INPUT" = "q" ]; then
         break
     fi
 done
 
-# Ask if they want to run the demo
+# ── Interactive demo launcher ─────────────────────────────────────────────────
+clear
+echo -e "${BLUE}${BOLD}════════════════════════════════════════════${NC}"
+echo -e "${BLUE}${BOLD}  Run Live Demo${NC}"
+echo -e "${BLUE}${BOLD}════════════════════════════════════════════${NC}"
 echo ""
-echo -e "${YELLOW}Would you like to run the demo now? (y/n)${NC}"
-read -r
-if [ "$REPLY" = "y" ]; then
-    ./scripts/demo.sh
-fi
+echo -e "Platform: ${CYAN}flutter${NC} | ${CYAN}ios${NC} | ${CYAN}android${NC}"
+echo -e "Mode:     ${MAGENTA}a${NC} (HTTP API) | ${MAGENTA}b${NC} (CLI) | ${MAGENTA}c${NC} (Webhook)"
+echo ""
+echo -ne "${YELLOW}Platform [flutter]: ${NC}"
+read -r DEMO_PLATFORM
+DEMO_PLATFORM="${DEMO_PLATFORM:-flutter}"
+
+echo -ne "${YELLOW}Mode [a]: ${NC}"
+read -r DEMO_MODE
+DEMO_MODE="${DEMO_MODE:-a}"
 
 echo ""
-echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}  Thank you!${NC}"
-echo -e "${BLUE}========================================${NC}"
+echo -e "${YELLOW}Would you like to run: ${CYAN}./scripts/demo.sh $DEMO_PLATFORM $DEMO_MODE${NC} ? (y/n)"
+read -r CONFIRM
+if [ "$CONFIRM" = "y" ]; then
+    echo ""
+    ./scripts/demo.sh "$DEMO_PLATFORM" "$DEMO_MODE"
+else
+    echo -e "${YELLOW}Skipped.${NC}"
+fi
+
+# ── Closing ───────────────────────────────────────────────────────────────────
 echo ""
-echo "Questions to discuss:"
-echo "  - Should we adopt this for the team?"
-echo "  - Which repo should we pilot with?"
-echo "  - What are the main concerns?"
+echo -e "${BLUE}${BOLD}════════════════════════════════════════════${NC}"
+echo -e "${BLUE}${BOLD}  Thank you!${NC}"
+echo -e "${BLUE}${BOLD}════════════════════════════════════════════${NC}"
 echo ""
-echo "See docs/GUION_PRESENTACION.md for the full presentation script"
+echo "Discussion questions:"
+echo "  → Which mode fits our team's workflow best?"
+echo "  → Which repo should we pilot first?"
+echo "  → Do we need any additional notifiers or platform skills?"
+echo ""
+echo "Full docs:"
+echo "  README.md · docs/ARCHITECTURE.md · docs/DEMO_GUIDE.md · API.md"
