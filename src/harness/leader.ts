@@ -7,6 +7,7 @@
 import { getJob, updateJobStatus, addProgressLog, setErrorContext } from '../state';
 import { getAgentsForPlatform } from '../agents/registry';
 import { AgentContext, JobStatus, CodeGenerationJob, ErrorCode, ErrorContext } from '../types';
+import { JobNotifier, JobEvent, NullNotifier } from '../notifiers';
 import * as path from 'path';
 
 // Base path where repos will be cloned/worked on
@@ -111,7 +112,10 @@ function leaderJSON(label: string, data: unknown): void {
  * await orchestrateJob('550e8400-e29b-41d4-a716-446655440000');
  * // Processes job based on current status
  */
-export async function orchestrateJob(jobId: string): Promise<void> {
+export async function orchestrateJob(
+  jobId: string,
+  notifier: JobNotifier = new NullNotifier(),
+): Promise<void> {
   const job = await getJob(jobId);
   if (!job) {
     throw new Error(`Job ${jobId} not found`);
@@ -119,9 +123,22 @@ export async function orchestrateJob(jobId: string): Promise<void> {
 
   leaderLog(`Processing job ${R.bold}${jobId}${R.reset} — status: ${R.cyan}${job.status}${R.reset}`);
 
+  const emit = (event: JobEvent['event'], extra: Partial<JobEvent> = {}) =>
+    notifier.notify({
+      jobId,
+      event,
+      status:    job.status,
+      title:     job.title,
+      platform:  job.platform,
+      timestamp: new Date().toISOString(),
+      tddMode:   job.tddMode,
+      ...extra,
+    }).catch(() => {});
+
   try {
     switch (job.status) {
       case 'pending':
+        await emit('job.created');
         await handlePending(job);
         break;
       case 'fetching_jira':
@@ -132,18 +149,21 @@ export async function orchestrateJob(jobId: string): Promise<void> {
         break;
       case 'spec_ready':
         leaderWarn(`Job ${jobId} waiting for human approval (spec_ready)`);
+        await emit('job.spec_ready');
         break;
       case 'spec_approved':
         await handleSpecApproved(job);
         break;
       case 'implementing':
+        await emit('job.implementing');
         await handleImplementing(job);
         break;
       case 'reviewing':
+        await emit('job.reviewing');
         await handleReviewing(job);
         break;
       case 'pr_created':
-        await handlePRCreated(job);
+        await handlePRCreated(job, notifier);
         break;
       case 'done':
         leaderSuccess(`Job ${jobId} already completed`);
@@ -169,6 +189,7 @@ export async function orchestrateJob(jobId: string): Promise<void> {
         break;
       case 'failed':
         leaderError(`Job ${jobId} failed — waiting for retry`);
+        await emit('job.failed');
         break;
       default:
         throw new Error(`Unknown status: ${job.status}`);
@@ -177,6 +198,16 @@ export async function orchestrateJob(jobId: string): Promise<void> {
     leaderError(`Error processing job ${jobId}: ${error}`);
     await addProgressLog(jobId, `Error: ${error}`);
     await updateJobStatus(jobId, 'failed');
+    await notifier.notify({
+      jobId,
+      event:     'job.failed',
+      status:    'failed',
+      title:     job.title,
+      platform:  job.platform,
+      timestamp: new Date().toISOString(),
+      tddMode:   job.tddMode,
+      error:     String(error),
+    }).catch(() => {});
   }
 }
 
@@ -474,14 +505,14 @@ async function handleReviewing(job: CodeGenerationJob): Promise<void> {
 
   // Reload job so handlePRCreated has up-to-date prUrl/branchName
   const updatedJob = await getJob(job.id);
-  await handlePRCreated(updatedJob ?? job, result);
+  await handlePRCreated(updatedJob ?? job);
 }
 
 /**
  * Handler for 'pr_created' state.
  * Finalizes job, prints detailed demo summary, marks as done.
  */
-async function handlePRCreated(job: CodeGenerationJob, reviewResult?: import('../types').AgentResult): Promise<void> {
+async function handlePRCreated(job: CodeGenerationJob, notifier?: JobNotifier): Promise<void> {
   if (job.jiraTicketId) {
     leaderLog(`Jira ticket ${R.cyan}${job.jiraTicketId}${R.reset} updated with PR link`);
     await addProgressLog(job.id, `Updated Jira ticket ${job.jiraTicketId} with PR link`);
@@ -489,6 +520,19 @@ async function handlePRCreated(job: CodeGenerationJob, reviewResult?: import('..
 
   await updateJobStatus(job.id, 'done');
   await addProgressLog(job.id, 'Job completed successfully');
+
+  if (notifier) {
+    await notifier.notify({
+      jobId:     job.id,
+      event:     'job.done',
+      status:    'done',
+      title:     job.title,
+      platform:  job.platform,
+      timestamp: new Date().toISOString(),
+      tddMode:   job.tddMode,
+      prUrl:     job.prUrl,
+    }).catch(() => {});
+  }
 
   // ── Box summary ───────────────────────────────────────────────────
   const W   = 66;                                   // inner width
@@ -579,27 +623,8 @@ async function handlePRCreated(job: CodeGenerationJob, reviewResult?: import('..
     console.log(blank);
   }
 
-  // ── Files changed ──
-  if (reviewResult?.changes?.length) {
-    section(`FILES CHANGED  (${reviewResult.changes.length})`);
-    reviewResult.changes.forEach(c => {
-      const icon = c.operation === 'create'
-        ? `${R.green}+ created ${RST}`
-        : `${R.yellow}~ modified${RST}`;
-      ln(`${icon}  ${c.path}`);
-    });
-    console.log(blank);
-  }
-
-  // ── Test results ──
-  if (reviewResult?.testResults?.length) {
-    section('TEST RESULTS');
-    reviewResult.testResults.forEach(t => {
-      const icon = t.passed ? `${R.green}✔ PASS${RST}` : `${R.red}✖ FAIL${RST}`;
-      ln(`${icon}  ${t.command || `${job.platform} test`}`);
-    });
-    console.log(blank);
-  }
+  // ── Files changed / Test results ──
+  // (detail available in progress logs — see GET /jobs/:id)
 
   // ── Pull Request ──
   section('PULL REQUEST');

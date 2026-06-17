@@ -9,7 +9,8 @@ import cors from '@fastify/cors';
 import { initDatabase } from '../db';
 import { setStateBackend } from '../state';
 import { PostgresBackend } from '../state/postgres-backend';
-import { setupJobRoutes } from './routes/jobs';
+import { setupJobRoutes }     from './routes/jobs';
+import { setupWebhookRoutes } from './routes/webhook';
 
 // ─── Terminal helpers ──────────────────────────────────────────────────────
 const C = {
@@ -72,6 +73,9 @@ export async function startServer(port: number = 3000) {
 
   // Setup job management routes
   await setupJobRoutes(app);
+
+  // Setup inbound webhook trigger route (Jira / Slack / generic)
+  await setupWebhookRoutes(app);
 
   try {
     await app.listen({ port, host: '0.0.0.0' });
