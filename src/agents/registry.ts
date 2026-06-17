@@ -9,20 +9,23 @@ import { Platform } from '../types';
 import { SpecAuthorAgent } from './spec-author';
 import { ImplementerAgent } from './implementer';
 import { ReviewerAgent } from './reviewer';
+import { MutationTesterAgent } from './mutation-tester';
 
 /**
  * Set of agents for a specific platform.
  */
 export interface PlatformAgents {
   specAuthor: BaseAgent;
-  implementer: BaseAgent;
+  implementer: ImplementerAgent;
   reviewer: BaseAgent;
+  mutationTester: MutationTesterAgent;
 }
 
 // Single shared instances — agents are stateless, safe to reuse across platforms
 const specAuthor = new SpecAuthorAgent();
 const implementer = new ImplementerAgent();
 const reviewer = new ReviewerAgent();
+const mutationTester = new MutationTesterAgent();
 
 const SUPPORTED_PLATFORMS: Platform[] = ['flutter', 'flutter_web', 'ios', 'android'];
 
@@ -44,7 +47,7 @@ export function getAgentsForPlatform(platform: Platform): PlatformAgents {
     );
   }
   // All platforms use the same generic agents — skill loaded at runtime inside each agent
-  return { specAuthor, implementer, reviewer };
+  return { specAuthor, implementer, reviewer, mutationTester };
 }
 
 /**

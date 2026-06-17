@@ -121,6 +121,7 @@ export async function setupJobRoutes(app: FastifyInstance) {
           figmaUrl: body.fullContext.figmaUrl,
           maxFilesToTouch: 5,
           requireTests: true,
+          tddMode: body.tddMode ?? false,
         };
       } else if (body.platform && body.title) {
         // Flat body — platform/title/repo/acceptanceCriteria directly
@@ -143,6 +144,7 @@ export async function setupJobRoutes(app: FastifyInstance) {
           figmaUrl: body.figmaUrl,
           maxFilesToTouch: 5,
           requireTests: true,
+          tddMode: body.tddMode ?? false,
         };
       } else {
         // Solo ticket ID - necesitamos fetchear de Jira

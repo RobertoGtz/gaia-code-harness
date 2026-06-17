@@ -136,6 +136,8 @@ export interface CodeGenerationJob {
   maxFilesToTouch: number;
   /** Whether tests are required for this job */
   requireTests: boolean;
+  /** Use TDD mode: Red-Green-Refactor one test at a time instead of bulk generation */
+  tddMode?: boolean;
   
   /** Current state in the state machine */
   status: JobStatus;
@@ -237,6 +239,7 @@ export interface CreateJobRequest {
   targetBranch?: string;
   description?: string;
   figmaUrl?: string;
+  tddMode?: boolean;
   acceptanceCriteria?: Array<string | { id: string; text: string; priority?: string }>;
   fullContext?: {
     title: string;

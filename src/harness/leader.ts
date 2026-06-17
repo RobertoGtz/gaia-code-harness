@@ -327,7 +327,9 @@ async function handleImplementing(job: CodeGenerationJob): Promise<void> {
   };
 
   const agents = getAgentsForPlatform(job.platform);
-  const result = await agents.implementer.execute(context);
+  const result = job.tddMode
+    ? await agents.implementer.executeTDD(context)
+    : await agents.implementer.execute(context);
 
   if (!result.success) {
     const errorCode = result.errorCode ?? 'UNKNOWN';
@@ -457,8 +459,21 @@ async function handleReviewing(job: CodeGenerationJob): Promise<void> {
     branchName: result.branchName,
   });
 
+  // Run mutation tester before marking done
+  const workspacePathM = path.join(WORKSPACE_BASE, job.id);
+  const mutCtx: AgentContext = { job, workspacePath: workspacePathM };
+  leaderLog('Running mutation tester...');
+  const mutResult = await agents.mutationTester.execute(mutCtx);
+  if (!mutResult.success) {
+    leaderWarn(`Mutation score below threshold: ${mutResult.error}`);
+    await addProgressLog(job.id, `Mutation test: ${mutResult.error ?? 'score below threshold'}`);
+  } else {
+    leaderSuccess(`Mutation test passed: ${mutResult.output}`);
+    await addProgressLog(job.id, `Mutation test: ${mutResult.output}`);
+  }
+
   // Reload job so handlePRCreated has up-to-date prUrl/branchName
-  const updatedJob = await import('../db').then(db => db.getJob(job.id));
+  const updatedJob = await getJob(job.id);
   await handlePRCreated(updatedJob ?? job, result);
 }
 
