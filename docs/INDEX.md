@@ -113,10 +113,10 @@ tools/
 
 ## 🎯 Ejemplos
 
-| Ejemplo                                                                                         | Descripción                  |
-| ----------------------------------------------------------------------------------------------- | ---------------------------- |
-| [examples/.gaia/gaia.json](../examples/.gaia/gaia.json)                                         | Manifest de plugin           |
-| [examples/.gaia/agents/flutter-spec-author.ts](../examples/.gaia/agents/flutter-spec-author.ts) | Agente Flutter personalizado |
+| Ejemplo                                                                                       | Descripción                  |
+| --------------------------------------------------------------------------------------------- | ---------------------------- |
+| [examples/docs/gaia.json](../examples/docs/gaia.json)                                         | Manifest de plugin           |
+| [examples/docs/agents/flutter-spec-author.ts](../examples/docs/agents/flutter-spec-author.ts) | Agente Flutter personalizado |
 
 ---
 

@@ -1,6 +1,6 @@
 /**
  * @fileoverview Plugin Loader for Custom Agents
- * @description Dynamically loads project-specific agents from .gaia/agents/ directories
+ * @description Dynamically loads project-specific agents from docs/agents/ directories
  * @module harness/plugin-loader
  */
 
@@ -61,7 +61,7 @@ export class PluginLoader {
 
   constructor(repoPath: string) {
     this.repoPath = repoPath;
-    this.gaiaPath = path.join(repoPath, '.gaia');
+    this.gaiaPath = path.join(repoPath, 'docs');
   }
 
   /**
@@ -79,7 +79,7 @@ export class PluginLoader {
         console.log(`[PluginLoader] Loaded manifest for: ${this.manifest.name}`);
       }
     } catch {
-      console.log(`[PluginLoader] No gaia.json found in ${this.gaiaPath}`);
+      console.log(`[PluginLoader] No gaia.json found in ${this.gaiaPath} (docs/)`);
     }
 
     try {

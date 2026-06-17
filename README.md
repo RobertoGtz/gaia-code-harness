@@ -57,7 +57,7 @@
 - **State Machine Orchestration** — 10-state lifecycle with full audit trail persisted in PostgreSQL or on-disk JSON
 - **CI Notifications** — pluggable `JobNotifier` system emits events to Slack, GitHub Checks API, or any HTTP endpoint
 - **Rich Terminal Output** — color-coded, emoji-enhanced logs per agent with a detailed end-of-job summary box
-- **Pluggable Agents** — repos can override default agents via a `.gaia/` directory
+- **Pluggable Agents** — repos can override default agents via a `docs/` directory (`gaia.json`, `RULES.md`, `docs/agents/`)
 - **LLM-Agnostic** — supports OpenAI and Anthropic; model selection is configurable per-agent
 
 ---
@@ -972,11 +972,11 @@ Because agents are generic, **you only need to add a new Skill** — no agent co
 
 ## Plugin System
 
-Any repo can provide project-specific rules and configuration by adding a `.gaia/` directory at its root. The harness loads these files automatically before running any agent.
+Any repo can provide project-specific rules and configuration by adding the following files inside its `docs/` directory. The harness loads these files automatically before running any agent.
 
 ```
 your-repo/
-└── .gaia/
+└── docs/
     ├── gaia.json       ← structured config (paths, limits, forbidden files)
     ├── RULES.md        ← prose rules injected directly into every LLM prompt
     └── agents/         ← optional: override default agents with custom implementations
@@ -1046,7 +1046,7 @@ This project follows Clean Architecture with MVVM...
 
 ### Agent override (optional)
 
-To fully replace a default agent with a custom implementation, place a TypeScript file in `.gaia/agents/`:
+To fully replace a default agent with a custom implementation, place a TypeScript file in `docs/agents/`:
 
 | File                        | Overrides                          |
 | --------------------------- | ---------------------------------- |

@@ -480,7 +480,7 @@ Define el contrato que cada skill debe cumplir (`src/skills/index.ts`):
 
 ```
 Repo del proyecto
-└── .gaia/
+└── docs/
     ├── gaia.json          ← Manifest
     └── agents/
         ├── flutter-spec-author.ts
@@ -490,8 +490,8 @@ Repo del proyecto
 
 ### Orden de búsqueda
 
-1. **Platform-specific:** `.gaia/agents/{platform}-{agentType}.ts`
-2. **Generic:** `.gaia/agents/{agentType}.ts`
+1. **Platform-specific:** `docs/agents/{platform}-{agentType}.ts`
+2. **Generic:** `docs/agents/{agentType}.ts`
 3. **Manifest-specified:** `gaia.json → agents.{agentType}`
 4. **Default:** Usar agente del harness
 

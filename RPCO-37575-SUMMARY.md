@@ -75,8 +75,8 @@ src/
 
 ### Ejemplos
 
-- `examples/.gaia/gaia.json` - Manifest
-- `examples/.gaia/agents/flutter-spec-author.ts` - Agente Rappi Flutter
+- `examples/docs/gaia.json` - Manifest
+- `examples/docs/agents/flutter-spec-author.ts` - Agente Rappi Flutter
 
 ---
 
