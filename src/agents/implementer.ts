@@ -188,7 +188,7 @@ export class ImplementerAgent extends BaseAgent {
       validPaths.push(relPath);
     }
     const pubspecCtx = pubspec ? `\n\npubspec.yaml (use ONLY packages listed here):\n${pubspec}` : '';
-    const userPrompt = `Feature: ${featureTitle}${pubspecCtx}\n\nThe following build/test errors occurred:\n${errorOutput}\n\nFix ALL files below so they are consistent with each other and all errors are resolved.\nReturn ONLY a JSON object mapping file path to corrected file contents, e.g.:\n{"path/to/file.dart": "...contents..."}\n\nFiles to fix:\n${fileContents.join('\n\n')}`;
+    const userPrompt = `Feature: ${featureTitle}${pubspecCtx}\n\nThe following build/test errors occurred:\n${errorOutput}\n\nFix ALL files below so they are consistent with each other and all errors are resolved.\nIMPORTANT: Each class/struct/enum must be declared in EXACTLY ONE file. If you see "invalid redeclaration" errors, remove the duplicate definition from all files except the one where it belongs (e.g. keep FeedItem only in Models/FeedItem.swift, NOT inside ViewModel files).\nReturn ONLY a JSON object mapping file path to corrected file contents, e.g.:\n{"path/to/file.swift": "...contents..."}\n\nFiles to fix:\n${fileContents.join('\n\n')}`;
     try {
       const response = await callLLM([
         { role: 'system', content: systemPrompt },

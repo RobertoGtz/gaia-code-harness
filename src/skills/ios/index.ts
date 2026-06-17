@@ -75,6 +75,7 @@ IMPORTANT: This is a Swift Package Manager project validated with 'swift build' 
 - Use async/await for asynchronous code — no completion handlers unless interfacing legacy APIs.
 - CRITICAL: Do NOT import UIKit, SwiftUI, or Combine. Do NOT use ObservableObject, @Published, @StateObject, Task{}, or any API requiring @available(macOS 10.15+). This project compiles with 'swift build' on macOS 12+ targeting both iOS and macOS.
 - Use plain Swift structs, protocols, and synchronous/closure-based patterns only. ViewModels are plain classes with a delegate protocol for updates.
+- NEVER define a type (struct/class/enum) in more than one file. If a model is defined in Models/FeedItem.swift, import it by module — do NOT redeclare it inside ViewModel or Coordinator files.
 - Respond with ONLY file contents, no markdown fences.`,
       reviewerSystem: `You are an iOS/Swift code reviewer.
 Check for: MVVM separation, Coordinator navigation pattern, XCTest coverage, Swift concurrency usage, no force-unwraps in production code, SwiftLint compliance.`,
