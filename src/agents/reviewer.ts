@@ -24,20 +24,26 @@ export class ReviewerAgent extends BaseAgent {
       const skill = await loadSkill(job.platform);
       this.log(`Loaded skill: ${skill.displayName}`);
 
-      await skill.verifyEnvironment(repoPath); // throws GaiaEnvError on failure
+      let testResult: import('../tools/test-runner').TestRunResult | undefined;
 
-      // 1. Static analysis (non-blocking — warns but does not fail)
-      this.logStep('Running static analysis...');
-      try {
-        await skill.analyze(repoPath);
-      } catch (analyzeErr) {
-        this.logWarn(`Analysis issues (non-blocking): ${String(analyzeErr).slice(0, 300)}`);
+      if (job.requireTests !== false) {
+        await skill.verifyEnvironment(repoPath); // throws GaiaEnvError on failure
+
+        // 1. Static analysis (non-blocking — warns but does not fail)
+        this.logStep('Running static analysis...');
+        try {
+          await skill.analyze(repoPath);
+        } catch (analyzeErr) {
+          this.logWarn(`Analysis issues (non-blocking): ${String(analyzeErr).slice(0, 300)}`);
+        }
+
+        // 2. Tests — throws GaiaTestError on failure
+        this.logStep('Running tests...');
+        testResult = await skill.test(repoPath, job.module);
+        this.logSuccess(`Tests passed`);
+      } else {
+        this.logStep('Skipping environment check & tests (requireTests: false)');
       }
-
-      // 2. Tests — throws GaiaTestError on failure
-      this.logStep('Running tests...');
-      const testResult = await skill.test(repoPath, job.module);
-      this.logSuccess(`Tests passed`);
 
       // 3. File count guard
       const git = initGit(repoPath);
@@ -56,11 +62,13 @@ export class ReviewerAgent extends BaseAgent {
 
       // 5. GitHub PR
       this.logStep('Creating GitHub PR...');
+      const prOwner = job.repo.includes('/') ? job.repo.split('/')[0] : (process.env.GITHUB_OWNER || 'rappi');
+      const prRepo = job.repo.includes('/') ? job.repo.split('/')[1] : job.repo;
       let pr: { url: string; id: string; number: number };
       try {
         pr = await createGitHubPR({
-          owner: process.env.GITHUB_OWNER || 'rappi',
-          repo: job.repo,
+          owner: prOwner,
+          repo: prRepo,
           title: `[${job.jiraTicketId || 'GAIA'}] ${job.title}`,
           body: this.generatePRBody(job, skill.displayName),
           head: job.branchName || 'feature-branch',
@@ -69,7 +77,7 @@ export class ReviewerAgent extends BaseAgent {
       } catch (prError) {
         this.logWarn(`GitHub PR creation failed (dry-run): ${prError}`);
         pr = {
-          url: `https://github.com/${process.env.GITHUB_OWNER || 'rappi'}/${job.repo}/pull/dry-run`,
+          url: `https://github.com/${prOwner}/${prRepo}/pull/dry-run`,
           id: 'dry-run',
           number: 0,
         };
@@ -86,7 +94,7 @@ export class ReviewerAgent extends BaseAgent {
         output: `Review passed. PR created: ${pr.url}`,
         prUrl: pr.url,
         prId: pr.id,
-        testResults: [this.toTestResult(testResult)],
+        testResults: testResult ? [this.toTestResult(testResult)] : [],
       };
     } catch (error) {
       if (error instanceof GaiaError) {

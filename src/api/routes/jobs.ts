@@ -119,8 +119,8 @@ export async function setupJobRoutes(app: FastifyInstance) {
             testable: true,
           })),
           figmaUrl: body.fullContext.figmaUrl,
-          maxFilesToTouch: 5,
-          requireTests: true,
+          maxFilesToTouch: body.fullContext.maxFilesToTouch ?? 5,
+          requireTests: body.fullContext.requireTests ?? true,
           tddMode: body.tddMode ?? false,
         };
       } else if (body.platform && body.title) {
@@ -142,8 +142,8 @@ export async function setupJobRoutes(app: FastifyInstance) {
             testable: true,
           })),
           figmaUrl: body.figmaUrl,
-          maxFilesToTouch: 5,
-          requireTests: true,
+          maxFilesToTouch: body.maxFilesToTouch ?? 5,
+          requireTests: body.requireTests ?? true,
           tddMode: body.tddMode ?? false,
         };
       } else {

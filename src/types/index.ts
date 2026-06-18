@@ -240,6 +240,8 @@ export interface CreateJobRequest {
   description?: string;
   figmaUrl?: string;
   tddMode?: boolean;
+  requireTests?: boolean;
+  maxFilesToTouch?: number;
   acceptanceCriteria?: Array<string | { id: string; text: string; priority?: string }>;
   fullContext?: {
     title: string;
@@ -250,6 +252,8 @@ export interface CreateJobRequest {
     repo: string;
     module?: string;
     targetBranch?: string;
+    requireTests?: boolean;
+    maxFilesToTouch?: number;
   };
 }
 
