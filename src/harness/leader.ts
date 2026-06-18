@@ -8,6 +8,7 @@ import { getJob, updateJobStatus, addProgressLog, setErrorContext } from '../sta
 import { getAgentsForPlatform } from '../agents/registry';
 import { AgentContext, JobStatus, CodeGenerationJob, ErrorCode, ErrorContext } from '../types';
 import { JobNotifier, JobEvent, NullNotifier } from '../notifiers';
+import { fetchJiraTicket } from '../tools/jira';
 import * as path from 'path';
 
 // Base path where repos will be cloned/worked on
@@ -254,25 +255,47 @@ async function handleFetchingJira(job: CodeGenerationJob): Promise<void> {
   banner('Fetching Jira Ticket', job.id, 'fetching_jira');
   await updateJobStatus(job.id, 'fetching_jira', { currentAgent: 'JiraFetcher' });
   
+  const ticketKey = job.jiraTicketId || job.jiraEpicId;
+  if (!ticketKey) {
+    throw new Error('No jiraTicketId or jiraEpicId to fetch');
+  }
+
   try {
-    // TODO: Integrar con MCP Jira para fetchear:
-    // - Título
-    // - Descripción
-    // - Criterios de aceptación
-    // - Links a Figma
-    // - Prioridad
-    
-    // Por ahora, mock
-    await addProgressLog(job.id, `Fetching Jira info for ${job.jiraTicketId || job.jiraEpicId}`);
-    
-    // Simular fetch exitoso
-    await addProgressLog(job.id, 'Jira info fetched successfully');
-    await updateJobStatus(job.id, 'spec_generating');
+    await addProgressLog(job.id, `Fetching Jira ticket: ${ticketKey}`);
+    const ticket = await fetchJiraTicket(ticketKey);
+
+    // Enrich job with Jira data
+    const enriched: Partial<CodeGenerationJob> = {
+      title: ticket.title || job.title,
+      description: ticket.description || job.description,
+      figmaUrl: ticket.figmaUrl || job.figmaUrl,
+    };
+
+    if (ticket.platform && !job.platform) {
+      enriched.platform = ticket.platform;
+    }
+    if (ticket.repo) {
+      enriched.repo = ticket.repo;
+    }
+    if (ticket.acceptanceCriteria.length > 0) {
+      enriched.acceptanceCriteria = ticket.acceptanceCriteria.map((text, i) => ({
+        id: `ac-${i}`,
+        text,
+        testable: true,
+      }));
+    }
+    if (ticket.epicKey) {
+      enriched.jiraEpicId = ticket.epicKey;
+    }
+
+    await addProgressLog(job.id, `Jira ticket fetched: "${ticket.title}" [${ticket.platform || 'no platform label'}] — ${ticket.acceptanceCriteria.length} ACs`);
+    await updateJobStatus(job.id, 'spec_generating', enriched);
     
     // Continuar flujo
     await orchestrateJob(job.id);
   } catch (error) {
-    throw new Error(`Failed to fetch Jira info: ${error}`);
+    await addProgressLog(job.id, `Failed to fetch Jira: ${error}`);
+    throw new Error(`Failed to fetch Jira info for ${ticketKey}: ${error}`);
   }
 }
 

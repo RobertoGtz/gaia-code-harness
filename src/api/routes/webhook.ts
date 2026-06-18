@@ -17,6 +17,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { createJob }                                  from '../../state';
 import { orchestrateJob }                             from '../../harness/leader';
 import { buildNotifier }                              from '../../notifiers';
+import { fetchJiraTicket }                            from '../../tools/jira';
 import { Platform, CreateJobRequest, CodeGenerationJob } from '../../types';
 
 // ─── Payload parsers ────────────────────────────────────────────────────────
@@ -140,6 +141,22 @@ export async function setupWebhookRoutes(app: FastifyInstance): Promise<void> {
         error: 'Cannot determine target repository',
         hint:  'Set DEFAULT_REPO env var or include "repo" in the payload',
       });
+    }
+
+    // Enrich trigger with full Jira data if we have a ticket key but no ACs
+    if (trigger.jiraTicketId && (!trigger.acceptanceCriteria || trigger.acceptanceCriteria.length === 0)) {
+      try {
+        const ticket = await fetchJiraTicket(trigger.jiraTicketId);
+        if (ticket.acceptanceCriteria.length > 0) {
+          trigger.acceptanceCriteria = ticket.acceptanceCriteria.map(t => ({ text: t }));
+        }
+        if (ticket.platform) trigger.platform = ticket.platform;
+        if (ticket.repo) trigger.repo = ticket.repo;
+        if (ticket.title) trigger.title = ticket.title;
+      } catch (err) {
+        // Non-blocking: if Jira fetch fails, proceed with what we have
+        console.warn(`[webhook] Jira enrichment failed for ${trigger.jiraTicketId}: ${err}`);
+      }
     }
 
     // Create job in Postgres (same shape as POST /jobs flat-body path)

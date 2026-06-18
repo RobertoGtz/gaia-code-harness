@@ -20,6 +20,7 @@ import { setStateBackend } from '../state';
 import { DiskBackend } from '../state/disk-backend';
 import { orchestrateJob } from '../harness/leader';
 import { CodeGenerationJob, Platform } from '../types';
+import { fetchJiraTicket } from '../tools/jira';
 
 // ── Bootstrap ────────────────────────────────────────────────────────────────
 
@@ -59,10 +60,44 @@ async function main(): Promise<void> {
     return;
   }
 
+  // Jira-only mode: --jira PROJ-123
+  const jiraKey = flag('--jira');
+  if (jiraKey) {
+    console.log(`Fetching Jira ticket: ${jiraKey}…`);
+    const ticket = await fetchJiraTicket(jiraKey);
+    if (!ticket.platform) {
+      console.error(`Error: Could not infer platform from Jira ticket ${jiraKey}. Add a platform label (flutter, ios, android).`);
+      process.exit(1);
+    }
+    const job = await backend.createJob({
+      jiraTicketId:    jiraKey,
+      jiraEpicId:      ticket.epicKey,
+      initiativeId:    'cli',
+      title:           ticket.title,
+      platform:        ticket.platform,
+      repo:            ticket.repo || process.env.DEFAULT_REPO || 'demo-repo',
+      targetBranch:    ticket.targetBranch || 'develop',
+      description:     ticket.description,
+      acceptanceCriteria: ticket.acceptanceCriteria.map((text, i) => ({
+        id: `ac-${i + 1}`, text, testable: true,
+      })),
+      figmaUrl:        ticket.figmaUrl,
+      maxFilesToTouch: 5,
+      requireTests:    true,
+    });
+    console.log(`\nJob created from Jira: ${job.id}`);
+    console.log(`  Title:    ${ticket.title}`);
+    console.log(`  Platform: ${ticket.platform}`);
+    console.log(`  ACs:      ${ticket.acceptanceCriteria.length}`);
+    console.log(`  Progress: progress/${job.id}.md\n`);
+    await orchestrateJob(job.id);
+    return;
+  }
+
   // Create new job from --job flag
   const jobArg = flag('--job');
   if (!jobArg) {
-    console.error('Usage: run.ts --job <json-file-or-inline-json>  |  --id <job-id>  |  --list');
+    console.error('Usage: run.ts --job <json-file-or-inline-json>  |  --jira <PROJ-123>  |  --id <job-id>  |  --list');
     process.exit(1);
   }
 
@@ -71,6 +106,22 @@ async function main(): Promise<void> {
     raw = JSON.parse(jobArg);
   } else {
     raw = JSON.parse(fs.readFileSync(path.resolve(jobArg), 'utf8'));
+  }
+
+  // If JSON has jiraTicketId but no platform/title, fetch from Jira
+  if (raw.jiraTicketId && !raw.platform && !raw.title) {
+    console.log(`Fetching Jira ticket: ${raw.jiraTicketId}…`);
+    const ticket = await fetchJiraTicket(raw.jiraTicketId as string);
+    if (!ticket.platform) {
+      console.error(`Error: Could not infer platform from Jira ticket ${raw.jiraTicketId}. Add a platform label.`);
+      process.exit(1);
+    }
+    raw.title = ticket.title;
+    raw.platform = ticket.platform;
+    raw.repo = raw.repo || ticket.repo;
+    raw.description = raw.description || ticket.description;
+    raw.acceptanceCriteria = raw.acceptanceCriteria || ticket.acceptanceCriteria;
+    if (ticket.figmaUrl) raw.figmaUrl = ticket.figmaUrl;
   }
 
   const acceptanceCriteria = ((raw.acceptanceCriteria ?? []) as string[]).map((t, i) => ({

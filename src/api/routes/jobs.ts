@@ -8,6 +8,7 @@ import { FastifyInstance } from 'fastify';
 import { createJob, getJob, updateJobStatus, addProgressLog, listJobs } from '../../state';
 import { orchestrateJob } from '../../harness/leader';
 import { CreateJobRequest, ApproveSpecRequest, CodeGenerationJob, JobStatus } from '../../types';
+import { fetchJiraTicket } from '../../tools/jira';
 
 const ERROR_STATUSES = new Set<JobStatus>([
   'failed', 'env_error', 'repo_error', 'build_error',
@@ -147,18 +148,33 @@ export async function setupJobRoutes(app: FastifyInstance) {
           tddMode: body.tddMode ?? false,
         };
       } else {
-        // Solo ticket ID - necesitamos fetchear de Jira
+        // Solo ticket ID — fetch real data from Jira
+        const ticketKey = body.jiraTicketId || body.jiraEpicId!;
+        const ticket = await fetchJiraTicket(ticketKey);
+
+        if (!ticket.platform) {
+          return reply.status(400).send({
+            error: `Could not infer platform from Jira ticket ${ticketKey}. Add a platform label (flutter, ios, android) or use fullContext.`,
+          });
+        }
+
         jobData = {
           jiraTicketId: body.jiraTicketId,
-          jiraEpicId: body.jiraEpicId,
+          jiraEpicId: body.jiraEpicId ?? ticket.epicKey,
           initiativeId: `init-${Date.now()}`,
-          title: `Ticket ${body.jiraTicketId || body.jiraEpicId}`,
-          platform: 'flutter',
-          repo: 'rpp-pyme-multiplatform',
-          targetBranch: 'develop',
-          acceptanceCriteria: [],
-          maxFilesToTouch: 5,
-          requireTests: true,
+          title: ticket.title,
+          platform: ticket.platform,
+          repo: ticket.repo || process.env.DEFAULT_REPO || 'demo-repo',
+          targetBranch: ticket.targetBranch || 'develop',
+          description: ticket.description,
+          acceptanceCriteria: ticket.acceptanceCriteria.map((text, i) => ({
+            id: `ac-${i}`,
+            text,
+            testable: true,
+          })),
+          figmaUrl: ticket.figmaUrl,
+          maxFilesToTouch: body.maxFilesToTouch ?? 5,
+          requireTests: body.requireTests ?? true,
         };
       }
       
