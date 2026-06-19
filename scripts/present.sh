@@ -124,6 +124,12 @@ ${MAGENTA}Mode C — Webhook${NC}  (CI/CD, Jira, Slack)
   Best for: automated pipelines, Jira automation
   ${CYAN}./scripts/demo.sh android c${NC}
 
+${MAGENTA}Mode D — Jira-only HTTP${NC}
+  POST /jobs with only a jiraTicketId
+  System fetches title, description, ACs from Jira
+  Best for: product managers who already write tickets in Jira
+  ${CYAN}./scripts/demo.sh flutter jira PROJ-123${NC}
+
 Press Enter to continue...")
 
 slides+=("${YELLOW}[SLIDE 6] Plugin System${NC}
@@ -165,15 +171,16 @@ slides+=("${YELLOW}[SLIDE 8] Live Demo${NC}
 Choose your platform and mode:
 
   Platform: ${CYAN}flutter${NC} | ${CYAN}ios${NC} | ${CYAN}android${NC}
-  Mode:     ${MAGENTA}a${NC} (HTTP) | ${MAGENTA}b${NC} (CLI) | ${MAGENTA}c${NC} (Webhook)
+  Mode:     ${MAGENTA}a${NC} (HTTP) | ${MAGENTA}b${NC} (CLI) | ${MAGENTA}c${NC} (Webhook) | ${MAGENTA}jira${NC} (Jira-only)
 
-Prerequisites for Mode A / C:
+Prerequisites for Mode A / C / Jira:
   ${CYAN}npm run dev${NC}    ← starts Fastify + Postgres
 
 Example commands:
-  ${CYAN}./scripts/demo.sh flutter a${NC}   # HTTP API, Flutter
-  ${CYAN}./scripts/demo.sh ios b${NC}       # CLI, no server needed
-  ${CYAN}./scripts/demo.sh android c${NC}   # Webhook trigger, Android
+  ${CYAN}./scripts/demo.sh flutter a${NC}         # HTTP API, Flutter
+  ${CYAN}./scripts/demo.sh ios b${NC}             # CLI, no server needed
+  ${CYAN}./scripts/demo.sh android c${NC}       # Webhook trigger, Android
+  ${CYAN}./scripts/demo.sh flutter jira PROJ-123${NC}  # Jira-only HTTP, fetch from Jira
 
 Press Enter to choose and run the demo (or 'q' to skip)...")
 
@@ -194,7 +201,7 @@ echo -e "${BLUE}${BOLD}  Run Live Demo${NC}"
 echo -e "${BLUE}${BOLD}════════════════════════════════════════════${NC}"
 echo ""
 echo -e "Platform: ${CYAN}flutter${NC} | ${CYAN}ios${NC} | ${CYAN}android${NC}"
-echo -e "Mode:     ${MAGENTA}a${NC} (HTTP API) | ${MAGENTA}b${NC} (CLI) | ${MAGENTA}c${NC} (Webhook)"
+echo -e "Mode:     ${MAGENTA}a${NC} (HTTP API) | ${MAGENTA}b${NC} (CLI) | ${MAGENTA}c${NC} (Webhook) | ${MAGENTA}jira${NC} (Jira-only HTTP)"
 echo ""
 echo -ne "${YELLOW}Platform [flutter]: ${NC}"
 read -r DEMO_PLATFORM
@@ -204,14 +211,29 @@ echo -ne "${YELLOW}Mode [a]: ${NC}"
 read -r DEMO_MODE
 DEMO_MODE="${DEMO_MODE:-a}"
 
-echo ""
-echo -e "${YELLOW}Would you like to run: ${CYAN}./scripts/demo.sh $DEMO_PLATFORM $DEMO_MODE${NC} ? (y/n)"
-read -r CONFIRM
-if [ "$CONFIRM" = "y" ]; then
-    echo ""
-    ./scripts/demo.sh "$DEMO_PLATFORM" "$DEMO_MODE"
+if [ "$DEMO_MODE" = "jira" ]; then
+  echo -ne "${YELLOW}Jira ticket key [PROJ-123]: ${NC}"
+  read -r JIRA_KEY
+  JIRA_KEY="${JIRA_KEY:-PROJ-123}"
+  echo ""
+  echo -e "${YELLOW}Would you like to run: ${CYAN}./scripts/demo.sh $DEMO_PLATFORM jira $JIRA_KEY${NC} ? (y/n)"
+  read -r CONFIRM
+  if [ "$CONFIRM" = "y" ]; then
+      echo ""
+      ./scripts/demo.sh "$DEMO_PLATFORM" jira "$JIRA_KEY"
+  else
+      echo -e "${YELLOW}Skipped.${NC}"
+  fi
 else
-    echo -e "${YELLOW}Skipped.${NC}"
+  echo ""
+  echo -e "${YELLOW}Would you like to run: ${CYAN}./scripts/demo.sh $DEMO_PLATFORM $DEMO_MODE${NC} ? (y/n)"
+  read -r CONFIRM
+  if [ "$CONFIRM" = "y" ]; then
+      echo ""
+      ./scripts/demo.sh "$DEMO_PLATFORM" "$DEMO_MODE"
+  else
+      echo -e "${YELLOW}Skipped.${NC}"
+  fi
 fi
 
 # ── Closing ───────────────────────────────────────────────────────────────────

@@ -131,12 +131,16 @@ curl -s -X POST http://localhost:3000/jobs \
       ],
       "platform": "flutter",
       "repo": "demo-repo",
-      "targetBranch": "develop"
+      "targetBranch": "develop",
+      "requireTests": false,
+      "maxFilesToTouch": 6
     }
   }' | python3 -m json.tool
 ```
 
 > "Ya se creó el job. Fíjense en el status: `pending`. Ahora el SpecAuthor está analizando el repo y generando el plan."
+>
+> **Tip para presentadores:** Si tienes configurado Jira, puedes enviar solo `"jiraTicketId": "DEMO-100"` y el sistema fetcheará el título, descripción y criterios de aceptación del ticket. Pasa `requireTests: false` para que la demo no dependa de tener Flutter, Xcode o Android Studio instalados.
 
 **Paso 2 — Ver el spec (esperar ~3 segundos):**
 

@@ -13,6 +13,7 @@
 #   ./scripts/demo.sh flutter a              # Mode A explicit
 #   ./scripts/demo.sh ios     b              # Mode B — CLI
 #   ./scripts/demo.sh android c              # Mode C — Webhook
+#   ./scripts/demo.sh flutter jira PROJ-123  # Mode A, Jira-only (fetch ticket from Jira)
 
 set -e
 
@@ -30,6 +31,18 @@ NC='\033[0m'
 PLATFORM="${1:-flutter}"
 MODE="${2:-a}"
 MODE=$(echo "$MODE" | tr '[:upper:]' '[:lower:]')
+JIRA_ONLY=""
+JIRA_TICKET="${3:-}"
+
+# Jira-only shortcut: ./scripts/demo.sh flutter jira PROJ-123
+if [ "$MODE" = "jira" ]; then
+  JIRA_ONLY="true"
+  MODE="a"
+  if [ -z "$JIRA_TICKET" ]; then
+    echo -e "${RED}Usage: $0 [platform] jira <JIRA-TICKET>${NC}"
+    exit 1
+  fi
+fi
 
 # ── Platform config ───────────────────────────────────────────────────────────
 case "$PLATFORM" in
@@ -57,14 +70,25 @@ esac
 
 # ── Shared job payload ────────────────────────────────────────────────────────
 JOB_TITLE="Add promotional banner to home screen"
-JOB_PAYLOAD=$(cat <<EOF
+
+if [ "$JIRA_ONLY" = "true" ]; then
+  JOB_PAYLOAD=$(cat <<EOF
+{
+  "jiraTicketId": "$JIRA_TICKET",
+  "requireTests": false,
+  "maxFilesToTouch": 6
+}
+EOF
+)
+else
+  JOB_PAYLOAD=$(cat <<EOF
 {
   "title": "$JOB_TITLE",
   "platform": "$PLATFORM",
   "repo": "$REPO",
   "targetBranch": "develop",
   "jiraTicketId": "$TICKET",
-  "requireTests": true,
+  "requireTests": false,
   "maxFilesToTouch": 6,
   "acceptanceCriteria": [
     { "id": "ac-1", "text": "WHEN user opens home screen THEN display promotional banner carousel", "testable": true },
@@ -74,12 +98,21 @@ JOB_PAYLOAD=$(cat <<EOF
 }
 EOF
 )
+fi
 
 # ── Mode labels ───────────────────────────────────────────────────────────────
+if [ "$JIRA_ONLY" = "true" ]; then
+  MODE_LABEL="Mode A — HTTP API (Jira-only: $JIRA_TICKET)"
+else
+  case "$MODE" in
+    a) MODE_LABEL="Mode A — HTTP API (POST /jobs)" ;;
+    b) MODE_LABEL="Mode B — CLI (npx ts-node)" ;;
+    c) MODE_LABEL="Mode C — Webhook (POST /webhook/trigger)" ;;
+  esac
+fi
+
 case "$MODE" in
-  a) MODE_LABEL="Mode A — HTTP API (POST /jobs)" ;;
-  b) MODE_LABEL="Mode B — CLI (npx ts-node)" ;;
-  c) MODE_LABEL="Mode C — Webhook (POST /webhook/trigger)" ;;
+  a|b|c) : ;;
   *)
     echo -e "${RED}Unknown mode: $MODE${NC}"
     echo "Usage: $0 [flutter|ios|android] [a|b|c]"
@@ -255,6 +288,8 @@ run_mode_c() {
   "targetBranch": "develop",
   "jiraTicketId": "$TICKET",
   "tddMode": false,
+  "requireTests": false,
+  "maxFilesToTouch": 6,
   "acceptanceCriteria": [
     { "id": "ac-1", "text": "WHEN user opens home screen THEN display promotional banner carousel" },
     { "id": "ac-2", "text": "WHEN there are more than 3 promotions THEN show pagination dots" },
@@ -322,6 +357,7 @@ echo "Try other modes:"
 echo "  ./scripts/demo.sh $PLATFORM a   # HTTP API"
 echo "  ./scripts/demo.sh $PLATFORM b   # CLI (no server needed)"
 echo "  ./scripts/demo.sh $PLATFORM c   # Webhook"
+echo "  ./scripts/demo.sh $PLATFORM jira PROJ-123  # Jira-only HTTP"
 echo ""
 echo "Try other platforms:"
 echo "  ./scripts/demo.sh flutter $MODE"

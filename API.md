@@ -53,6 +53,8 @@ Content-Type: application/json
   "description": "Mostrar carrusel de promociones destacadas",
   "figmaUrl": "https://figma.com/file/abc123/promo-banner",
   "tddMode": false,
+  "requireTests": true,
+  "maxFilesToTouch": 6,
   "acceptanceCriteria": [
     "WHEN user opens home screen THEN display promotional banner carousel",
     "WHEN there are more than 3 promotions THEN show pagination dots"
@@ -60,7 +62,9 @@ Content-Type: application/json
 }
 ```
 
-> Pasa `"tddMode": true` para activar el ciclo Red-Green-Refactor (un test a la vez).
+> Pasa `"tddMode": true` para activar el ciclo Red-Green-Refactor (un test a la vez).  
+> Pasa `"requireTests": false` para deshabilitar la ejecución de tests en Implementer y Reviewer (útil para demos o ambientes sin toolchain).  
+> `maxFilesToTouch` limita cuántos archivos puede modificar el agente (default: 5).
 
 **Request Body (Opción B - fullContext wrapper, legacy):**
 
@@ -83,9 +87,21 @@ Content-Type: application/json
 
 ```json
 {
-  "jiraTicketId": "RPP-1234"
+  "jiraTicketId": "RPP-1234",
+  "requireTests": false,
+  "maxFilesToTouch": 6
 }
 ```
+
+El sistema fetchea el ticket de Jira (`JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`) y extrae:
+
+- título, descripción, prioridad, labels
+- plataforma (inferida del label `flutter`, `ios`, `android`)
+- criterios de aceptación (descripción o campo personalizado)
+- URL de Figma (si aparece en la descripción)
+- repo (label `repo:nombre` o `DEFAULT_REPO`)
+
+Si no puede inferir la plataforma, devuelve **400** con instrucciones para agregar un label.
 
 **Response (201 Created):**
 

@@ -131,6 +131,8 @@ curl -s -X POST http://localhost:3000/jobs \
     "repo": "demo-repo",
     "targetBranch": "develop",
     "tddMode": false,
+    "requireTests": false,
+    "maxFilesToTouch": 6,
     "acceptanceCriteria": [
       "WHEN user opens home screen THEN display promotional banner carousel",
       "WHEN there are more than 3 promotions THEN show pagination dots",
@@ -142,6 +144,14 @@ curl -s -X POST http://localhost:3000/jobs \
 > Cambia `"platform"` a `"ios"` y `"repo"` a `"demo-repo-ios"` para iOS, o `"android"` / `"demo-repo-android"` para Android.
 >
 > Pasa `"tddMode": true` para activar el ciclo **Red-Green-Refactor** (un test a la vez — el implementador escribe primero el test que falla, luego hace que pase).
+>
+> Pasa `"requireTests": false` para que el sistema no intente correr tests de Flutter/Xcode/Gradle durante la demo (útil si no tienes el toolchain instalado). La implementación y el PR se crean igual.
+>
+> También puedes enviar solo el `jiraTicketId` si tienes configuradas las variables `JIRA_BASE_URL`, `JIRA_EMAIL` y `JIRA_API_TOKEN`. El sistema fetcheará el título, descripción y criterios de aceptación reales de Jira:
+>
+> ```json
+> { "jiraTicketId": "DEMO-100" }
+> ```
 
 Deberías ver una respuesta con un `"id"` (un código largo). **Copia ese ID**, lo vas a necesitar.
 

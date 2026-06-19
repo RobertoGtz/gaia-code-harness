@@ -248,7 +248,7 @@ DATABASE_URL=postgresql://gaia:gaia@localhost:5432/gaia_harness
 GITHUB_TOKEN=ghp_...
 GITHUB_OWNER=your-org-or-user
 
-# Jira — optional
+# Jira — optional, but required for Jira-only jobs and Jira notifications
 JIRA_BASE_URL=https://your-org.atlassian.net
 JIRA_EMAIL=you@example.com
 JIRA_API_TOKEN=...
@@ -349,6 +349,8 @@ JOB=$(curl -s -X POST http://localhost:3000/jobs \
     "repo": "demo-repo",
     "targetBranch": "develop",
     "tddMode": false,
+    "requireTests": false,
+    "maxFilesToTouch": 6,
     "acceptanceCriteria": [
       { "id": "ac-1", "text": "WHEN user opens settings THEN dark mode toggle is visible" },
       { "id": "ac-2", "text": "WHEN toggle is switched THEN preference is persisted in SharedPreferences" },
@@ -360,7 +362,9 @@ echo "Job: $JOB_ID"
 ```
 
 > Change `"platform"` to `"ios"`, `"android"`, or `"flutter_web"` for other targets.  
-> Pass `"tddMode": true` for Red-Green-Refactor (one failing test per scenario before any production code).
+> Pass `"tddMode": true` for Red-Green-Refactor (one failing test per scenario before any production code).  
+> Pass `"requireTests": false` to skip the platform test toolchain during Implementer/Reviewer (handy for demos).  
+> `maxFilesToTouch` sets a hard limit on how many files the agent can modify (default 5).
 
 **Step 2 — Wait for spec**
 
@@ -375,6 +379,19 @@ Status progression: `pending → fetching_jira → spec_generating → spec_read
 # Inspect the generated spec
 curl -s http://localhost:3000/jobs/$JOB_ID | jq '.job.spec'
 ```
+
+### Jira-only trigger
+
+If you have `JIRA_BASE_URL`, `JIRA_EMAIL`, and `JIRA_API_TOKEN` configured, you can send only the Jira ticket key and the harness will fetch the title, description, acceptance criteria, platform label, and Figma URL automatically:
+
+```bash
+curl -s -X POST http://localhost:3000/jobs \
+  -H "Content-Type: application/json" \
+  -d '{"jiraTicketId": "RPP-1234", "requireTests": false, "maxFilesToTouch": 6}' \
+  | jq '.job.id'
+```
+
+The ticket must include a platform label (`flutter`, `ios`, or `android`) so the harness knows which skill to use. If the platform cannot be inferred, the request returns `400` with guidance.
 
 **Step 3 — Approve (or reject) the spec**
 
@@ -507,6 +524,8 @@ cat > job.json << 'EOF'
   "repo": "demo-repo",
   "targetBranch": "develop",
   "tddMode": true,
+  "requireTests": false,
+  "maxFilesToTouch": 6,
   "acceptanceCriteria": [
     { "id": "ac-1", "text": "WHEN user opens settings THEN toggle is visible", "testable": true }
   ]
@@ -515,6 +534,9 @@ EOF
 
 # Run it
 npx ts-node src/cli/run.ts --job job.json
+
+# Create a job from a Jira ticket key (fetches title, description, ACs from Jira)
+npx ts-node src/cli/run.ts --jira RPP-1234
 
 # Resume an existing job by ID
 npx ts-node src/cli/run.ts --id <uuid>
