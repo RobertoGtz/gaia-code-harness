@@ -156,7 +156,7 @@ export async function fetchJiraEpicTickets(epicKey: string): Promise<JiraTicketD
 /**
  * Convert Atlassian Document Format (ADF) to plain text.
  */
-function extractTextFromADF(adf: any): string {
+export function extractTextFromADF(adf: any): string {
   if (!adf || typeof adf !== 'object') return '';
 
   const lines: string[] = [];
@@ -227,7 +227,7 @@ function extractAcceptanceCriteria(fields: any, description: string): string[] {
  * - "AC:" or "Acceptance Criteria:" section
  * - Bullet points after "Criteria" heading
  */
-function parseACFromText(text: string): string[] {
+export function parseACFromText(text: string): string[] {
   if (!text) return [];
   const criteria: string[] = [];
 
