@@ -538,6 +538,10 @@ npx ts-node src/cli/run.ts --job job.json
 # Create a job from a Jira ticket key (fetches title, description, ACs from Jira)
 npx ts-node src/cli/run.ts --jira RPP-1234
 
+# Auto-approve the generated spec and run the full pipeline (no human gate)
+npx ts-node src/cli/run.ts --job job.json --approve
+npx ts-node src/cli/run.ts --jira RPP-1234 --approve
+
 # Resume an existing job by ID
 npx ts-node src/cli/run.ts --id <uuid>
 

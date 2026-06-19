@@ -29,10 +29,12 @@ interface NormalizedTrigger {
   targetBranch: string;
   jiraTicketId?: string;
   tddMode:     boolean;
+  requireTests: boolean;
+  maxFilesToTouch: number;
   acceptanceCriteria?: Array<{ id?: string; text: string }>;
 }
 
-function parseJiraWebhook(body: any): NormalizedTrigger | null {
+export function parseJiraWebhook(body: any): NormalizedTrigger | null {
   const issue = body?.issue;
   if (!issue) return null;
 
@@ -52,10 +54,12 @@ function parseJiraWebhook(body: any): NormalizedTrigger | null {
     targetBranch: 'main',
     jiraTicketId: issue.key,
     tddMode,
+    requireTests: !labels.includes('skip-tests'),
+    maxFilesToTouch: 5,
   };
 }
 
-function parseSlackCommand(body: any): NormalizedTrigger | null {
+export function parseSlackCommand(body: any): NormalizedTrigger | null {
   // Slack slash command sends application/x-www-form-urlencoded
   // Expected text: "<platform> <repo> <title...>"
   const text: string = body?.text ?? '';
@@ -72,10 +76,12 @@ function parseSlackCommand(body: any): NormalizedTrigger | null {
     repo,
     targetBranch: 'main',
     tddMode:      false,
+    requireTests: true,
+    maxFilesToTouch: 5,
   };
 }
 
-function parseGenericBody(body: any): NormalizedTrigger | null {
+export function parseGenericBody(body: any): NormalizedTrigger | null {
   if (!body?.title || !body?.platform || !body?.repo) return null;
   return {
     title:             body.title,
@@ -84,6 +90,8 @@ function parseGenericBody(body: any): NormalizedTrigger | null {
     targetBranch:      body.targetBranch ?? 'main',
     jiraTicketId:      body.jiraTicketId,
     tddMode:           body.tddMode === true,
+    requireTests:      body.requireTests !== false,
+    maxFilesToTouch:   typeof body.maxFilesToTouch === 'number' ? body.maxFilesToTouch : 5,
     acceptanceCriteria: body.acceptanceCriteria,
   };
 }
@@ -169,8 +177,8 @@ export async function setupWebhookRoutes(app: FastifyInstance): Promise<void> {
       jiraTicketId:       trigger.jiraTicketId,
       tddMode:            trigger.tddMode,
       initiativeId:       `init-${Date.now()}`,
-      maxFilesToTouch:    5,
-      requireTests:       true,
+      maxFilesToTouch:    trigger.maxFilesToTouch,
+      requireTests:       trigger.requireTests,
       acceptanceCriteria: (trigger.acceptanceCriteria ?? []).map((ac, i) => ({
         id:       ac.id ?? `ac-${i}`,
         text:     ac.text,

@@ -403,6 +403,8 @@ Acepta tres formatos de payload:
   "repo": "rpp-pyme-multiplatform",
   "targetBranch": "develop",
   "tddMode": true,
+  "requireTests": false,
+  "maxFilesToTouch": 6,
   "acceptanceCriteria": [
     { "id": "ac-1", "text": "WHEN user has points THEN show banner" }
   ]
@@ -410,6 +412,8 @@ Acepta tres formatos de payload:
 ```
 
 **Formato B — Jira issue webhook** (configura en Jira → Project settings → Webhooks):
+
+> Si el ticket tiene la etiqueta `skip-tests`, el job se creará con `requireTests: false`. Pasa `requireTests`/`maxFilesToTouch` directamente en el payload genérico (Formato A).
 
 ```json
 {

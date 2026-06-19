@@ -253,11 +253,12 @@ run_mode_b() {
 
   echo ""
   echo -e "${YELLOW}[2] Launching CLI job...${NC}"
-  echo -e "${CYAN}  npx ts-node src/cli/run.ts --job $TMP_JOB${NC}"
+  echo -e "${CYAN}  npx ts-node src/cli/run.ts --job $TMP_JOB --approve${NC}"
   echo ""
 
   # Run CLI — it blocks until done (disk backend, no HTTP server needed)
-  npx ts-node src/cli/run.ts --job "$TMP_JOB"
+  # --approve skips the manual spec approval gate and runs the full pipeline
+  npx ts-node src/cli/run.ts --job "$TMP_JOB" --approve
 
   echo ""
   echo -e "${YELLOW}[3] Listing completed jobs:${NC}"

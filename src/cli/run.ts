@@ -7,6 +7,8 @@
  * Usage:
  *   npx ts-node src/cli/run.ts --job path/to/job.json
  *   npx ts-node src/cli/run.ts --job '{"title":"...", "platform":"ios", ...}'
+ *   npx ts-node src/cli/run.ts --job job.json --approve  # auto-approve spec and run full pipeline
+ *   npx ts-node src/cli/run.ts --jira PROJ-123 --approve  # fetch from Jira and run full pipeline
  *   npx ts-node src/cli/run.ts --id <existing-job-id>  # resume
  *   npx ts-node src/cli/run.ts --list                  # show all jobs
  *
@@ -19,7 +21,7 @@ import * as path from 'path';
 import { setStateBackend } from '../state';
 import { DiskBackend } from '../state/disk-backend';
 import { orchestrateJob } from '../harness/leader';
-import { CodeGenerationJob, Platform } from '../types';
+import { CodeGenerationJob, Platform, JobStatus } from '../types';
 import { fetchJiraTicket } from '../tools/jira';
 
 // ── Bootstrap ────────────────────────────────────────────────────────────────
@@ -40,6 +42,23 @@ const flag = (name: string): string | undefined => {
 };
 const has = (name: string): boolean => args.includes(name);
 
+async function approveAndResume(jobId: string): Promise<void> {
+  const job = await backend.getJob(jobId);
+  if (!job) {
+    console.error(`Job ${jobId} not found`);
+    return;
+  }
+  if (job.status === 'spec_ready') {
+    console.log('Auto-approving spec...');
+    await backend.updateJobStatus(jobId, 'spec_approved');
+    await orchestrateJob(jobId);
+  } else if (job.status === 'pr_created' || job.status === 'done') {
+    console.log(`Job already finished: ${job.status}`);
+  } else {
+    console.log(`Job status is ${job.status}, not auto-approving.`);
+  }
+}
+
 async function main(): Promise<void> {
   // List mode
   if (has('--list')) {
@@ -57,6 +76,9 @@ async function main(): Promise<void> {
   if (existingId) {
     console.log(`Resuming job ${existingId}…`);
     await orchestrateJob(existingId);
+    if (has('--approve')) {
+      await approveAndResume(existingId);
+    }
     return;
   }
 
@@ -91,13 +113,16 @@ async function main(): Promise<void> {
     console.log(`  ACs:      ${ticket.acceptanceCriteria.length}`);
     console.log(`  Progress: progress/${job.id}.md\n`);
     await orchestrateJob(job.id);
+    if (has('--approve')) {
+      await approveAndResume(job.id);
+    }
     return;
   }
 
   // Create new job from --job flag
   const jobArg = flag('--job');
   if (!jobArg) {
-    console.error('Usage: run.ts --job <json-file-or-inline-json>  |  --jira <PROJ-123>  |  --id <job-id>  |  --list');
+    console.error('Usage: run.ts --job <json-file-or-inline-json> [--approve]  |  --jira <PROJ-123> [--approve]  |  --id <job-id> [--approve]  |  --list');
     process.exit(1);
   }
 
@@ -151,6 +176,9 @@ async function main(): Promise<void> {
   console.log(`Progress log: progress/${job.id}.md\n`);
 
   await orchestrateJob(job.id);
+  if (has('--approve')) {
+    await approveAndResume(job.id);
+  }
 }
 
 main().catch(err => {
