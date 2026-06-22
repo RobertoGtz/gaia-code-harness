@@ -19,6 +19,7 @@
 | 8   | [ARCHITECTURE.md](./ARCHITECTURE.md)             | Arquitectura profunda, diagramas      | Entender internos    |
 | 9   | [DEMO_GUIDE.md](./DEMO_GUIDE.md)                 | Demo paso a paso (HTTP + Claude + CI) | Presentaciones       |
 | 10  | [GUION_PRESENTACION.md](./GUION_PRESENTACION.md) | Guion para presentar al equipo        | Presentación         |
+| 11  | [GUIA_TRES_MODOS.md](./GUIA_TRES_MODOS.md)       | Guía detallada de los tres modos      | **Onboarding / uso** |
 
 ### Disciplina de ingeniería
 
