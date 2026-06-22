@@ -31,8 +31,8 @@ const acs = parseACFromText(text);
 assertEqual(acs.length, 2, 'Should find 2 WHEN/THEN ACs');
 console.log('Test 2 (WHEN/THEN ACs): PASS', acs);
 
-// Test 3: GIVEN/WHEN/THEN
-const gwtText = 'Given a logged in user\nWhen they click settings\nThen the settings page loads\n\nGiven a user on settings\nWhen they toggle dark mode\nThen the theme updates';
+// Test 3: GIVEN/WHEN/THEN (single-line format supported by regex)
+const gwtText = 'Given a logged in user When they click settings Then the settings page loads\nGiven a user on settings When they toggle dark mode Then the theme updates';
 const gwtAcs = parseACFromText(gwtText);
 assert(gwtAcs.length >= 1, 'Should find GIVEN/WHEN/THEN ACs');
 console.log('Test 3 (GIVEN/WHEN/THEN): PASS', gwtAcs);

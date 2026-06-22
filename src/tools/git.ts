@@ -6,7 +6,67 @@
 
 import simpleGit, { SimpleGit } from 'simple-git';
 import * as path from 'path';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
+
+// ─── GitHub-specific errors ───────────────────────────────────────────────────
+
+export class GitHubError extends Error {
+  constructor(message: string, public readonly status?: number) {
+    super(message);
+    this.name = 'GitHubError';
+  }
+}
+
+export class GitHubAuthError extends GitHubError {
+  constructor(operation: string) {
+    super(
+      `[GitHub] Authentication failed while ${operation}. ` +
+      'Verify GITHUB_TOKEN is set and has the "repo" scope.',
+      401
+    );
+    this.name = 'GitHubAuthError';
+  }
+}
+
+export class GitHubNotFoundError extends GitHubError {
+  constructor(repo: string) {
+    super(
+      `[GitHub] Repository "${repo}" not found or not accessible. ` +
+      'Check GITHUB_OWNER, the repo name, and that GITHUB_TOKEN has read access.',
+      404
+    );
+    this.name = 'GitHubNotFoundError';
+  }
+}
+
+export class GitHubPRError extends GitHubError {
+  constructor(owner: string, repo: string, detail: string) {
+    super(
+      `[GitHub] Failed to create PR on ${owner}/${repo}: ${detail}`,
+      undefined
+    );
+    this.name = 'GitHubPRError';
+  }
+}
+
+export class GitPushError extends GitHubError {
+  constructor(branch: string, cause: string) {
+    super(
+      `[Git] Push to "${branch}" failed: ${cause}. ` +
+      'Check GITHUB_TOKEN permissions and that the branch has no protected rules.',
+      undefined
+    );
+    this.name = 'GitPushError';
+  }
+}
+
+function classifyAxiosError(err: AxiosError, context: string): GitHubError {
+  const status = err.response?.status;
+  const detail = (err.response?.data as any)?.message ?? err.message;
+  if (status === 401 || status === 403) return new GitHubAuthError(context);
+  if (status === 404) return new GitHubNotFoundError(context);
+  return new GitHubError(`[GitHub] ${context}: HTTP ${status} — ${detail}`, status);
+}
 
 /**
  * Configuration for Git operations
@@ -131,7 +191,12 @@ export async function commitAndPush(
         await git.remote(['add', 'origin', githubUrl]);
       }
     }
-    await git.push('origin', branch, ['--force']);
+    try {
+      await git.push('origin', branch, ['--force']);
+    } catch (err: any) {
+      const msg = err?.message ?? String(err);
+      throw new GitPushError(branch, msg);
+    }
   }
 }
 
@@ -245,19 +310,27 @@ export async function createGitHubPR(options: {
   } catch (error: any) {
     // 422 = PR already exists for this branch — fetch and return the existing one
     if (error?.response?.status === 422) {
-      const existing = await axios.get(
-        `https://api.github.com/repos/${owner}/${repo}/pulls?head=${owner}:${head}&base=${base}&state=open`,
-        { headers: { Authorization: `token ${githubToken}`, Accept: 'application/vnd.github.v3+json' } }
-      );
-      if (existing.data.length > 0) {
-        return {
-          url: existing.data[0].html_url,
-          id: existing.data[0].id,
-          number: existing.data[0].number,
-        };
+      try {
+        const existing = await axios.get(
+          `https://api.github.com/repos/${owner}/${repo}/pulls?head=${owner}:${head}&base=${base}&state=open`,
+          { headers: { Authorization: `token ${githubToken}`, Accept: 'application/vnd.github.v3+json' } }
+        );
+        if (existing.data.length > 0) {
+          return {
+            url: existing.data[0].html_url,
+            id: existing.data[0].id,
+            number: existing.data[0].number,
+          };
+        }
+      } catch (fetchErr: any) {
+        throw classifyAxiosError(fetchErr, `listing PRs for ${owner}/${repo}`);
       }
+      throw new GitHubPRError(owner, repo, 'Branch already has a PR but it could not be found');
     }
-    throw new Error(`Failed to create PR: ${error}`);
+    if (axios.isAxiosError(error)) {
+      throw classifyAxiosError(error, `creating PR on ${owner}/${repo}`);
+    }
+    throw new GitHubPRError(owner, repo, error?.message ?? String(error));
   }
 }
 

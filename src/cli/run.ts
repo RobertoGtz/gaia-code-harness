@@ -22,7 +22,7 @@ import { setStateBackend } from '../state';
 import { DiskBackend } from '../state/disk-backend';
 import { orchestrateJob } from '../harness/leader';
 import { CodeGenerationJob, Platform, JobStatus } from '../types';
-import { fetchJiraTicket } from '../tools/jira';
+import { fetchJiraTicket, JiraError, JiraConfigError, JiraAuthError, JiraNotFoundError } from '../tools/jira';
 
 // ── Bootstrap ────────────────────────────────────────────────────────────────
 
@@ -182,6 +182,18 @@ async function main(): Promise<void> {
 }
 
 main().catch(err => {
-  console.error('Fatal:', err);
+  if (err instanceof JiraConfigError) {
+    console.error(`\n${err.message}`);
+    console.error('Set JIRA_BASE_URL, JIRA_EMAIL, and JIRA_API_TOKEN in .env');
+  } else if (err instanceof JiraAuthError) {
+    console.error(`\n${err.message}`);
+    console.error('Verify your JIRA_EMAIL and JIRA_API_TOKEN are correct and have read access to the project.');
+  } else if (err instanceof JiraNotFoundError) {
+    console.error(`\n${err.message}`);
+  } else if (err instanceof JiraError) {
+    console.error(`\n[Jira] ${err.message} (HTTP ${err.status})`);
+  } else {
+    console.error('Fatal:', err);
+  }
   process.exit(1);
 });

@@ -17,7 +17,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { createJob }                                  from '../../state';
 import { orchestrateJob }                             from '../../harness/leader';
 import { buildNotifier }                              from '../../notifiers';
-import { fetchJiraTicket }                            from '../../tools/jira';
+import { fetchJiraTicket, JiraError, JiraConfigError, JiraAuthError, JiraNotFoundError } from '../../tools/jira';
 import { Platform, CreateJobRequest, CodeGenerationJob } from '../../types';
 
 // ─── Payload parsers ────────────────────────────────────────────────────────
@@ -162,8 +162,15 @@ export async function setupWebhookRoutes(app: FastifyInstance): Promise<void> {
         if (ticket.repo) trigger.repo = ticket.repo;
         if (ticket.title) trigger.title = ticket.title;
       } catch (err) {
-        // Non-blocking: if Jira fetch fails, proceed with what we have
-        console.warn(`[webhook] Jira enrichment failed for ${trigger.jiraTicketId}: ${err}`);
+        // Non-blocking: if Jira fetch fails, proceed with what we have.
+        // Auth/not-found/config errors are logged clearly so operators can fix credentials.
+        if (err instanceof JiraConfigError || err instanceof JiraAuthError || err instanceof JiraNotFoundError) {
+          console.warn(`[webhook] Jira enrichment skipped for ${trigger.jiraTicketId}: ${err instanceof JiraConfigError ? 'missing config' : err.message}`);
+        } else if (err instanceof JiraError) {
+          console.warn(`[webhook] Jira enrichment failed for ${trigger.jiraTicketId}: HTTP ${err.status} — ${err.message}`);
+        } else {
+          console.warn(`[webhook] Jira enrichment failed for ${trigger.jiraTicketId}: ${err instanceof Error ? err.message : String(err)}`);
+        }
       }
     }
 

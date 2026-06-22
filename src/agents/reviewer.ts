@@ -7,7 +7,7 @@
 import { BaseAgent } from './base';
 import { AgentContext, AgentResult, TestResult } from '../types';
 import { TestRunResult } from '../tools/test-runner';
-import { initGit, createGitHubPR, addJiraComment, getModifiedFiles } from '../tools/git';
+import { initGit, createGitHubPR, addJiraComment, getModifiedFiles, GitHubError, GitHubAuthError, GitHubNotFoundError, GitPushError } from '../tools/git';
 import { loadSkill } from '../skills';
 import { GaiaError, GaiaReviewError } from '../errors';
 import * as path from 'path';
@@ -75,7 +75,20 @@ export class ReviewerAgent extends BaseAgent {
           base: job.targetBranch,
         });
       } catch (prError) {
-        this.logWarn(`GitHub PR creation failed (dry-run): ${prError}`);
+        if (prError instanceof GitHubAuthError) {
+          throw new GaiaReviewError(prError.message, 'Check GITHUB_TOKEN has the "repo" scope.');
+        }
+        if (prError instanceof GitHubNotFoundError) {
+          throw new GaiaReviewError(prError.message, `Repo: ${prOwner}/${prRepo}`);
+        }
+        if (prError instanceof GitPushError) {
+          throw new GaiaReviewError(prError.message, 'Ensure GITHUB_TOKEN can push to protected branches.');
+        }
+        if (prError instanceof GitHubError) {
+          throw new GaiaReviewError(`GitHub error (HTTP ${prError.status}): ${prError.message}`);
+        }
+        // Unknown — fall back to dry-run to avoid blocking the pipeline
+        this.logWarn(`GitHub PR creation failed (dry-run fallback): ${prError}`);
         pr = {
           url: `https://github.com/${prOwner}/${prRepo}/pull/dry-run`,
           id: 'dry-run',
@@ -100,7 +113,8 @@ export class ReviewerAgent extends BaseAgent {
       if (error instanceof GaiaError) {
         return { success: false, output: '', error: error.message, errorCode: error.code };
       }
-      return { success: false, output: '', error: `Review failed: ${error}`, errorCode: 'UNKNOWN' };
+      const msg = error instanceof Error ? error.message : String(error);
+      return { success: false, output: '', error: `Review failed: ${msg}`, errorCode: 'UNKNOWN' };
     }
   }
 

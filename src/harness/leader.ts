@@ -8,7 +8,7 @@ import { getJob, updateJobStatus, addProgressLog, setErrorContext } from '../sta
 import { getAgentsForPlatform } from '../agents/registry';
 import { AgentContext, JobStatus, CodeGenerationJob, ErrorCode, ErrorContext } from '../types';
 import { JobNotifier, JobEvent, NullNotifier } from '../notifiers';
-import { fetchJiraTicket } from '../tools/jira';
+import { fetchJiraTicket, JiraError, JiraConfigError, JiraAuthError, JiraNotFoundError } from '../tools/jira';
 import * as path from 'path';
 
 // Base path where repos will be cloned/worked on
@@ -294,8 +294,20 @@ async function handleFetchingJira(job: CodeGenerationJob): Promise<void> {
     // Continuar flujo
     await orchestrateJob(job.id);
   } catch (error) {
-    await addProgressLog(job.id, `Failed to fetch Jira: ${error}`);
-    throw new Error(`Failed to fetch Jira info for ${ticketKey}: ${error}`);
+    let message: string;
+    if (error instanceof JiraConfigError) {
+      message = `Jira configuration missing. Set JIRA_BASE_URL, JIRA_EMAIL, and JIRA_API_TOKEN in .env`;
+    } else if (error instanceof JiraAuthError) {
+      message = `Jira authentication failed for ${ticketKey}. Verify JIRA_EMAIL and JIRA_API_TOKEN.`;
+    } else if (error instanceof JiraNotFoundError) {
+      message = `Jira ticket ${ticketKey} not found. Check the key and project permissions.`;
+    } else if (error instanceof JiraError) {
+      message = `Jira error for ${ticketKey}: ${error.message}`;
+    } else {
+      message = `Failed to fetch Jira info for ${ticketKey}: ${error instanceof Error ? error.message : String(error)}`;
+    }
+    await addProgressLog(job.id, `Failed to fetch Jira: ${message}`);
+    throw new Error(message);
   }
 }
 

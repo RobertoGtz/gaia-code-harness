@@ -8,7 +8,7 @@ import { FastifyInstance } from 'fastify';
 import { createJob, getJob, updateJobStatus, addProgressLog, listJobs } from '../../state';
 import { orchestrateJob } from '../../harness/leader';
 import { CreateJobRequest, ApproveSpecRequest, CodeGenerationJob, JobStatus } from '../../types';
-import { fetchJiraTicket } from '../../tools/jira';
+import { fetchJiraTicket, JiraError, JiraConfigError, JiraAuthError, JiraNotFoundError } from '../../tools/jira';
 
 const ERROR_STATUSES = new Set<JobStatus>([
   'failed', 'env_error', 'repo_error', 'build_error',
@@ -187,7 +187,19 @@ export async function setupJobRoutes(app: FastifyInstance) {
       return reply.status(201).send({ job });
     } catch (error) {
       console.error(`\x1b[31m✖ [HTTP] Error creating job:\x1b[0m`, error);
-      return reply.status(500).send({ error: 'Failed to create job' });
+      if (error instanceof JiraConfigError) {
+        return reply.status(400).send({ error: error.message, hint: 'Set JIRA_BASE_URL, JIRA_EMAIL, and JIRA_API_TOKEN' });
+      }
+      if (error instanceof JiraAuthError) {
+        return reply.status(401).send({ error: error.message, hint: 'Check JIRA_EMAIL and JIRA_API_TOKEN' });
+      }
+      if (error instanceof JiraNotFoundError) {
+        return reply.status(404).send({ error: error.message });
+      }
+      if (error instanceof JiraError) {
+        return reply.status(502).send({ error: error.message, status: error.status });
+      }
+      return reply.status(500).send({ error: error instanceof Error ? error.message : 'Failed to create job' });
     }
   });
 
