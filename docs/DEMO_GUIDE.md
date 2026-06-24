@@ -127,8 +127,8 @@ curl -s -X POST http://localhost:3000/jobs \
   -d '{
     "platform": "flutter",
     "title": "Add promotional banner to home screen",
-    "jiraTicketId": "DEMO-100",
-    "repo": "demo-repo",
+    "jiraTicketId": "RPCO-1000",
+    "repo": "web-cashflow",
     "targetBranch": "develop",
     "tddMode": false,
     "requireTests": false,
@@ -147,11 +147,17 @@ curl -s -X POST http://localhost:3000/jobs \
 >
 > Pasa `"requireTests": false` para que el sistema no intente correr tests de Flutter/Xcode/Gradle durante la demo (útil si no tienes el toolchain instalado). La implementación y el PR se crean igual.
 >
-> También puedes enviar solo el `jiraTicketId` si tienes configuradas las variables `JIRA_BASE_URL`, `JIRA_EMAIL` y `JIRA_API_TOKEN`. El sistema fetcheará el título, descripción y criterios de aceptación reales de Jira:
+> También puedes enviar solo el `jiraTicketId` si tienes configuradas `JIRA_BASE_URL`, `JIRA_EMAIL` y `JIRA_API_TOKEN`. El sistema fetcheará título, descripción, criterios de aceptación y URL de Figma directamente de Jira:
 >
 > ```json
-> { "jiraTicketId": "DEMO-100" }
+> { "jiraTicketId": "RPCO-37712", "repo": "RappiPay/web-cashflow" }
 > ```
+>
+> **`JIRA_BASE_URL`** debe apuntar al subdominio correcto (e.g. `https://rappidev.atlassian.net`).
+>
+> **Plataforma** se infiere en orden: labels del ticket → prefijo del título (`[MOBILE]` → `DEFAULT_PLATFORM`, `[WEB]` → `flutter_web`) → palabras clave en título → `DEFAULT_PLATFORM` en `.env`.
+>
+> Si el ticket no tiene `repo` definido (label `repo:org/nombre`), pásalo explícitamente en el body.
 
 Deberías ver una respuesta con un `"id"` (un código largo). **Copia ese ID**, lo vas a necesitar.
 

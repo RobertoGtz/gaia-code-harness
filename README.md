@@ -249,7 +249,7 @@ GITHUB_TOKEN=ghp_...
 GITHUB_OWNER=your-org-or-user
 
 # Jira — optional, but required for Jira-only jobs and Jira notifications
-JIRA_BASE_URL=https://your-org.atlassian.net
+JIRA_BASE_URL=https://your-org.atlassian.net   # e.g. rappidev.atlassian.net
 JIRA_EMAIL=you@example.com
 JIRA_API_TOKEN=...
 
@@ -382,16 +382,25 @@ curl -s http://localhost:3000/jobs/$JOB_ID | jq '.job.spec'
 
 ### Jira-only trigger
 
-If you have `JIRA_BASE_URL`, `JIRA_EMAIL`, and `JIRA_API_TOKEN` configured, you can send only the Jira ticket key and the harness will fetch the title, description, acceptance criteria, platform label, and Figma URL automatically:
+If you have `JIRA_BASE_URL`, `JIRA_EMAIL`, and `JIRA_API_TOKEN` configured, you can send only the Jira ticket key and the harness will fetch the title, description, acceptance criteria, and Figma URL automatically:
 
 ```bash
 curl -s -X POST http://localhost:3000/jobs \
   -H "Content-Type: application/json" \
-  -d '{"jiraTicketId": "RPP-1234", "requireTests": false, "maxFilesToTouch": 6}' \
+  -d '{"jiraTicketId": "RPCO-37712", "requireTests": false, "maxFilesToTouch": 6}' \
   | jq '.job.id'
 ```
 
-The ticket must include a platform label (`flutter`, `ios`, or `android`) so the harness knows which skill to use. If the platform cannot be inferred, the request returns `400` with guidance.
+Platform is inferred in this order:
+
+1. Jira ticket **labels** — `flutter`, `ios`, `android`, `flutter_web`
+2. **Title prefix** — `[MOBILE]` → `DEFAULT_PLATFORM` (default: `flutter`), `[WEB]` → `flutter_web`, `[iOS]` → `ios`, `[ANDROID]` → `android`
+3. Keywords in the title — `swift`, `kotlin`, etc.
+4. `DEFAULT_PLATFORM` env var (fallback)
+
+If platform still cannot be determined, the request returns `400` with instructions.
+
+If `repo` is not set via label (`repo:owner/name`) or custom field, you can pass it in the request body alongside `jiraTicketId`.
 
 **Step 3 — Approve (or reject) the spec**
 
@@ -1135,11 +1144,20 @@ docker run -p 3000:3000 --env-file .env gaia-code-harness
 
 ### Jira integration (all modes)
 
-| Variable         | Required | Description                           |
-| ---------------- | -------- | ------------------------------------- |
-| `JIRA_BASE_URL`  | Optional | e.g. `https://your-org.atlassian.net` |
-| `JIRA_EMAIL`     | Optional | Jira user email                       |
-| `JIRA_API_TOKEN` | Optional | Jira API token                        |
+| Variable           | Required | Description                                                                                  |
+| ------------------ | -------- | -------------------------------------------------------------------------------------------- |
+| `JIRA_BASE_URL`    | Optional | Full Jira URL e.g. `https://rappidev.atlassian.net` (NOT `rappi.atlassian.net`)              |
+| `JIRA_EMAIL`       | Optional | Jira user email (basic auth)                                                                 |
+| `JIRA_API_TOKEN`   | Optional | Jira API token — get from id.atlassian.com                                                   |
+| `DEFAULT_PLATFORM` | Optional | Fallback platform when ticket has no label: `flutter` \| `ios` \| `android` \| `flutter_web` |
+| `DEFAULT_REPO`     | Optional | Fallback `org/repo` when ticket has no `repo:...` label (e.g. `RappiPay/web-cashflow`)       |
+
+**Platform inference order:**
+
+1. Jira ticket **labels** — `flutter`, `ios`, `android`, `flutter_web`
+2. **Title prefix** — `[MOBILE]` → `DEFAULT_PLATFORM`, `[WEB]` → `flutter_web`, `[iOS]` → `ios`, `[ANDROID]` → `android`
+3. Keywords in the title — `swift`, `kotlin`, etc.
+4. `DEFAULT_PLATFORM` env var
 
 ### Mode C — Inbound webhook security
 

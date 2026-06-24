@@ -10,9 +10,11 @@
 Gaia Code Harness es un sistema que **genera código automáticamente** a partir de una descripción de lo que quieres.
 
 Tú le dices:
+
 > "Quiero un banner promocional en la pantalla de inicio de la app Flutter"
 
 El sistema:
+
 1. Analiza el repositorio de código existente
 2. Genera un **plan técnico** (spec)
 3. Espera tu aprobación
@@ -25,11 +27,11 @@ Hay **tres formas de arrancar este proceso**, dependiendo de tu caso de uso.
 
 ## Vista rápida: ¿cuál modo usar?
 
-| Situación | Modo recomendado |
-|-----------|-----------------|
-| Quiero llamar al sistema desde Postman, un script o CI/CD | **Modo A — HTTP API** |
-| Soy desarrollador y quiero correrlo desde la terminal localmente | **Modo B — CLI** |
-| Uso Jira/Slack y quiero que el sistema arranque solo cuando creo un ticket | **Modo C — Webhook** |
+| Situación                                                                  | Modo recomendado      |
+| -------------------------------------------------------------------------- | --------------------- |
+| Quiero llamar al sistema desde Postman, un script o CI/CD                  | **Modo A — HTTP API** |
+| Soy desarrollador y quiero correrlo desde la terminal localmente           | **Modo B — CLI**      |
+| Uso Jira/Slack y quiero que el sistema arranque solo cuando creo un ticket | **Modo C — Webhook**  |
 
 ---
 
@@ -57,17 +59,24 @@ GITHUB_TOKEN=ghp_...
 GITHUB_OWNER=tu-org-o-usuario
 
 # Jira — para leer tickets (opcional, solo si usas Jira)
-JIRA_BASE_URL=https://tu-org.atlassian.net
+# IMPORTANTE: usa el subdominio correcto de tu tenant
+# (ej. rappidev.atlassian.net, NO rappi.atlassian.net)
+JIRA_BASE_URL=https://rappidev.atlassian.net
 JIRA_EMAIL=tu@email.com
 JIRA_API_TOKEN=tu-token
 
-# Repo por defecto (opcional)
+# Repo por defecto cuando el ticket no tiene label repo:org/nombre
 DEFAULT_REPO=tu-org/tu-repo
+
+# Plataforma por defecto cuando el ticket no tiene label de plataforma
+# Tickets con prefijo [MOBILE] usan este valor (default: flutter)
+DEFAULT_PLATFORM=flutter
 ```
 
-> **¿No tienes estos valores?**  
-> - `OPENAI_API_KEY`: crea uno en [platform.openai.com](https://platform.openai.com/api-keys)  
-> - `GITHUB_TOKEN`: crea uno en [github.com/settings/tokens](https://github.com/settings/tokens) (activa el scope `repo`)  
+> **¿No tienes estos valores?**
+>
+> - `OPENAI_API_KEY`: crea uno en [platform.openai.com](https://platform.openai.com/api-keys)
+> - `GITHUB_TOKEN`: crea uno en [github.com/settings/tokens](https://github.com/settings/tokens) (activa el scope `repo`)
 > - `JIRA_API_TOKEN`: crea uno en [id.atlassian.com](https://id.atlassian.com/manage-profile/security/api-tokens)
 
 ### 2. Dependencias instaladas
@@ -106,6 +115,7 @@ npm run dev
 ```
 
 Deberías ver:
+
 ```
 Database initialized
 Server running on port 3000
@@ -118,6 +128,7 @@ Server running on port 3000
 Abre otra terminal y envía este request (personaliza los campos):
 
 **Opción A — Con todos los detalles:**
+
 ```bash
 curl -s -X POST http://localhost:3000/jobs \
   -H "Content-Type: application/json" \
@@ -137,16 +148,27 @@ curl -s -X POST http://localhost:3000/jobs \
 ```
 
 **Opción B — Solo con el ticket de Jira (el sistema fetcha el resto):**
+
 ```bash
 curl -s -X POST http://localhost:3000/jobs \
   -H "Content-Type: application/json" \
   -d '{
-    "jiraTicketId": "PROJ-123"
+    "jiraTicketId": "RPCO-37712",
+    "repo": "RappiPay/web-cashflow"
   }' | python3 -m json.tool
 ```
 
-> El sistema lee el título, descripción y criterios de aceptación directamente de Jira.  
-> Solo funciona si tienes `JIRA_BASE_URL`, `JIRA_EMAIL` y `JIRA_API_TOKEN` en tu `.env`.
+> El sistema lee el título, descripción, criterios de aceptación y URL de Figma directamente de Jira.  
+> Requiere `JIRA_BASE_URL`, `JIRA_EMAIL` y `JIRA_API_TOKEN` en `.env`.
+>
+> **Plataforma** se infiere en este orden:
+>
+> 1. Labels del ticket — `flutter`, `ios`, `android`, `flutter_web`
+> 2. Prefijo del título — `[MOBILE]` → `DEFAULT_PLATFORM`, `[WEB]` → `flutter_web`
+> 3. Palabras clave en el título — `swift`, `kotlin`, etc.
+> 4. Variable `DEFAULT_PLATFORM` en `.env`
+>
+> **Repo**: si el ticket no tiene label `repo:org/nombre`, pásalo explícitamente en el body.
 
 La respuesta incluye un `id` — guárdalo:
 
@@ -170,16 +192,16 @@ curl -s http://localhost:3000/jobs/TU_JOB_ID | python3 -m json.tool
 
 Los estados que verás en orden:
 
-| Estado | Qué está pasando |
-|--------|-----------------|
-| `pending` | Job creado, esperando inicio |
-| `fetching_jira` | Leyendo datos del ticket de Jira |
+| Estado            | Qué está pasando                               |
+| ----------------- | ---------------------------------------------- |
+| `pending`         | Job creado, esperando inicio                   |
+| `fetching_jira`   | Leyendo datos del ticket de Jira               |
 | `spec_generating` | Analizando el repo y generando el plan técnico |
-| `spec_ready` | Plan listo — **esperando tu aprobación** |
-| `implementing` | Escribiendo código |
-| `reviewing` | Corriendo análisis + creando PR |
-| `pr_created` | PR creado — corriendo mutation tests |
-| `done` | ¡Listo! |
+| `spec_ready`      | Plan listo — **esperando tu aprobación**       |
+| `implementing`    | Escribiendo código                             |
+| `reviewing`       | Corriendo análisis + creando PR                |
+| `pr_created`      | PR creado — corriendo mutation tests           |
+| `done`            | ¡Listo!                                        |
 
 ### Paso 5: Aprobar el spec
 
@@ -419,6 +441,7 @@ POST http://<tu-ip-publica>:3000/webhook/trigger
 ```
 
 Luego en Slack escribe:
+
 ```
 /gaia flutter RobertoGtz/demo-repo Add dark mode toggle
 ```
@@ -450,25 +473,28 @@ curl -s -X POST http://localhost:3000/webhook/trigger \
 Cuando el job avanza de estado, el sistema puede notificar a:
 
 **Slack:**
+
 ```bash
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T000/B000/xxxx
 ```
 
 **Jira (comenta en el ticket y mueve estados):**
+
 ```bash
 JIRA_BASE_URL=https://tu-org.atlassian.net
 JIRA_EMAIL=tu@email.com
 JIRA_API_TOKEN=tu-token
 ```
 
-| Evento | Qué hace el JiraNotifier |
-|--------|--------------------------|
-| `spec_ready` | Agrega comentario con el plan técnico |
-| `implementing` | Mueve el ticket a "In Progress" |
-| `done` | Mueve el ticket a "Done" + link al PR |
-| `failed` | Mueve el ticket a "Blocked" + descripción del error |
+| Evento         | Qué hace el JiraNotifier                            |
+| -------------- | --------------------------------------------------- |
+| `spec_ready`   | Agrega comentario con el plan técnico               |
+| `implementing` | Mueve el ticket a "In Progress"                     |
+| `done`         | Mueve el ticket a "Done" + link al PR               |
+| `failed`       | Mueve el ticket a "Blocked" + descripción del error |
 
 **Webhook genérico (cualquier endpoint HTTP):**
+
 ```bash
 NOTIFY_WEBHOOK_URL=https://tu-sistema.com/gaia-events
 ```
@@ -512,6 +538,7 @@ Límite máximo de archivos que el sistema puede modificar. Si el implementador 
 ### `tddMode` (boolean, default: `false`)
 
 Activa el ciclo **Red-Green-Refactor** (TDD estricto). El implementador:
+
 1. Escribe el test que falla (rojo)
 2. Escribe el mínimo código para que pase (verde)
 3. Refactoriza
@@ -526,15 +553,15 @@ Activa el ciclo **Red-Green-Refactor** (TDD estricto). El implementador:
 
 ## Comparativa de los tres modos
 
-| | Modo A — HTTP API | Modo B — CLI | Modo C — Webhook |
-|--|-------------------|--------------|-----------------|
-| **Requiere servidor** | Sí | No | Sí |
-| **Requiere Postgres/Docker** | Sí | No (usa disco) | Sí |
-| **Aprobación de spec** | Manual via API | Manual o `--approve` | Automática (sin pausa) |
-| **Integra con Jira/Slack** | Manual | `--jira PROJ-123` | Automático |
-| **Ideal para** | CI/CD, APIs, Postman | Dev local, demos rápidos | Producción, automatización |
-| **Logs** | API REST + Postgres | Terminal + archivos `.md` | API REST + Postgres + notificaciones |
-| **Notificaciones** | Configurable | No | Slack, Jira, Webhook genérico |
+|                              | Modo A — HTTP API    | Modo B — CLI              | Modo C — Webhook                     |
+| ---------------------------- | -------------------- | ------------------------- | ------------------------------------ |
+| **Requiere servidor**        | Sí                   | No                        | Sí                                   |
+| **Requiere Postgres/Docker** | Sí                   | No (usa disco)            | Sí                                   |
+| **Aprobación de spec**       | Manual via API       | Manual o `--approve`      | Automática (sin pausa)               |
+| **Integra con Jira/Slack**   | Manual               | `--jira PROJ-123`         | Automático                           |
+| **Ideal para**               | CI/CD, APIs, Postman | Dev local, demos rápidos  | Producción, automatización           |
+| **Logs**                     | API REST + Postgres  | Terminal + archivos `.md` | API REST + Postgres + notificaciones |
+| **Notificaciones**           | Configurable         | No                        | Slack, Jira, Webhook genérico        |
 
 ---
 
@@ -580,9 +607,11 @@ TRIGGER (API / CLI / Webhook)
 ### "Connection refused" al hacer curl
 
 El servidor no está corriendo. Verifica con:
+
 ```bash
 curl http://localhost:3000/health
 ```
+
 Si falla, vuelve al Paso 2 del modo que estés usando.
 
 ### "Jira ticket not found"
@@ -599,12 +628,14 @@ Si falla, vuelve al Paso 2 del modo que estés usando.
 ### Job en estado `test_error` o `build_error`
 
 Si no quieres instalar el toolchain de la plataforma:
+
 ```bash
 # Usa requireTests: false en el payload
 "requireTests": false
 ```
 
 Para reintentar un job fallido:
+
 ```bash
 curl -s -X POST http://localhost:3000/jobs/TU_JOB_ID/retry
 ```
@@ -638,13 +669,13 @@ Una vez que el sistema crea el Pull Request, un desarrollador lo revisa en GitHu
 
 ## Referencias rápidas
 
-| Recurso | Link |
-|---------|------|
-| API completa | [`API.md`](../API.md) |
+| Recurso              | Link                                        |
+| -------------------- | ------------------------------------------- |
+| API completa         | [`API.md`](../API.md)                       |
 | Arquitectura interna | [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md) |
-| Setup detallado | [`docs/SETUP.md`](./SETUP.md) |
-| Script de demo | [`scripts/demo.sh`](../scripts/demo.sh) |
-| Variables de entorno | [`.env.example`](../.env.example) |
+| Setup detallado      | [`docs/SETUP.md`](./SETUP.md)               |
+| Script de demo       | [`scripts/demo.sh`](../scripts/demo.sh)     |
+| Variables de entorno | [`.env.example`](../.env.example)           |
 
 ---
 

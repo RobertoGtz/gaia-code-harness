@@ -96,12 +96,18 @@ Content-Type: application/json
 El sistema fetchea el ticket de Jira (`JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`) y extrae:
 
 - título, descripción, prioridad, labels
-- plataforma (inferida del label `flutter`, `ios`, `android`)
 - criterios de aceptación (descripción o campo personalizado)
-- URL de Figma (si aparece en la descripción)
-- repo (label `repo:nombre` o `DEFAULT_REPO`)
+- URL de Figma (si aparece en la descripción como link de texto)
+- repo (label `repo:org/nombre`, campo custom, o `DEFAULT_REPO`)
+- plataforma — inferida en este orden:
+  1. **Labels del ticket** — `flutter`, `ios`, `android`, `flutter_web`
+  2. **Prefijo del título** — `[MOBILE]` → `DEFAULT_PLATFORM` (default: `flutter`), `[WEB]` → `flutter_web`, `[iOS]` → `ios`, `[ANDROID]` → `android`
+  3. **Palabras clave** en el título — `swift`, `kotlin`, etc.
+  4. Variable `DEFAULT_PLATFORM` en `.env`
 
-Si no puede inferir la plataforma, devuelve **400** con instrucciones para agregar un label.
+> **Nota:** `JIRA_BASE_URL` debe apuntar al subdominio correcto del tenant, p.ej. `https://rappidev.atlassian.net`. Un subdominio incorrecto dará error 404.
+
+Si el sistema no puede inferir la plataforma, devuelve **400** con instrucciones. Si `repo` no está en el ticket, pásalo en el body junto con `jiraTicketId`.
 
 **Response (201 Created):**
 
