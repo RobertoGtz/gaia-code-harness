@@ -219,8 +219,8 @@ export async function fetchJiraTicket(issueKey: string): Promise<JiraTicketData>
   // Extract Figma URL from description or custom field
   const figmaUrl = extractFigmaUrl(fields, description);
 
-  // Infer platform from labels
-  const platform = inferPlatform(labels);
+  // Infer platform from labels, then title prefix, then DEFAULT_PLATFORM
+  const platform = inferPlatform(labels, title);
 
   // Infer repo from custom field or labels
   const repo = fields.customfield_repo ?? inferRepo(labels);
@@ -262,7 +262,7 @@ export async function fetchJiraEpicTickets(epicKey: string): Promise<JiraTicketD
       description,
       acceptanceCriteria: extractAcceptanceCriteria(fields, description),
       figmaUrl: extractFigmaUrl(fields, description),
-      platform: inferPlatform(labels),
+      platform: inferPlatform(labels, fields.summary ?? ''),
       repo: fields.customfield_repo ?? inferRepo(labels),
       priority: fields.priority?.name ?? '',
       labels,
@@ -398,14 +398,36 @@ function extractFigmaUrl(fields: any, description: string): string | undefined {
 
 /**
  * Infer platform from Jira labels.
+ * Falls back to title prefix patterns ([MOBILE], [WEB], etc.)
+ * and finally to DEFAULT_PLATFORM env var.
  */
-function inferPlatform(labels: string[]): Platform | undefined {
+function inferPlatform(labels: string[], title?: string): Platform | undefined {
   const lower = labels.map(l => l.toLowerCase());
   if (lower.includes('flutter') || lower.includes('flutter_app')) return 'flutter';
   if (lower.includes('flutter_web')) return 'flutter_web';
   if (lower.includes('ios') || lower.includes('swift')) return 'ios';
   if (lower.includes('android') || lower.includes('kotlin')) return 'android';
-  return undefined;
+
+  // Infer from title prefix — e.g. "[MOBILE]", "[WEB]", "[BACKEND]"
+  if (title) {
+    const titleLower = title.toLowerCase();
+    const mobilePrefix = /^\[mobile\]/i.test(title);
+    const webPrefix = /^\[web\]/i.test(title);
+    if (mobilePrefix) {
+      // Default mobile platform; can be overridden by DEFAULT_PLATFORM
+      const defaultMobile = process.env.DEFAULT_PLATFORM as Platform | undefined;
+      return defaultMobile ?? 'flutter';
+    }
+    if (webPrefix) return 'flutter_web';
+    if (/^\[ios\]/i.test(title)) return 'ios';
+    if (/^\[android\]/i.test(title)) return 'android';
+    if (titleLower.includes('ios') || titleLower.includes('swift')) return 'ios';
+    if (titleLower.includes('android') || titleLower.includes('kotlin')) return 'android';
+  }
+
+  // Last resort: DEFAULT_PLATFORM env var
+  const defaultPlatform = process.env.DEFAULT_PLATFORM as Platform | undefined;
+  return defaultPlatform ?? undefined;
 }
 
 /**
