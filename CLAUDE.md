@@ -39,7 +39,8 @@ pending → [spec_partner] → [gherkin_author] → ⏸ HUMANO APRUEBA
 npx ts-node src/cli/run.ts --list                            # listar todos los jobs (Modo B)
 npx ts-node src/cli/run.ts --job job.json                    # crear job desde archivo JSON
 npx ts-node src/cli/run.ts --job job.json --approve          # crear y aprobar spec automáticamente
-npx ts-node src/cli/run.ts --jira PROJ-123 --approve         # crear job desde ticket Jira
+npx ts-node src/cli/run.ts --job job.json --tdd --approve    # ídem en modo Red-Green-Refactor
+npx ts-node src/cli/run.ts --jira PROJ-123 --tdd --approve   # crear job desde Jira en modo TDD
 npx ts-node src/cli/run.ts --id <uuid>                       # reanudar job existente
 python3 tools/mutate.py <file> --cmd "<runner>" --threshold 80  # mutación manual
 ```

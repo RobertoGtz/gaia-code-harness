@@ -232,8 +232,6 @@ export async function getRelevantFiles(
  * await applyPatch('/file.dart', originalCode, modifiedCode);
  */
 export async function applyPatch(filePath: string, originalContent: string, newContent: string): Promise<void> {
-  // Simple implementation - just write new content
-  // In real implementation, would use a proper diff library
   await writeFile(filePath, newContent);
 }
 

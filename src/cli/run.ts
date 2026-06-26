@@ -7,10 +7,11 @@
  * Usage:
  *   npx ts-node src/cli/run.ts --job path/to/job.json
  *   npx ts-node src/cli/run.ts --job '{"title":"...", "platform":"ios", ...}'
- *   npx ts-node src/cli/run.ts --job job.json --approve  # auto-approve spec and run full pipeline
- *   npx ts-node src/cli/run.ts --jira PROJ-123 --approve  # fetch from Jira and run full pipeline
- *   npx ts-node src/cli/run.ts --id <existing-job-id>  # resume
- *   npx ts-node src/cli/run.ts --list                  # show all jobs
+ *   npx ts-node src/cli/run.ts --job job.json --approve      # auto-approve spec and run full pipeline
+ *   npx ts-node src/cli/run.ts --job job.json --tdd --approve # Red-Green-Refactor mode
+ *   npx ts-node src/cli/run.ts --jira PROJ-123 --approve      # fetch from Jira and run full pipeline
+ *   npx ts-node src/cli/run.ts --id <existing-job-id>         # resume
+ *   npx ts-node src/cli/run.ts --list                         # show all jobs
  *
  * @module cli/run
  */
@@ -106,6 +107,7 @@ async function main(): Promise<void> {
       figmaUrl:        ticket.figmaUrl,
       maxFilesToTouch: 5,
       requireTests:    true,
+      tddMode:         has('--tdd'),
     });
     console.log(`\nJob created from Jira: ${job.id}`);
     console.log(`  Title:    ${ticket.title}`);
@@ -167,6 +169,7 @@ async function main(): Promise<void> {
     acceptanceCriteria,
     maxFilesToTouch:      (raw.maxFilesToTouch as number | undefined) ?? 5,
     requireTests:         (raw.requireTests as boolean | undefined) ?? true,
+    tddMode:              has('--tdd') || (raw.tddMode as boolean | undefined) || false,
     status:               'pending' as const,
     progressLogs:         [] as string[],
   } satisfies Omit<CodeGenerationJob, 'id' | 'createdAt' | 'updatedAt'>;

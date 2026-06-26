@@ -286,12 +286,19 @@ npx ts-node src/cli/run.ts --job mi-job.json --approve
 
 > Con `--approve`, el pipeline corre de punta a punta sin intervención manual.
 
+**Modo TDD (Red-Green-Refactor):** agrega `--tdd` para activar el ciclo rojo-verde por test:
+
+```bash
+npx ts-node src/cli/run.ts --job mi-job.json --tdd --approve
+```
+
 ### Paso 4: Usar con Jira directamente
 
 Si tienes las variables de Jira en `.env`, puedes crear un job directamente desde un ticket:
 
 ```bash
 npx ts-node src/cli/run.ts --jira PROJ-123 --approve
+npx ts-node src/cli/run.ts --jira PROJ-123 --tdd --approve  # con TDD
 ```
 
 El sistema lee el título, descripción y criterios de aceptación de Jira automáticamente.
@@ -525,6 +532,12 @@ Activa el ciclo **Red-Green-Refactor** (TDD estricto). El implementador:
 "tddMode": true
 ```
 
+En Modo B (CLI) el flag equivalente es `--tdd`:
+
+```bash
+npx ts-node src/cli/run.ts --job mi-job.json --tdd --approve
+```
+
 > Genera tests más robustos pero tarda el doble. Ideal para features críticas.
 
 ---
@@ -540,6 +553,7 @@ Activa el ciclo **Red-Green-Refactor** (TDD estricto). El implementador:
 | **Ideal para**               | CI/CD, APIs, Postman | Dev local, demos rápidos  | Producción, automatización           |
 | **Logs**                     | API REST + Postgres  | Terminal + archivos `.md` | API REST + Postgres + notificaciones |
 | **Notificaciones**           | Configurable         | No                        | Slack, Jira, Webhook genérico        |
+| **TDD (`tddMode`)**          | `"tddMode": true`    | `--tdd`                   | `"tddMode": true` en payload         |
 
 ---
 
