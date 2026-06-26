@@ -106,7 +106,7 @@ gaia-code-harness/
 | `GITHUB_TOKEN`                         | ✅             | Crear PRs reales                                            |
 | `GITHUB_OWNER`                         | ✅             | Org o usuario de GitHub                                     |
 | `DATABASE_URL`                         | ✅ Modos A y C | Conexión PostgreSQL                                         |
-| `JIRA_BASE_URL`                        | Si usas Jira   | Subdominio exacto del tenant (ej. `rappidev.atlassian.net`) |
+| `JIRA_BASE_URL`                        | Si usas Jira   | Subdominio exacto del tenant (ej. `tu-org.atlassian.net`)   |
 | `JIRA_EMAIL`                           | Si usas Jira   | Email de la cuenta Jira                                     |
 | `JIRA_API_TOKEN`                       | Si usas Jira   | Token API de Jira                                           |
 | `DEFAULT_PLATFORM`                     | Opcional       | Plataforma si el ticket no tiene label (default: `flutter`) |

@@ -38,9 +38,8 @@ GITHUB_TOKEN=ghp_...
 GITHUB_OWNER=tu-org-o-usuario
 
 # Jira — para leer tickets (opcional, solo si usas Jira)
-# IMPORTANTE: usa el subdominio correcto de tu tenant
-# (ej. rappidev.atlassian.net, NO rappi.atlassian.net)
-JIRA_BASE_URL=https://rappidev.atlassian.net
+# IMPORTANTE: usa el subdominio exacto de tu tenant
+JIRA_BASE_URL=https://tu-org.atlassian.net
 JIRA_EMAIL=tu@email.com
 JIRA_API_TOKEN=tu-token
 
@@ -132,8 +131,8 @@ curl -s -X POST http://localhost:3000/jobs \
 curl -s -X POST http://localhost:3000/jobs \
   -H "Content-Type: application/json" \
   -d '{
-    "jiraTicketId": "RPCO-37712",
-    "repo": "RappiPay/web-cashflow"
+    "jiraTicketId": "PROJ-1234",
+    "repo": "mi-org/mi-repo"
   }' | python3 -m json.tool
 ```
 
@@ -648,13 +647,13 @@ Una vez que el sistema crea el Pull Request, un desarrollador lo revisa en GitHu
 
 ## Referencias rápidas
 
-| Recurso              | Link                                        |
-| -------------------- | ------------------------------------------- |
-| API completa         | [`API.md`](../API.md)                       |
+| Recurso              | Link                                                                 |
+| -------------------- | -------------------------------------------------------------------- |
+| API completa         | [`API.md`](../API.md)                                                |
 | Arquitectura interna | [`docs/engineering/architecture.md`](../engineering/architecture.md) |
-| Setup detallado      | [`docs/guides/setup.md`](../guides/setup.md)               |
-| Script de demo       | [`scripts/demo.sh`](../scripts/demo.sh)     |
-| Variables de entorno | [`.env.example`](../.env.example)           |
+| Setup detallado      | [`docs/guides/setup.md`](../guides/setup.md)                         |
+| Script de demo       | [`scripts/demo.sh`](../scripts/demo.sh)                              |
+| Variables de entorno | [`.env.example`](../.env.example)                                    |
 
 ---
 

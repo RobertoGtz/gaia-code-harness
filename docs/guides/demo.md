@@ -127,8 +127,8 @@ curl -s -X POST http://localhost:3000/jobs \
   -d '{
     "platform": "flutter",
     "title": "Add promotional banner to home screen",
-    "jiraTicketId": "RPCO-1000",
-    "repo": "web-cashflow",
+    "jiraTicketId": "PROJ-1000",
+    "repo": "mi-org/mi-repo",
     "targetBranch": "develop",
     "tddMode": false,
     "requireTests": false,
@@ -150,10 +150,10 @@ curl -s -X POST http://localhost:3000/jobs \
 > También puedes enviar solo el `jiraTicketId` si tienes configuradas `JIRA_BASE_URL`, `JIRA_EMAIL` y `JIRA_API_TOKEN`. El sistema fetcheará título, descripción, criterios de aceptación y URL de Figma directamente de Jira:
 >
 > ```json
-> { "jiraTicketId": "RPCO-37712", "repo": "RappiPay/web-cashflow" }
+> { "jiraTicketId": "PROJ-1234", "repo": "mi-org/mi-repo" }
 > ```
 >
-> **`JIRA_BASE_URL`** debe apuntar al subdominio correcto (e.g. `https://rappidev.atlassian.net`).
+> **`JIRA_BASE_URL`** debe apuntar al subdominio exacto de tu tenant (ej. `https://tu-org.atlassian.net`).
 >
 > **Plataforma** se infiere en orden: labels del ticket → prefijo del título (`[MOBILE]` → `DEFAULT_PLATFORM`, `[WEB]` → `flutter_web`) → palabras clave en título → `DEFAULT_PLATFORM` en `.env`.
 >

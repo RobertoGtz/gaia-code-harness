@@ -8,8 +8,8 @@
 ## Base URL
 
 ```
-Local: http://localhost:3000
-Production: https://gaia-harness.rappi.com
+Local:      http://localhost:3000
+Production: https://<tu-dominio>
 ```
 
 ---
@@ -47,7 +47,7 @@ Content-Type: application/json
   "platform": "flutter",
   "title": "Agregar banner de promociones",
   "jiraTicketId": "RPP-1234",
-  "repo": "rpp-pyme-multiplatform",
+  "repo": "mi-org/mi-repo",
   "module": "pay_multiplatform_home_web",
   "targetBranch": "develop",
   "description": "Mostrar carrusel de promociones destacadas",
@@ -75,7 +75,7 @@ Content-Type: application/json
   "fullContext": {
     "title": "Agregar banner de promociones",
     "platform": "flutter",
-    "repo": "rpp-pyme-multiplatform",
+    "repo": "mi-org/mi-repo",
     "acceptanceCriteria": [
       "WHEN user opens home screen THEN display promotional banner carousel"
     ]
@@ -105,7 +105,7 @@ El sistema fetchea el ticket de Jira (`JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_T
   3. **Palabras clave** en el título — `swift`, `kotlin`, etc.
   4. Variable `DEFAULT_PLATFORM` en `.env`
 
-> **Nota:** `JIRA_BASE_URL` debe apuntar al subdominio correcto del tenant, p.ej. `https://rappidev.atlassian.net`. Un subdominio incorrecto dará error 404.
+> **Nota:** `JIRA_BASE_URL` debe apuntar al subdominio exacto del tenant (ej. `https://tu-org.atlassian.net`). Un subdominio incorrecto dará error 404.
 
 Si el sistema no puede inferir la plataforma, devuelve **400** con instrucciones. Si `repo` no está en el ticket, pásalo en el body junto con `jiraTicketId`.
 
@@ -118,7 +118,7 @@ Si el sistema no puede inferir la plataforma, devuelve **400** con instrucciones
     "status": "pending",
     "title": "Agregar banner de promociones",
     "platform": "flutter",
-    "repo": "rpp-pyme-multiplatform",
+    "repo": "mi-org/mi-repo",
     "createdAt": "2024-01-15T10:30:00.000Z"
   }
 }
@@ -381,7 +381,7 @@ Acepta tres formatos de payload:
 {
   "title": "Add loyalty points banner",
   "platform": "flutter",
-  "repo": "rpp-pyme-multiplatform",
+  "repo": "mi-org/mi-repo",
   "targetBranch": "develop",
   "tddMode": true,
   "requireTests": false,

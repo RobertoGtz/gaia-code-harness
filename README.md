@@ -86,7 +86,7 @@ GITHUB_TOKEN=ghp_...
 GITHUB_OWNER=tu-org
 
 # Jira — solo si usas tickets
-JIRA_BASE_URL=https://rappidev.atlassian.net   # subdominio real de tu tenant
+JIRA_BASE_URL=https://tu-org.atlassian.net     # subdominio exacto de tu tenant
 JIRA_EMAIL=tu@email.com
 JIRA_API_TOKEN=...
 DEFAULT_PLATFORM=flutter      # fallback si el ticket no tiene label de plataforma
@@ -131,7 +131,7 @@ curl -X POST http://localhost:3000/jobs \
 ```bash
 curl -X POST http://localhost:3000/jobs \
   -H "Content-Type: application/json" \
-  -d '{"jiraTicketId": "RPCO-37712", "repo": "tu-org/tu-repo"}'
+  -d '{"jiraTicketId": "PROJ-1234", "repo": "tu-org/tu-repo"}'
 ```
 
 **Aprobar el spec cuando esté `spec_ready`:**
@@ -165,21 +165,21 @@ El sistema lee del ticket: título, descripción, criterios de aceptación, URL 
 
 **Repo:** si el ticket no tiene label `repo:org/nombre`, pásalo en el body del request.
 
-> `JIRA_BASE_URL` debe ser el subdominio exacto de tu tenant (ej. `rappidev.atlassian.net`). Un subdominio incorrecto da error 404.
+> `JIRA_BASE_URL` debe ser el subdominio exacto de tu tenant (ej. `https://tu-org.atlassian.net`). Un subdominio incorrecto da error 404.
 
 ---
 
 ## Documentación completa
 
-| Documento                                                | Descripción                                            |
-| -------------------------------------------------------- | ------------------------------------------------------ |
-| **[`docs/guides/quick-start.md`](docs/guides/quick-start.md)** | Guía completa paso a paso de los 3 modos               |
-| **[`docs/guides/demo.md`](docs/guides/demo.md)**           | Demo con comandos listos para copiar                   |
-| **[`API.md`](API.md)**                                   | Referencia completa de endpoints REST + Webhook        |
-| **[`docs/engineering/architecture.md`](docs/engineering/architecture.md)**       | Arquitectura interna, máquina de estados, agentes      |
-| **[`docs/guides/setup.md`](docs/guides/setup.md)**                     | Setup detallado por plataforma (Flutter, iOS, Android) |
-| **[`docs/index.md`](docs/index.md)**                     | Mapa completo de toda la documentación                 |
-| **[`AGENTS.md`](AGENTS.md)**                             | Mapa de navegación para agentes IA (Claude Code mode)  |
+| Documento                                                                  | Descripción                                            |
+| -------------------------------------------------------------------------- | ------------------------------------------------------ |
+| **[`docs/guides/quick-start.md`](docs/guides/quick-start.md)**             | Guía completa paso a paso de los 3 modos               |
+| **[`docs/guides/demo.md`](docs/guides/demo.md)**                           | Demo con comandos listos para copiar                   |
+| **[`API.md`](API.md)**                                                     | Referencia completa de endpoints REST + Webhook        |
+| **[`docs/engineering/architecture.md`](docs/engineering/architecture.md)** | Arquitectura interna, máquina de estados, agentes      |
+| **[`docs/guides/setup.md`](docs/guides/setup.md)**                         | Setup detallado por plataforma (Flutter, iOS, Android) |
+| **[`docs/index.md`](docs/index.md)**                                       | Mapa completo de toda la documentación                 |
+| **[`AGENTS.md`](AGENTS.md)**                                               | Mapa de navegación para agentes IA (Claude Code mode)  |
 
 ---
 
