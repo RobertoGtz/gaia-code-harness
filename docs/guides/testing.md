@@ -19,7 +19,7 @@
 Tests unitarios internos que no requieren servidor ni Postgres ni LLM:
 
 ```bash
-npm test                  # corre toda la suite Jest (100 tests, 10 suites)
+npm test                  # corre toda la suite Jest (120 tests, 12 suites)
 npm test -- --watch       # modo watch durante desarrollo
 npm test -- webhook       # filtra por nombre de suite
 ```
