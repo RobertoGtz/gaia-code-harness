@@ -30,6 +30,8 @@ interface NormalizedTrigger {
   jiraTicketId?: string;
   jiraEpicId?:   string;
   figmaUrl?:     string;
+  description?:  string;
+  module?:       string;
   tddMode:     boolean;
   requireTests: boolean;
   maxFilesToTouch: number;
@@ -93,6 +95,8 @@ export function parseGenericBody(body: any): NormalizedTrigger | null {
     jiraTicketId:      body.jiraTicketId,
     jiraEpicId:        body.jiraEpicId,
     figmaUrl:          body.figmaUrl,
+    description:       body.description,
+    module:            body.module,
     tddMode:           body.tddMode === true,
     requireTests:      body.requireTests !== false,
     maxFilesToTouch:   typeof body.maxFilesToTouch === 'number' ? body.maxFilesToTouch : 5,
@@ -190,6 +194,8 @@ export async function setupWebhookRoutes(app: FastifyInstance): Promise<void> {
       jiraTicketId:       trigger.jiraTicketId,
       jiraEpicId:         trigger.jiraEpicId,
       figmaUrl:           trigger.figmaUrl,
+      description:        trigger.description,
+      module:             trigger.module,
       tddMode:            trigger.tddMode,
       initiativeId:       `init-${Date.now()}`,
       maxFilesToTouch:    trigger.maxFilesToTouch,
