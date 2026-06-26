@@ -1,31 +1,10 @@
-# Guía completa: Los tres modos de Gaia Code Harness
+# Guía de los tres modos — GAIA Code Harness
 
-> Esta guía explica cómo usar los tres modos del sistema de generación de código.  
-> Está escrita para cualquier persona — no necesitas saber programar para entender qué hace cada modo.
-
----
-
-## ¿Qué hace Gaia Code Harness?
-
-Gaia Code Harness es un sistema que **genera código automáticamente** a partir de una descripción de lo que quieres.
-
-Tú le dices:
-
-> "Quiero un banner promocional en la pantalla de inicio de la app Flutter"
-
-El sistema:
-
-1. Analiza el repositorio de código existente
-2. Genera un **plan técnico** (spec)
-3. Espera tu aprobación
-4. Escribe el código
-5. Crea un **Pull Request** en GitHub listo para revisión
-
-Hay **tres formas de arrancar este proceso**, dependiendo de tu caso de uso.
+> Paso a paso para cada modo de uso. Para un resumen general del sistema ver [`README.md`](../README.md).
 
 ---
 
-## Vista rápida: ¿cuál modo usar?
+## ¿Qué modo usar?
 
 | Situación                                                                  | Modo recomendado      |
 | -------------------------------------------------------------------------- | --------------------- |

@@ -1,11 +1,10 @@
-# Guía de Instalación - Gaia Code Harness
+# Guía de Instalación — GAIA Code Harness
 
 > Setup completo para desarrollo local
-> Ticket: RPCO-37575
 
 ---
 
-## 📋 Requisitos Previos
+## Requisitos Previos
 
 - **Node.js** 18+
 - **PostgreSQL** 14+
@@ -16,7 +15,7 @@
 
 ---
 
-## 🚀 Quick Start (5 minutos)
+## Quick Start (5 minutos)
 
 ### 1. Clonar y Instalar
 
@@ -82,7 +81,7 @@ Debería responder:
 
 ---
 
-## 🔧 Configuración Detallada
+## Configuración Detallada
 
 ### Base de Datos PostgreSQL
 
@@ -177,7 +176,7 @@ El harness clonará desde el path local (preservando `.git`) en vez de intentar 
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ### Verificar Instalación
 
@@ -216,7 +215,7 @@ curl http://localhost:3000/jobs
 
 ---
 
-## 🛠️ Solución de Problemas
+## Solución de Problemas
 
 ### Error: "Cannot find module"
 
@@ -253,7 +252,7 @@ https://docs.flutter.dev/get-started/install
 
 ---
 
-## 📁 Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
 gaia-code-harness/
@@ -285,7 +284,7 @@ gaia-code-harness/
 
 ---
 
-## 🎯 Próximos Pasos
+## Próximos Pasos
 
 1. **Verificar setup:**
 
@@ -307,7 +306,7 @@ gaia-code-harness/
 
 ---
 
-## ✅ Checklist de Verificación
+## Checklist de Verificación
 
 - [ ] Node.js 18+ instalado
 - [ ] PostgreSQL corriendo

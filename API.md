@@ -1,11 +1,11 @@
-# API Reference - Gaia Code Harness
+# API Reference — GAIA Code Harness
 
-> Documentación completa de la API REST  
-> Modos soportados: **HTTP + Postgres**, **Claude Code CLI**, **CI / Webhook**
+> Referencia completa de la API REST y el webhook de entrada.  
+> Ver [`docs/GUIA_TRES_MODOS.md`](docs/GUIA_TRES_MODOS.md) para guías de uso con ejemplos.
 
 ---
 
-## 🌐 Base URL
+## Base URL
 
 ```
 Local: http://localhost:3000
@@ -14,7 +14,7 @@ Production: https://gaia-harness.rappi.com
 
 ---
 
-## 📋 Endpoints
+## Endpoints
 
 ### Health Check
 
@@ -278,7 +278,7 @@ POST /jobs/:id/retry
 
 ---
 
-## 🔄 Estados de Job
+## Estados de Job
 
 | Estado            | Descripción              | UI Sugerida            |
 | ----------------- | ------------------------ | ---------------------- |
@@ -301,7 +301,7 @@ POST /jobs/:id/retry
 
 ---
 
-## ❌ Error Responses
+## Error Responses
 
 ### 400 Bad Request
 
@@ -329,7 +329,7 @@ POST /jobs/:id/retry
 
 ---
 
-## 🎯 Flujo Típico
+## Flujo típico
 
 ```bash
 # 1. Crear job
@@ -364,32 +364,7 @@ curl -s http://localhost:3000/jobs/$JOB_ID | jq -r '.job.prUrl'
 
 ---
 
-## 📊 Rate Limits
-
-| Endpoint      | Limit | Window     |
-| ------------- | ----- | ---------- |
-| POST /jobs    | 10    | por minuto |
-| GET /jobs/:id | 60    | por minuto |
-| POST /approve | 30    | por minuto |
-
----
-
-## 🔐 Autenticación
-
-**Nota:** Actualmente la API no requiere autenticación.
-
-**Para producción:**
-
-- Agregar API Key en header: `X-API-Key: your-key`
-- O usar OAuth2/JWT
-
----
-
----
-
----
-
-## 🔔 CI / Webhook Mode
+## CI / Webhook
 
 ### Trigger — Inbound webhook
 
@@ -513,7 +488,7 @@ Configura una o más variables en `.env` para activar notificaciones de salida:
 
 ---
 
-## 🧑‍💻 Claude Code Mode
+## CLI (Modo B)
 
 Alternativa sin servidor HTTP. Usa un `DiskBackend` (JSON en `progress/`) en lugar de Postgres.
 
@@ -532,8 +507,4 @@ El `job.json` acepta los mismos campos que `POST /jobs` body flat (incluido `tdd
 
 ---
 
-**Documentación relacionada:**
-
-- [ARCHITECTURE.md](./docs/ARCHITECTURE.md) - Arquitectura interna
-- [CLAUDE.md](./CLAUDE.md) - Instrucciones para Claude Code orchestration mode
-- [README.md](./README.md) - Guía general
+**Ver también:** [`docs/GUIA_TRES_MODOS.md`](docs/GUIA_TRES_MODOS.md) · [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`README.md`](README.md)

@@ -1,6 +1,6 @@
-# Guía de Demo - Gaia Code Harness
+# Guía de Demo — GAIA Code Harness
 
-> Guía paso a paso para ver cómo funciona el sistema de generación de código.
+> Paso a paso para ver el sistema en acción, desde los ACs hasta el Pull Request.  
 > No necesitas saber programar para seguir esta guía.
 
 ---

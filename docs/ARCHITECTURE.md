@@ -1,11 +1,10 @@
-# Arquitectura del Gaia Code Harness
+# Arquitectura — GAIA Code Harness
 
-> Documentación técnica profunda de la arquitectura
-> Ticket: RPCO-37575
+> Documentación técnica interna: máquina de estados, agentes, skills, notifiers y backends.
 
 ---
 
-## 📐 Diagrama de Arquitectura
+## Diagrama de Arquitectura
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -78,7 +77,7 @@
 
 ---
 
-## 🔄 Flujo de Datos
+## Flujo de Datos
 
 ### 0. Modo de Orquestación
 
@@ -175,7 +174,7 @@ MutationTesterAgent (automático, post-review):
 
 ---
 
-## 🗄️ Estructura de Datos
+## Estructura de Datos
 
 ### PostgreSQL Schema
 
@@ -255,7 +254,7 @@ Cuando un job falla, el Leader persiste un objeto estructurado con toda la infor
 
 ---
 
-## 🚨 Error Handling
+## Error Handling
 
 ### Estados de error granulares
 
@@ -334,7 +333,7 @@ Cuando un job entra en estado de error, se imprime:
 
 ---
 
-## 🧠 Agentes y Skills
+## Agentes y Skills
 
 ### Arquitectura Genérica + Skills
 
@@ -474,7 +473,7 @@ Define el contrato que cada skill debe cumplir (`src/skills/index.ts`):
 
 ---
 
-## 🔌 Plugin System
+## Plugin System
 
 ### ¿Cómo funciona?
 
@@ -516,7 +515,7 @@ Repo del proyecto
 
 ---
 
-## 🛡️ Seguridad y Control
+## Seguridad y Control
 
 ### Human-in-the-Loop
 
@@ -546,7 +545,7 @@ Todo se guarda en DB:
 
 ---
 
-## 📊 Escalabilidad
+## Escalabilidad
 
 ### Vertical (más recursos)
 
@@ -568,7 +567,7 @@ Todo se guarda en DB:
 
 ---
 
-## 🔧 Configuración
+## Configuración
 
 ### Variables de Entorno Críticas
 
@@ -598,7 +597,7 @@ REPOS_BASE_PATH=/tmp/gaia-workspace
 
 ---
 
-## 🚀 Deployment
+## Deployment
 
 ### Local Development
 
@@ -627,7 +626,7 @@ Ver `DEPLOYMENT.md` para detalles completos.
 
 ---
 
-## 📈 Métricas
+## Métricas
 
 | Métrica           | Valor Actual   | Target       |
 | ----------------- | -------------- | ------------ |
@@ -638,7 +637,7 @@ Ver `DEPLOYMENT.md` para detalles completos.
 
 ---
 
-## 🎯 Decisiones de Diseño
+## Decisiones de Diseño
 
 ### ¿Por qué PostgreSQL y no SQLite?
 

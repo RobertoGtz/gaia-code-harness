@@ -1,11 +1,10 @@
-# Guía de Testing - Gaia Code Harness
+# Guía de Testing — GAIA Code Harness
 
 > Cómo probar el proyecto localmente
-> Ticket: RPCO-37575
 
 ---
 
-## 🧪 Testing Rápido (5 minutos)
+## Testing Rápido (5 minutos)
 
 ### 1. Verificar Instalación
 
@@ -69,7 +68,7 @@ curl http://localhost:3000/jobs/$JOB_ID | jq .
 
 ---
 
-## 🔧 Testing Manual de Componentes
+## Testing Manual de Componentes
 
 ### Testing de Agentes
 
@@ -124,7 +123,7 @@ Requiere:
 
 ---
 
-## 🧪 Testing de API
+## Testing de API
 
 ### Colección de Requests
 
@@ -189,7 +188,7 @@ curl -X POST http://localhost:3000/jobs/$JOB_ID/retry
 
 ---
 
-## 🔍 Debugging
+## Debugging
 
 ### Ver Logs del Server
 
@@ -214,7 +213,7 @@ curl http://localhost:3000/jobs/$JOB_ID | jq '.job.spec'
 
 ---
 
-## 🧪 Testing de Flujo Completo
+## Testing de Flujo Completo
 
 ### Script de Testing Automatizado
 
@@ -281,7 +280,7 @@ echo "=== Test Complete ==="
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Problema: Job se queda en "pending"
 
@@ -305,7 +304,7 @@ echo "=== Test Complete ==="
 
 ---
 
-## 📊 Métricas de Testing
+## Métricas de Testing
 
 | Test         | Tiempo Esperado | Status |
 | ------------ | --------------- | ------ |
