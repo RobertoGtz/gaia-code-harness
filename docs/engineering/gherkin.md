@@ -1,11 +1,12 @@
 # Gherkin — GAIA Code Harness
 
-> "Once the project-spec.md is done, I have it create a set of .feature
-> files from the project-spec.md." Los `.feature` son lo que el humano
-> aprueba en la puerta, y el mapa que el `tdd_craftsman` recorre.
+> Una vez acordado el `project-spec.md`, el `gherkin_author` lo destila en escenarios ejecutables.
+> Los `.feature` son el contrato que el humano aprueba en la puerta y el mapa que el `tdd_craftsman` recorre.
 
 Los archivos viven en `features/<name>.feature`, donde `<name>` coincide
 con el campo `name` de `feature_list.json`.
+
+---
 
 ## Estructura
 
@@ -26,6 +27,8 @@ Feature: <propósito en una frase>
     Then ...
 ```
 
+---
+
 ## Reglas duras
 
 - **Un `Scenario` por comportamiento observable**, incluidos los caminos de
@@ -41,6 +44,8 @@ Feature: <propósito en una frase>
 - **Sin detalles de implementación.** El `.feature` describe comportamiento,
   no funciones ni clases. "Cuando se llama a `executeTDD()`" es incorrecto;
   "Cuando el job se crea con tddMode: true" es correcto.
+
+---
 
 ## Ejemplo (feature `pull_to_refresh` — plataforma iOS)
 
@@ -77,6 +82,8 @@ Feature: Pull-to-refresh en el feed
     And los items previos siguen visibles en la lista
 ```
 
+---
+
 ## De Gherkin a test (sin framework BDD)
 
 No usamos `behave`, `XCTest-Gherkin` ni similares para no añadir
@@ -94,12 +101,14 @@ El `tdd_craftsman` escribe estos tests uno a uno (Rojo→Verde→Refactor) y
 deja el mapa en `progress/tdd_<name>.md`. Así el `.feature` sigue siendo la
 fuente de verdad legible por el humano, sin pagar el coste de un framework.
 
+---
+
 ## Errores comunes a evitar
 
-| ❌ Incorrecto | ✅ Correcto |
-|---|---|
-| `Then el código funciona` | `Then la salida contiene "3 items"` |
+| ❌ Incorrecto                       | ✅ Correcto                                |
+| ----------------------------------- | ------------------------------------------ |
+| `Then el código funciona`           | `Then la salida contiene "3 items"`        |
 | `Given el sistema está configurado` | `Given el almacén tiene 3 notas guardadas` |
-| `When se ejecuta la feature` | `When el usuario toca el botón "Refresh"` |
-| Escenario sin tag `@s` | Todo escenario tiene `@s1`, `@s2`, etc. |
-| Múltiples `When` en un escenario | Un `When` por escenario |
+| `When se ejecuta la feature`        | `When el usuario toca el botón "Refresh"`  |
+| Escenario sin tag `@s`              | Todo escenario tiene `@s1`, `@s2`, etc.    |
+| Múltiples `When` en un escenario    | Un `When` por escenario                    |

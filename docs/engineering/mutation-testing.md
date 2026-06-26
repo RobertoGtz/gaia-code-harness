@@ -88,8 +88,6 @@ python3 tools/mutate.py src/agents/implementer.ts \
 
 ## El umbral
 
-### Modo Claude Code (agente `mutation_tester`)
-
 - **100% sobre las líneas nuevas o tocadas** por la feature es el ideal.
 - Mínimo aceptable: **80%** — alineado con `MutationTesterAgent.ts`.
 - Para código heredado no tocado por la feature, se mide pero no se bloquea.
@@ -97,22 +95,16 @@ python3 tools/mutate.py src/agents/implementer.ts \
   excluirse, pero **solo** con justificación explícita en
   `progress/mutation_<name>.md`. Abusar de esto es hacer trampa al juez.
 
-### Modo HTTP (`MutationTesterAgent.ts`)
-
-- Mismo umbral del 80%.
-- **No bloqueante**: si score < 80%, emite una advertencia en `progressLogs`
-  del job y continúa. El PR se crea igualmente.
-- En Claude Code mode, el `mutation_tester` **bloquea** y devuelve al
-  `tdd_craftsman` si no se supera el umbral.
-
 ---
 
 ## Quién hace qué
 
-| Modo        | Quién ejecuta                                | Efecto si falla                   |
-| ----------- | -------------------------------------------- | --------------------------------- |
-| Claude Code | agente `mutation_tester` (humano en el loop) | Bloquea; vuelve a `tdd_craftsman` |
-| HTTP        | `MutationTesterAgent.ts` (automático)        | Warning en logs; no bloquea PR    |
+| Modo             | Quién ejecuta                                | Efecto si score < 80%                |
+| ---------------- | -------------------------------------------- | ------------------------------------ |
+| **Claude Code**  | agente `mutation_tester` (humano en el loop) | Bloquea; vuelve a `tdd_craftsman`    |
+| **A — HTTP API** | `MutationTesterAgent.ts` (automático)        | Warning en logs; no bloquea PR       |
+| **B — CLI**      | `python3 tools/mutate.py` (manual)           | Exit 1; el humano decide si continúa |
+| **C — Webhook**  | `MutationTesterAgent.ts` (automático)        | Warning en logs; no bloquea PR       |
 
 El `mutation_tester` **mide y reporta**. No edita código.
 Un mutante sobreviviente es trabajo del `tdd_craftsman`: escribe el test
