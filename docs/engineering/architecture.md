@@ -494,24 +494,55 @@ Repo del proyecto
 3. **Manifest-specified:** `gaia.json → agents.{agentType}`
 4. **Default:** Usar agente del harness
 
-### Ejemplo gaia.json
+### Archivos que lee el harness en el repo del proyecto
+
+| Archivo                                 | Requerido | Para qué                                                              |
+| --------------------------------------- | --------- | --------------------------------------------------------------------- |
+| `docs/gaia.json`                        | No        | Manifest: nombre, versión, agentes custom, config                     |
+| `docs/RULES.md`                         | No        | Reglas de código/tests en texto libre — se inyectan como contexto LLM |
+| `docs/UNIT_TESTS.md`                    | No        | Reglas de testing específicas — se inyectan como contexto LLM         |
+| `docs/agents/{platform}-{agentType}.ts` | No        | Agente custom por plataforma                                          |
+
+### Ejemplo gaia.json completo
 
 ```json
 {
-  "name": "rappi-flutter",
+  "name": "mi-proyecto-flutter",
+  "platform": "flutter",
   "version": "1.0.0",
   "agents": {
-    "specAuthor": "flutter-spec-author.ts"
+    "specAuthor": "flutter-spec-author.ts",
+    "implementer": "flutter-implementer.ts",
+    "reviewer": "flutter-reviewer.ts"
   },
   "config": {
     "maxFilesToTouch": 10,
+    "requireTests": true,
+    "targetBranch": "develop",
+    "architecture": "clean",
     "patterns": {
-      "component": "lib/src/presentation/widgets/{name}.dart",
-      "test": "test/widgets/{name}_test.dart"
-    }
+      "widget": "lib/src/presentation/widgets/{Name}.dart",
+      "repository": "lib/src/data/repositories/{Name}Repository.dart",
+      "test": "test/{name}_test.dart"
+    },
+    "naming": {
+      "widget": "PascalCase",
+      "test": "snake_case_test"
+    },
+    "codeRules": [
+      "Usar BLoC para state management",
+      "No lógica de negocio en widgets"
+    ],
+    "testRules": [
+      "Cada widget tiene golden test",
+      "Mocks con mocktail, no mockito"
+    ],
+    "forbidden": ["lib/src/core/di/injection.dart", "pubspec.yaml"]
   }
 }
 ```
+
+> Si existe `docs/RULES.md`, los campos `codeRules`, `testRules` y `forbidden` de `gaia.json` se omiten para evitar duplicación. `RULES.md` tiene prioridad.
 
 ---
 
@@ -671,6 +702,6 @@ Ver `DEPLOYMENT.md` para detalles completos.
 
 **Documentación relacionada:**
 
-- [API.md](../API.md) - Referencia de endpoints
-- [DEPLOYMENT.md](./DEPLOYMENT.md) - Guía de deploy
-- [PLUGINS.md](../PLUGINS.md) - Sistema de plugins
+- [`API.md`](../API.md) — Referencia completa de endpoints REST + Webhook
+- [`docs/guides/setup.md`](../guides/setup.md) — Instalación y configuración por plataforma
+- [`docs/guides/production.md`](../guides/production.md) — Checklist pre-producción
