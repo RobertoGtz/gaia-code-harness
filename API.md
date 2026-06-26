@@ -386,11 +386,17 @@ Acepta tres formatos de payload:
   "tddMode": true,
   "requireTests": false,
   "maxFilesToTouch": 6,
+  "description": "Descripción opcional de la feature",
+  "module": "home",
+  "figmaUrl": "https://figma.com/file/abc/design",
+  "jiraEpicId": "EPIC-42",
   "acceptanceCriteria": [
     { "id": "ac-1", "text": "WHEN user has points THEN show banner" }
   ]
 }
 ```
+
+> Los campos `description`, `module`, `figmaUrl` y `jiraEpicId` son opcionales y se propagan al job igual que en `POST /jobs`.
 
 **Formato B — Jira issue webhook** (configura en Jira → Project settings → Webhooks):
 

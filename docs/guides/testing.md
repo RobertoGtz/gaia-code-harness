@@ -14,6 +14,28 @@
 
 ---
 
+## Unit tests del harness
+
+Tests unitarios internos que no requieren servidor ni Postgres ni LLM:
+
+```bash
+npm test                  # corre toda la suite Jest (47 tests, 5 suites)
+npm test -- --watch       # modo watch durante desarrollo
+npm test -- webhook       # filtra por nombre de suite
+```
+
+| Suite                     | Qué cubre                                            |
+| ------------------------- | ---------------------------------------------------- |
+| `webhook-parsers.test.ts` | `parseGenericBody` + `parseJiraWebhook` (Modo C)     |
+| `jira-errors.test.ts`     | Clases de error Jira (`JiraAuthError`, etc.)         |
+| `jira-parsers.test.ts`    | `extractTextFromADF` + `parseACFromText`             |
+| `disk-backend.test.ts`    | `DiskBackend` completo — CRUD, persistencia (Modo B) |
+| `state-backend.test.ts`   | Singleton `StateBackend` + wrappers de conveniencia  |
+
+> Estos tests son los más rápidos de correr y deben pasar siempre. Si alguno falla, hay un bug en el harness mismo, no en el workspace del job.
+
+---
+
 ## Modo A — HTTP API
 
 ### Iniciar servidor
