@@ -39,6 +39,11 @@ python3 tools/mutate.py lib/features/foo/repository.dart \
 python3 tools/mutate.py Sources/App.swift \
   --cmd "swift test" \
   --cwd /tmp/gaia-workspace/<jobId>
+
+# Android / Kotlin
+python3 tools/mutate.py app/src/main/kotlin/com/demo/app/Foo.kt \
+  --cmd "./gradlew testDebugUnitTest" \
+  --cwd /tmp/gaia-workspace/<jobId>
 ```
 
 El script aplica una mutación a la vez (operadores, retornos, constantes), corre los tests y registra KILLED / SURVIVED. Siempre restaura el archivo original.
@@ -71,7 +76,11 @@ Escribe `progress/mutation_{featureName}.md` con:
 
 ---
 
-## Equivalente en Modo HTTP
+## Equivalente en los modos TypeScript
 
-`MutationTesterAgent.ts` usa el mismo umbral del 80% pero es **no bloqueante**: registra un warning y deja que el PR proceda.
-En Modo Claude Code (este agente), **bloqueas** y devuelves al `tdd_craftsman` si no se supera el umbral.
+| Modo                          | Quién lo ejecuta         | Comportamiento si score < 80%                |
+| ----------------------------- | ------------------------ | -------------------------------------------- |
+| **A — HTTP API**              | `MutationTesterAgent.ts` | Warning en logs; PR procede igual            |
+| **B — CLI**                   | `MutationTesterAgent.ts` | Warning en logs; PR procede igual            |
+| **C — Webhook**               | `MutationTesterAgent.ts` | Warning en logs; PR procede igual            |
+| **Claude Code (este agente)** | Tú                       | **Bloqueante**: devuelves al `tdd_craftsman` |

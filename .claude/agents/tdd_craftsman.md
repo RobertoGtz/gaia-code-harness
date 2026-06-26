@@ -42,7 +42,7 @@ Ver `docs/engineering/tdd.md` para las Tres Leyes completas.
 npx ts-node src/cli/run.ts --id <jobId>   # reanuda desde el estado actual
 
 # iOS / Swift
-swift build                               # en el workspace del job
+swift test                                # en el workspace del job
 
 # Android / Kotlin
 ./gradlew test                            # en el directorio del proyecto
@@ -71,7 +71,11 @@ Cuando todos los escenarios pasen:
 
 ---
 
-## Equivalente en Modo HTTP
+## Equivalente en los modos TypeScript
 
-Cuando el job se crea via `POST /jobs` con `"tddMode": true`, el método `ImplementerAgent.executeTDD()` corre este mismo ciclo automáticamente.
-En Modo Claude Code (este agente), tú lo ejecutas de forma interactiva con el humano en el loop.
+| Modo                          | Cómo se activa                                         | Quién lo ejecuta                |
+| ----------------------------- | ------------------------------------------------------ | ------------------------------- |
+| **A — HTTP API**              | `POST /jobs` con `"tddMode": true`                     | `ImplementerAgent.executeTDD()` |
+| **B — CLI**                   | `--job job.json --approve` con `tddMode: true` en JSON | `ImplementerAgent.executeTDD()` |
+| **C — Webhook**               | `POST /webhook/trigger` con `"tddMode": true`          | `ImplementerAgent.executeTDD()` |
+| **Claude Code (este agente)** | Invocado por `craftsman_lead`                          | Interactivo con humano en loop  |
