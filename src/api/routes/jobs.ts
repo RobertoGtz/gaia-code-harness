@@ -71,10 +71,19 @@ export async function setupJobRoutes(app: FastifyInstance) {
    * 
    * Request Body (Option A — flat body, preferred):
    * {
-   *   "title": "Feature name",
-   *   "platform": "flutter",
-   *   "repo": "mi-org/mi-repo",
-   *   "acceptanceCriteria": ["WHEN x THEN y"]
+   *   "title": "Feature name",          // required
+   *   "platform": "flutter",            // required
+   *   "repo": "mi-org/mi-repo",         // required
+   *   "targetBranch": "develop",        // optional, default "develop"
+   *   "description": "...",             // optional
+   *   "module": "home",                 // optional
+   *   "figmaUrl": "https://...",        // optional
+   *   "jiraTicketId": "PROJ-123",       // optional
+   *   "jiraEpicId": "EPIC-42",          // optional
+   *   "tddMode": false,                 // optional, default false
+   *   "requireTests": true,             // optional, default true
+   *   "maxFilesToTouch": 5,             // optional, default 5
+   *   "acceptanceCriteria": ["WHEN x THEN y"]  // optional
    * }
    *
    * Request Body (Option B — Jira ticket only):

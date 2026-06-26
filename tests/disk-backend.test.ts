@@ -194,6 +194,8 @@ describe('DiskBackend', () => {
   describe('listJobs', () => {
     it('returns all created jobs sorted by createdAt desc', async () => {
       const a = await backend.createJob({ ...minimalJob, title: 'Job A' });
+      // Small delay so createdAt timestamps differ (filesystem clock resolution)
+      await new Promise(r => setTimeout(r, 5));
       const b = await backend.createJob({ ...minimalJob, title: 'Job B' });
       const list = await backend.listJobs();
       expect(list).toHaveLength(2);

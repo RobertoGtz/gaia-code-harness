@@ -227,7 +227,11 @@ export interface AgentResult {
   errorCode?: ErrorCode;
 }
 
-// Request/Response para API
+/**
+ * Request body for POST /jobs (Mode A) and POST /webhook/trigger generic format (Mode C).
+ * All fields except the minimum required set (title + platform + repo, or jiraTicketId)
+ * are optional and fall back to project defaults.
+ */
 export interface CreateJobRequest {
   jiraTicketId?: string;
   jiraEpicId?: string;
@@ -256,6 +260,11 @@ export interface CreateJobRequest {
   };
 }
 
+/**
+ * Request body for POST /jobs/:id/approve (Mode A).
+ * In Mode B (CLI) approval is handled via the --approve flag.
+ * In Mode C (Webhook) approval is automatic — this endpoint is not called.
+ */
 export interface ApproveSpecRequest {
   approved: boolean;
   feedback?: string;
