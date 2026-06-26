@@ -300,7 +300,7 @@ gaia-code-harness/
    ```
 
 3. **Explorar documentación:**
-   - `docs/ARCHITECTURE.md` - Arquitectura profunda
+   - `docs/engineering/architecture.md` - Arquitectura profunda
    - `API.md` - Referencia API
    - `PLUGINS.md` - Custom agents
 

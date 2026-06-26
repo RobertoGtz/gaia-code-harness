@@ -651,8 +651,8 @@ Una vez que el sistema crea el Pull Request, un desarrollador lo revisa en GitHu
 | Recurso              | Link                                        |
 | -------------------- | ------------------------------------------- |
 | API completa         | [`API.md`](../API.md)                       |
-| Arquitectura interna | [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md) |
-| Setup detallado      | [`docs/SETUP.md`](./SETUP.md)               |
+| Arquitectura interna | [`docs/engineering/architecture.md`](../engineering/architecture.md) |
+| Setup detallado      | [`docs/guides/setup.md`](../guides/setup.md)               |
 | Script de demo       | [`scripts/demo.sh`](../scripts/demo.sh)     |
 | Variables de entorno | [`.env.example`](../.env.example)           |
 

@@ -16,8 +16,8 @@
    y resuelve el entorno antes de tocar código.
 2. Lee `progress/current.md` para entender en qué estado quedó la última sesión.
 3. Lee `feature_list.json`. Toda feature nueva (`"sdd": true`) recorre el
-   pipeline de cinco fases — ver `docs/workflow.md` y §4.
-4. Lee `docs/workflow.md` antes de coordinar nada.
+   pipeline de cinco fases — ver `docs/engineering/workflow.md` y §4.
+4. Lee `docs/engineering/workflow.md` antes de coordinar nada.
 
 ---
 
@@ -32,10 +32,10 @@
 | `progress/history.md`          | Bitácora append-only de sesiones anteriores                                     | Si necesitas contexto histórico |
 | `project-spec.md`              | Spec conversada: propósito, contrato y decisiones por feature                   | Antes de destilar Gherkin o implementar |
 | `features/<name>.feature`      | Escenarios Gherkin (el contrato ejecutable que el humano aprueba)               | Antes de empezar el ciclo TDD |
-| `docs/workflow.md`             | El pipeline completo y los insights de cada fase                                | Antes de coordinar |
-| `docs/tdd.md`                  | Las Tres Leyes del TDD; el ciclo Rojo-Verde-Refactor                            | Antes de escribir código |
-| `docs/gherkin.md`              | Cómo escribir `.feature`; de Gherkin a test                                     | Antes de redactar/leer escenarios |
-| `docs/mutation-testing.md`     | Por qué y cómo; umbral; uso de `tools/mutate.py`                                | Antes de validar la suite |
+| `docs/engineering/workflow.md`             | El pipeline completo y los insights de cada fase                                | Antes de coordinar |
+| `docs/engineering/tdd.md`                  | Las Tres Leyes del TDD; el ciclo Rojo-Verde-Refactor                            | Antes de escribir código |
+| `docs/engineering/gherkin.md`              | Cómo escribir `.feature`; de Gherkin a test                                     | Antes de redactar/leer escenarios |
+| `docs/engineering/mutation-testing.md`     | Por qué y cómo; umbral; uso de `tools/mutate.py`                                | Antes de validar la suite |
 | `CHECKPOINTS.md`               | Criterios objetivos de "estado final correcto"                                  | Para auto-evaluarte |
 | `tools/mutate.py`              | Mutador determinístico sin dependencias (Python, TS, Swift, Kotlin)             | Fase de mutación |
 | `.claude/agents/`              | `craftsman_lead`, `spec_partner`, `gherkin_author`, `tdd_craftsman`, `judge`, `mutation_tester` | Si orquestas trabajo |
@@ -51,7 +51,7 @@
 | `src/cli/run.ts`               | CLI entry point para Claude Code mode con DiskBackend                           | Si modificas el CLI TS |
 | `src/db/index.ts`              | Postgres schema + `tdd_mode` column                                             | Si modificas la DB |
 | `src/types/index.ts`           | `CodeGenerationJob`, `CreateJobRequest` con `tddMode`                           | Si modificas tipos |
-| `docs/ARCHITECTURE.md`         | Arquitectura técnica profunda (dual-mode, agents, state machine)                | Antes de cambios estructurales |
+| `docs/engineering/architecture.md`         | Arquitectura técnica profunda (dual-mode, agents, state machine)                | Antes de cambios estructurales |
 | `API.md`                       | Referencia completa REST API                                                    | Antes de integrar HTTP mode |
 
 ---
@@ -66,7 +66,7 @@
 - **No saltes la puerta de aprobación humana** sobre los `.feature`. El
   `craftsman_lead` detiene el flujo en `spec_ready` y espera.
 - **TDD estricto: un test a la vez.** Nada de producción sin un test rojo
-  que la pida (`docs/tdd.md`).
+  que la pida (`docs/engineering/tdd.md`).
 - **Documenta lo que haces** en `progress/current.md` mientras trabajas.
 - **Deja el repositorio limpio** antes de cerrar la sesión (ver §5).
 - **Si no sabes algo, busca en `docs/`** antes de inventarlo.

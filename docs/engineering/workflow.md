@@ -73,7 +73,7 @@ su porqué.
 
 Cada comportamiento se vuelve un `Scenario` con `Given/When/Then` verificable.
 Esto es lo que el humano firma. A partir de aquí, la ambigüedad es un bug
-del contrato, no del código. Ver `docs/gherkin.md`.
+del contrato, no del código. Ver `docs/engineering/gherkin.md`.
 
 ### 3. La puerta humana va sobre el contrato, no sobre el código
 
@@ -85,7 +85,7 @@ arrastra todo el TDD. El `craftsman_lead` **para** aquí y espera.
 
 No se escriben todos los tests por adelantado. Se vive el ciclo pequeño:
 un test rojo → el mínimo verde → refactor en verde. Las Tres Leyes en
-`docs/tdd.md`. El código que ningún test pidió no existe.
+`docs/engineering/tdd.md`. El código que ningún test pidió no existe.
 
 ### 5. El review es el juego entero
 
@@ -102,7 +102,7 @@ hay código que nadie pidió, rechaza.
 
 Una suite verde solo dice que el código no explota. La prueba de mutación
 introduce defectos y exige que algún test falle. Es cara en CPU pero es la
-medida real de si la red atrapa peces. Ver `docs/mutation-testing.md`.
+medida real de si la red atrapa peces. Ver `docs/engineering/mutation-testing.md`.
 
 ---
 

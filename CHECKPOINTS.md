@@ -12,7 +12,7 @@
 ## C1 — El arnés está completo
 
 - [ ] Existen los archivos base: `AGENTS.md`, `init.sh`, `feature_list.json`, `progress/current.md`.
-- [ ] Existen los docs de disciplina: `docs/tdd.md`, `docs/gherkin.md`, `docs/mutation-testing.md`, `docs/workflow.md`.
+- [ ] Existen los docs de disciplina: `docs/engineering/tdd.md`, `docs/engineering/gherkin.md`, `docs/engineering/mutation-testing.md`, `docs/engineering/workflow.md`.
 - [ ] `./init.sh` termina con exit code 0.
 - [ ] `npx tsc --noEmit` termina sin errores.
 
@@ -25,7 +25,7 @@
 
 ## C3 — El código respeta la arquitectura
 
-- [ ] `src/` solo contiene los módulos previstos en `docs/ARCHITECTURE.md`.
+- [ ] `src/` solo contiene los módulos previstos en `docs/engineering/architecture.md`.
 - [ ] Los agentes TypeScript (`src/agents/`) no tienen lógica de plataforma —
       esa vive en `src/skills/{platform}/`.
 - [ ] No hay `console.log` de debug sueltos, ni TODOs sin contexto.
@@ -48,11 +48,11 @@
 - [ ] Toda feature con `"sdd": true` en estado `spec_ready`, `in_progress`
       o `done` tiene su `features/<name>.feature` y una sección en `project-spec.md`.
 - [ ] El `.feature` usa Gherkin con escenarios tagueados `@s1`, `@s2`, …
-      y cada `Then` afirma algo medible (ver `docs/gherkin.md`).
+      y cada `Then` afirma algo medible (ver `docs/engineering/gherkin.md`).
 - [ ] Cada escenario `@s` está cubierto por al menos un test concreto
       (mapa `@s → test` en `progress/tdd_<name>.md`).
 - [ ] No hay código de producción que ningún test rojo haya pedido
-      (disciplina TDD, ver `docs/tdd.md`).
+      (disciplina TDD, ver `docs/engineering/tdd.md`).
 
 ## C7 — Prueba de mutación
 

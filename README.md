@@ -42,7 +42,7 @@ PM escribe ACs
 | **B — CLI**      | `npx ts-node src/cli/run.ts --job mi-job.json`        | Desarrollo local, demos rápidos |
 | **C — Webhook**  | `POST /webhook/trigger` (Jira, Slack, GitHub Actions) | Producción, trigger automático  |
 
-→ Guía completa con ejemplos: **[`docs/GUIA_TRES_MODOS.md`](docs/GUIA_TRES_MODOS.md)**
+→ Guía completa con ejemplos: **[`docs/guides/quick-start.md`](docs/guides/quick-start.md)**
 
 ---
 
@@ -173,12 +173,12 @@ El sistema lee del ticket: título, descripción, criterios de aceptación, URL 
 
 | Documento                                                | Descripción                                            |
 | -------------------------------------------------------- | ------------------------------------------------------ |
-| **[`docs/GUIA_TRES_MODOS.md`](docs/GUIA_TRES_MODOS.md)** | Guía completa paso a paso de los 3 modos               |
-| **[`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md)**           | Demo con comandos listos para copiar                   |
+| **[`docs/guides/quick-start.md`](docs/guides/quick-start.md)** | Guía completa paso a paso de los 3 modos               |
+| **[`docs/guides/demo.md`](docs/guides/demo.md)**           | Demo con comandos listos para copiar                   |
 | **[`API.md`](API.md)**                                   | Referencia completa de endpoints REST + Webhook        |
-| **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)**       | Arquitectura interna, máquina de estados, agentes      |
-| **[`docs/SETUP.md`](docs/SETUP.md)**                     | Setup detallado por plataforma (Flutter, iOS, Android) |
-| **[`docs/INDEX.md`](docs/INDEX.md)**                     | Mapa completo de toda la documentación                 |
+| **[`docs/engineering/architecture.md`](docs/engineering/architecture.md)**       | Arquitectura interna, máquina de estados, agentes      |
+| **[`docs/guides/setup.md`](docs/guides/setup.md)**                     | Setup detallado por plataforma (Flutter, iOS, Android) |
+| **[`docs/index.md`](docs/index.md)**                     | Mapa completo de toda la documentación                 |
 | **[`AGENTS.md`](AGENTS.md)**                             | Mapa de navegación para agentes IA (Claude Code mode)  |
 
 ---

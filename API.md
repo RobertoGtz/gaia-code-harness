@@ -1,7 +1,7 @@
 # API Reference — GAIA Code Harness
 
 > Referencia completa de la API REST y el webhook de entrada.  
-> Ver [`docs/GUIA_TRES_MODOS.md`](docs/GUIA_TRES_MODOS.md) para guías de uso con ejemplos.
+> Ver [`docs/guides/quick-start.md`](docs/guides/quick-start.md) para guías de uso con ejemplos.
 
 ---
 
@@ -507,4 +507,4 @@ El `job.json` acepta los mismos campos que `POST /jobs` body flat (incluido `tdd
 
 ---
 
-**Ver también:** [`docs/GUIA_TRES_MODOS.md`](docs/GUIA_TRES_MODOS.md) · [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`README.md`](README.md)
+**Ver también:** [`docs/guides/quick-start.md`](docs/guides/quick-start.md) · [`docs/engineering/architecture.md`](docs/engineering/architecture.md) · [`README.md`](README.md)
