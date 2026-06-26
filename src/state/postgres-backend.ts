@@ -1,6 +1,6 @@
 /**
- * @fileoverview Postgres state backend — wraps the existing db/ module
- * @description Adapts the existing PostgreSQL CRUD functions to the StateBackend interface.
+ * @fileoverview Postgres state backend — Modes A and C (HTTP/Webhook + Postgres)
+ * @description Adapts the PostgreSQL CRUD functions to the StateBackend interface.
  * @module state/postgres-backend
  */
 

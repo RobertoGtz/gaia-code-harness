@@ -1,7 +1,7 @@
 /**
  * @fileoverview State backend abstraction for Gaia Code Harness
  * @description Pluggable interface so the same orchestration logic works with
- *              PostgresBackend (Modos A y C) o DiskBackend/JSON (Modo B y Claude Code).
+ *              PostgresBackend (Modes A and C — HTTP/Webhook + Postgres) or DiskBackend/JSON (Mode B — CLI + disk).
  * @module state
  */
 

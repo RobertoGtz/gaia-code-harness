@@ -1,6 +1,6 @@
 /**
- * @fileoverview HTTP API Server for the Gaia Code Harness
- * @description Fastify-based REST API handling job creation, status checks, and spec approval
+ * @fileoverview HTTP API server — Mode A (HTTP + Postgres) and Mode C (Webhook + Postgres)
+ * @description Fastify-based REST API handling job creation, status checks, spec approval, and inbound webhooks
  * @module api/server
  */
 

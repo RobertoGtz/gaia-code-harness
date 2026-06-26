@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * @fileoverview CLI entry point for Claude Code / local mode
+ * @fileoverview CLI entry point — Mode B (CLI + disk backend)
  * @description Runs a single job from a JSON file or inline args, using the
- *              disk state backend. Designed to be invoked by Claude Code agents.
+ *              DiskBackend. Designed for local development and Claude Code agent use.
  *
  * Usage:
  *   npx ts-node src/cli/run.ts --job path/to/job.json

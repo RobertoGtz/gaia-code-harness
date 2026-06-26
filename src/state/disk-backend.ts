@@ -1,5 +1,5 @@
 /**
- * @fileoverview Disk JSON state backend — for Claude Code / local mode
+ * @fileoverview Disk JSON state backend — Mode B (CLI + disk)
  * @description Persists job state as a JSON file on disk so it survives
  *              process restarts and context window resets. Each job maps to
  *              a single file at {progressDir}/{jobId}.json.

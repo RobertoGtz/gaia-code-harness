@@ -62,7 +62,7 @@ gaia-code-harness/
 ├── .env.example       ← Variables de entorno documentadas
 │
 ├── docs/
-│   ├── index.md       ← Este archivo
+│   ├── INDEX.md       ← Este archivo
 │   ├── guides/        ← Documentación para USAR el sistema
 │   │   ├── quick-start.md   ← Los 3 modos paso a paso
 │   │   ├── demo.md          ← Demo con comandos listos
