@@ -55,7 +55,7 @@ export async function setupRepository(
         // Use git clone from local path to preserve .git history
         const isGitRepo = await fileExists(path.join(localRepo, '.git'));
         if (isGitRepo) {
-          await cloneRepository(localRepo, repoPath, job.targetBranch || 'main');
+          await cloneRepository(localRepo, repoPath, job.targetBranch || 'develop');
           return { success: true, output: `Repository cloned from ${localRepo}` };
         }
         await copyDirectory(localRepo, repoPath);
