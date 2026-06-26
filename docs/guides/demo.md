@@ -281,6 +281,50 @@ Tú (Producto)                    Sistema (Harness)
 
 ---
 
+## Demo — Modo B (CLI, sin servidor)
+
+No requiere Docker ni servidor HTTP. Ideal para desarrollo local y demos rápidas.
+
+```bash
+# 1. Crear job.json
+cat > /tmp/demo-job.json <<'EOF'
+{
+  "platform": "flutter",
+  "title": "Add promotional banner to home screen",
+  "repo": "mi-org/demo-repo",
+  "targetBranch": "develop",
+  "requireTests": false,
+  "maxFilesToTouch": 6,
+  "acceptanceCriteria": [
+    "WHEN user opens home screen THEN display promotional banner",
+    "WHEN user taps banner THEN navigate to promotion details"
+  ]
+}
+EOF
+
+# 2. Ejecutar (aprobación automática del spec)
+npx ts-node src/cli/run.ts --job /tmp/demo-job.json --approve
+
+# Con TDD (Red-Green-Refactor)
+npx ts-node src/cli/run.ts --job /tmp/demo-job.json --tdd --approve
+
+# Desde un ticket de Jira
+npx ts-node src/cli/run.ts --jira PROJ-123 --approve
+
+# Ver todos los jobs guardados en disco
+npx ts-node src/cli/run.ts --list
+```
+
+El progreso se guarda en `progress/<JOB_ID>.md` — ábrelo en otra terminal para seguirlo en tiempo real:
+
+```bash
+tail -f progress/<JOB_ID>.md
+```
+
+> **Diferencia clave vs. Modo A:** no hay servidor ni Postgres — el CLI corre el pipeline completo en el mismo proceso y termina. Los jobs persisten en `progress/.state/`.
+
+---
+
 ## Demo — Modo CI / Webhook
 
 Este modo permite que sistemas externos (Jira, Slack, GitHub Actions, etc.) arranquen un job automáticamente y reciban notificaciones en tiempo real.
