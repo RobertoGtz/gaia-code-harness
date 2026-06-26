@@ -178,7 +178,7 @@ El sistema lee del ticket: título, descripción, criterios de aceptación, URL 
 | **[`API.md`](API.md)**                                                     | Referencia completa de endpoints REST + Webhook        |
 | **[`docs/engineering/architecture.md`](docs/engineering/architecture.md)** | Arquitectura interna, máquina de estados, agentes      |
 | **[`docs/guides/setup.md`](docs/guides/setup.md)**                         | Setup detallado por plataforma (Flutter, iOS, Android) |
-| **[`docs/index.md`](docs/index.md)**                                       | Mapa completo de toda la documentación                 |
+| **[`docs/INDEX.md`](docs/INDEX.md)**                                       | Mapa completo de toda la documentación                 |
 | **[`AGENTS.md`](AGENTS.md)**                                               | Mapa de navegación para agentes IA (Claude Code mode)  |
 
 ---

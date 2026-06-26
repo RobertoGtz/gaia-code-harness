@@ -4,7 +4,7 @@
 
 ---
 
-## Requisitos Previos
+## Requisitos previos
 
 | Requisito      | Modo A (HTTP API) |   Modo B (CLI)    | Modo C (Webhook)  |
 | -------------- | :---------------: | :---------------: | :---------------: |
@@ -17,12 +17,11 @@
 
 ---
 
-## Quick Start (5 minutos)
+## Quick start (5 minutos)
 
-### 1. Clonar y Instalar
+### 1. Instalar dependencias
 
 ```bash
-cd ~/Desktop/gaia-code-harness
 npm install
 ```
 
@@ -94,7 +93,7 @@ Debería responder:
 
 ---
 
-## Configuración Detallada
+## Configuración detallada
 
 ### Base de Datos PostgreSQL
 
@@ -133,25 +132,25 @@ Si quieres usar repos locales en lugar de clonar desde GitHub:
 
 ```bash
 # Crear directorio para repos locales
-mkdir -p ~/Desktop/repos
+mkdir -p /path/to/repos
 
 # Crear repo Flutter de demo
-mkdir -p ~/Desktop/repos/demo-repo
-cd ~/Desktop/repos/demo-repo
+mkdir -p /path/to/repos/demo-repo
+cd /path/to/repos/demo-repo
 flutter create . --project-name demo_app
 git init && git checkout -b develop
 git add . && git commit -m "Initial commit"
 
 # Crear repo iOS de demo (SPM)
-mkdir -p ~/Desktop/repos/demo-repo-ios
-cd ~/Desktop/repos/demo-repo-ios
+mkdir -p /path/to/repos/demo-repo-ios
+cd /path/to/repos/demo-repo-ios
 git init && git checkout -b develop
 # Crear Package.swift, Sources/, Tests/ (ver scripts/demo.sh)
 git add . && git commit -m "Initial commit"
 
 # Crear repo Android de demo (Gradle Kotlin DSL)
-mkdir -p ~/Desktop/repos/demo-repo-android
-cd ~/Desktop/repos/demo-repo-android
+mkdir -p /path/to/repos/demo-repo-android
+cd /path/to/repos/demo-repo-android
 git init && git checkout -b develop
 # Crear build.gradle.kts, app/, settings.gradle.kts
 git add . && git commit -m "Initial commit"
@@ -160,7 +159,7 @@ git add . && git commit -m "Initial commit"
 Configurar en `.env`:
 
 ```
-LOCAL_REPOS_PATH=/Users/tu-usuario/Desktop/repos
+LOCAL_REPOS_PATH=/path/to/repos
 ```
 
 El harness clonará desde el path local (preservando `.git`) en vez de intentar clonar desde GitHub.
@@ -191,9 +190,9 @@ El harness clonará desde el path local (preservando `.git`) en vez de intentar 
 
 ---
 
-## Testing
+## Verificación del setup
 
-### Verificar Instalación
+### Verificar instalación
 
 ```bash
 # 1. Server corriendo
@@ -215,7 +214,7 @@ curl -s -X POST http://localhost:3000/jobs \
 curl http://localhost:3000/jobs
 ```
 
-### Run Demo Script
+### Demo script
 
 ```bash
 # Flutter (default)
@@ -230,7 +229,7 @@ curl http://localhost:3000/jobs
 
 ---
 
-## Solución de Problemas
+## Solución de problemas
 
 ### Error: "Cannot find module"
 
@@ -267,7 +266,7 @@ https://docs.flutter.dev/get-started/install
 
 ---
 
-## Estructura del Proyecto
+## Estructura del proyecto
 
 ```
 gaia-code-harness/
@@ -304,7 +303,7 @@ gaia-code-harness/
 
 ---
 
-## Próximos Pasos
+## Próximos pasos
 
 1. **Verificar setup:**
 
@@ -326,7 +325,7 @@ gaia-code-harness/
 
 ---
 
-## Checklist de Verificación
+## Checklist de verificación
 
 - [ ] Node.js 18+ instalado
 - [ ] PostgreSQL corriendo _(solo Modos A y C)_
