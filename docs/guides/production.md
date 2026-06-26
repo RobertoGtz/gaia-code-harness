@@ -49,7 +49,7 @@ Solo instala el SDK de la plataforma que vayas a usar.
 **iOS (solo macOS):**
 
 - [ ] Xcode con Swift 5.9+ instalado
-- [ ] `swift build` funciona en el repo target
+- [ ] `swift test` funciona en el repo target
 - [ ] SwiftLint instalado (`brew install swiftlint`) — opcional
 
 **Android:**
