@@ -149,7 +149,7 @@ export async function setupJobRoutes(app: FastifyInstance) {
           tddMode: body.tddMode ?? false,
         };
       } else {
-        // Solo ticket ID — fetch real data from Jira
+        // Jira-only — fetch full data from ticket
         const ticketKey = body.jiraTicketId || body.jiraEpicId!;
         const ticket = await fetchJiraTicket(ticketKey);
 

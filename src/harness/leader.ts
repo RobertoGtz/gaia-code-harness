@@ -229,14 +229,14 @@ async function handlePending(job: CodeGenerationJob): Promise<void> {
   await updateJobStatus(job.id, 'fetching_jira', { currentAgent: 'Leader' });
   await addProgressLog(job.id, 'Starting job orchestration');
   
-  // Si tenemos contexto completo de Gaia, saltamos directo a generar spec
-  // Si solo tenemos ticket ID, primero fetcheamos de Jira
+  // Full context provided — skip directly to spec generation
+  // Jira-only payload — fetch ticket data first
   if (job.acceptanceCriteria.length > 0) {
     await updateJobStatus(job.id, 'spec_generating');
-    await orchestrateJob(job.id); // Re-entrar
+    await orchestrateJob(job.id); // re-enter
   } else {
-    // Necesitamos fetchear de Jira
-    await orchestrateJob(job.id); // Re-entrar
+    // Need to fetch from Jira before spec generation
+    await orchestrateJob(job.id); // re-enter
   }
 }
 
@@ -291,7 +291,7 @@ async function handleFetchingJira(job: CodeGenerationJob): Promise<void> {
     await addProgressLog(job.id, `Jira ticket fetched: "${ticket.title}" [${ticket.platform || 'no platform label'}] — ${ticket.acceptanceCriteria.length} ACs`);
     await updateJobStatus(job.id, 'spec_generating', enriched);
     
-    // Continuar flujo
+    // Continue pipeline
     await orchestrateJob(job.id);
   } catch (error) {
     let message: string;
@@ -362,12 +362,10 @@ async function handleSpecGenerating(job: CodeGenerationJob): Promise<void> {
   await addProgressLog(job.id, `Requirements: ${result.spec?.requirements.length || 0}`);
   await addProgressLog(job.id, `Tasks: ${result.spec?.tasks.length || 0}`);
   
-  // Guardar spec y pausar para aprobación humana
+  // Save spec and pause — pipeline resumes when POST /jobs/:id/approve is called
   await updateJobStatus(job.id, 'spec_ready', { spec: result.spec });
   leaderWarn('Spec ready — waiting for human approval (POST /jobs/:id/approve)');
   await addProgressLog(job.id, 'Waiting for human approval of spec');
-  
-  // Aquí el Leader se detiene y espera a que alguien llame POST /jobs/:id/approve
 }
 
 /**
