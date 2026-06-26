@@ -94,7 +94,7 @@ export interface GitConfig {
  * @throws Error if clone fails
  * @example
  * await cloneRepository(
- *   'https://github.com/rappi/repo.git',
+ *   'https://github.com/mi-org/mi-repo.git',
  *   '/workspace/repo',
  *   'develop'
  * );
@@ -183,7 +183,7 @@ export async function commitAndPush(
     // If GITHUB_TOKEN + repo provided, point origin to GitHub before pushing
     const token = process.env.GITHUB_TOKEN;
     if (token && repo) {
-      const fullRepo = repo.includes('/') ? repo : `${process.env.GITHUB_OWNER || 'rappi'}/${repo}`;
+      const fullRepo = repo.includes('/') ? repo : `${process.env.GITHUB_OWNER || 'mi-org'}/${repo}`;
       const githubUrl = `https://${token}@github.com/${fullRepo}.git`;
       try {
         await git.remote(['set-url', 'origin', githubUrl]);
@@ -256,14 +256,14 @@ export async function getModifiedFiles(git: SimpleGit): Promise<string[]> {
  * @throws Error if GITHUB_TOKEN not set or API call fails
  * @example
  * const pr = await createGitHubPR({
- *   owner: 'rappi',
- *   repo: 'rpp-pyme-multiplatform',
- *   title: '[RPP-1234] Add promotional banner',
+ *   owner: 'mi-org',
+ *   repo: 'mi-repo',
+ *   title: '[PROJ-123] Add promotional banner',
  *   body: '## Changes\n- Added banner widget',
- *   head: 'feature/RPP-1234-banner',
+ *   head: 'feature/PROJ-123-banner',
  *   base: 'develop'
  * });
- * // pr.url: 'https://github.com/rappi/.../pull/123'
+ * // pr.url: 'https://github.com/mi-org/mi-repo/pull/123'
  */
 export async function createGitHubPR(options: {
   owner: string;

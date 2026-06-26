@@ -98,7 +98,7 @@ export interface AcceptanceCriterion {
  *   id: '550e8400-e29b-41d4-a716-446655440000',
  *   title: 'Add promotional banner',
  *   platform: 'flutter',
- *   repo: 'rpp-pyme-multiplatform',
+ *   repo: 'mi-org/mi-repo',
  *   status: 'pending',
  *   acceptanceCriteria: [...],
  *   maxFilesToTouch: 5,
@@ -108,7 +108,7 @@ export interface AcceptanceCriterion {
 export interface CodeGenerationJob {
   /** Unique identifier (UUID) */
   id: string;
-  /** Associated Jira ticket ID (e.g., 'RPP-1234') */
+  /** Associated Jira ticket ID (e.g., 'PROJ-123') */
   jiraTicketId?: string;
   /** Associated Jira epic ID */
   jiraEpicId?: string;
@@ -118,7 +118,7 @@ export interface CodeGenerationJob {
   title: string;
   /** Target platform for code generation */
   platform: Platform;
-  /** Repository name (e.g., 'rpp-pyme-multiplatform') */
+  /** Repository name (e.g., 'mi-org/mi-repo') */
   repo: string;
   /** Module within monorepo (e.g., 'pay_multiplatform_home_web') */
   module?: string;
