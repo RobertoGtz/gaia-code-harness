@@ -29,11 +29,18 @@
 
 ---
 
-## 2. Base de datos (Modos A y C)
+## 2. Base de datos
+
+**Modos A y C** (requieren PostgreSQL):
 
 - [ ] PostgreSQL 15+ disponible (local o remoto)
 - [ ] `DATABASE_URL` configurado en `.env`
 - [ ] Schema inicializado: `npm run db:init`
+
+**Modo B** (CLI — no requiere base de datos):
+
+- [ ] `progress/.state/` con permisos de escritura para el usuario que corre el CLI
+- [ ] `LOCAL_REPOS_PATH` configurado si usas repos locales en lugar de clonar desde GitHub
 
 ---
 
@@ -81,11 +88,12 @@ EXPOSE 3000
 CMD ["npm", "start"]
 ```
 
-| Opción              | Complejidad | Costo aprox. | Cuándo usarla    |
-| ------------------- | ----------- | ------------ | ---------------- |
-| VM simple (EC2/GCE) | Baja        | ~$30/mes     | Proof of concept |
-| Docker en VM        | Media       | ~$30/mes     | Staging          |
-| ECS / Cloud Run     | Media       | ~$50/mes     | Producción       |
+| Opción                         | Complejidad | Costo aprox. | Cuándo usarla       |
+| ------------------------------ | ----------- | ------------ | ------------------- |
+| VM simple (EC2/GCE)            | Baja        | ~$30/mes     | Proof of concept    |
+| Docker en VM                   | Media       | ~$30/mes     | Staging             |
+| ECS / Cloud Run                | Media       | ~$50/mes     | Producción          |
+| **CLI en GitHub Actions / CI** | Baja        | $0 (Actions) | Modo B sin servidor |
 
 ### Seguridad
 
