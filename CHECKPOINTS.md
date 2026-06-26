@@ -56,13 +56,15 @@
 
 ## C7 — Prueba de mutación
 
-- [ ] La feature `done` superó la prueba de mutación:
-      ```
-      python3 tools/mutate.py <archivo_tocado> --cmd "<runner>" --threshold 80
-      ```
-      con score ≥ 80%.
-- [ ] En HTTP mode: `MutationTesterAgent.ts` reportó score ≥ 80% en los logs
-      del job (`progressLogs` del job en `GET /jobs/:id`).
+- [ ] La feature `done` superó la prueba de mutación con score ≥ 80%:
+
+  | Modo             | Cómo verificar                                                                   |
+  | ---------------- | -------------------------------------------------------------------------------- |
+  | **A — HTTP API** | `MutationTesterAgent.ts` reportó score ≥ 80% en `progressLogs` (`GET /jobs/:id`) |
+  | **B — CLI**      | `python3 tools/mutate.py <archivo> --cmd "<runner>" --threshold 80` exit 0       |
+  | **C — Webhook**  | Igual que Modo A (mismo agente, solo warn si < 80%)                              |
+  | **Claude Code**  | Agente `mutation_tester` aprobó en `progress/mutation_<name>.md`                 |
+
 - [ ] Cualquier mutante sobreviviente queda documentado en
       `progress/mutation_<name>.md` (matado con un test nuevo, o
       justificado explícitamente como equivalente).

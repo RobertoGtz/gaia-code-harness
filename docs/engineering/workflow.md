@@ -6,13 +6,14 @@
 
 ## Los tres modos y su pipeline
 
-| Modo             | Cómo arranca                 | Backend    | Aprobación humana        |
-| ---------------- | ---------------------------- | ---------- | ------------------------ |
-| **A — HTTP API** | `POST /jobs`                 | PostgreSQL | `POST /jobs/:id/approve` |
-| **B — CLI**      | `npx ts-node src/cli/run.ts` | Disk JSON  | `--approve` flag         |
-| **C — Webhook**  | `POST /webhook/trigger`      | PostgreSQL | `POST /jobs/:id/approve` |
+| Modo             | Cómo arranca                 | Backend    | Aprobación de spec         | `tddMode` soportado |
+| ---------------- | ---------------------------- | ---------- | -------------------------- | ------------------- |
+| **A — HTTP API** | `POST /jobs`                 | PostgreSQL | `POST /jobs/:id/approve`   | ✅ sí               |
+| **B — CLI**      | `npx ts-node src/cli/run.ts` | Disk JSON  | `--approve` flag (o pausa) | ✅ sí               |
+| **C — Webhook**  | `POST /webhook/trigger`      | PostgreSQL | Automática (sin pausa)     | ✅ sí               |
 
-Los tres modos comparten el mismo `leader.ts` (máquina de estados) y los mismos agentes. La diferencia es solo en cómo entra el job y dónde persiste el estado.
+Los tres modos comparten el mismo `leader.ts` (máquina de estados) y los mismos agentes.  
+La diferencia es en cómo entra el job, dónde persiste el estado y si la aprobación del spec es manual o automática.
 
 ---
 
