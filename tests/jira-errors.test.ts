@@ -1,5 +1,4 @@
 import {
-  JiraError,
   JiraConfigError,
   JiraAuthError,
   JiraNotFoundError,
@@ -8,54 +7,42 @@ import {
   JiraNetworkError,
 } from '../src/tools/jira';
 
-let passed = 0;
-let failed = 0;
+describe('Jira error classes', () => {
+  it('JiraConfigError has correct name and mentions env vars', () => {
+    const err = new JiraConfigError();
+    expect(err.name).toBe('JiraConfigError');
+    expect(err.message).toContain('JIRA_BASE_URL');
+  });
 
-function assert(condition: boolean, message: string): void {
-  if (condition) {
-    passed++;
-    console.log(`PASS: ${message}`);
-  } else {
-    failed++;
-    console.error(`FAIL: ${message}`);
-  }
-}
+  it('JiraAuthError has status 401 and stores jiraKey', () => {
+    const err = new JiraAuthError('PROJ-123');
+    expect(err.name).toBe('JiraAuthError');
+    expect(err.status).toBe(401);
+    expect(err.jiraKey).toBe('PROJ-123');
+    expect(err.message).toContain('Authentication failed');
+  });
 
-function testErrorClasses(): void {
-  const configErr = new JiraConfigError();
-  assert(configErr.name === 'JiraConfigError', 'JiraConfigError has correct name');
-  assert(configErr.message.includes('JIRA_BASE_URL'), 'JiraConfigError mentions env vars');
+  it('JiraNotFoundError has status 404', () => {
+    const err = new JiraNotFoundError('PROJ-404');
+    expect(err.status).toBe(404);
+    expect(err.message).toContain('not found');
+  });
 
-  const authErr = new JiraAuthError('PROJ-123');
-  assert(authErr.name === 'JiraAuthError', 'JiraAuthError has correct name');
-  assert(authErr.status === 401, 'JiraAuthError has status 401');
-  assert(authErr.jiraKey === 'PROJ-123', 'JiraAuthError stores jiraKey');
-  assert(authErr.message.includes('Authentication failed'), 'JiraAuthError message is clear');
+  it('JiraRateLimitError has status 429 and mentions retry-after', () => {
+    const err = new JiraRateLimitError('PROJ-123', 30);
+    expect(err.status).toBe(429);
+    expect(err.message).toContain('30s');
+  });
 
-  const notFoundErr = new JiraNotFoundError('PROJ-404');
-  assert(notFoundErr.status === 404, 'JiraNotFoundError has status 404');
-  assert(notFoundErr.message.includes('not found'), 'JiraNotFoundError message is clear');
+  it('JiraServerError has the given HTTP status', () => {
+    const err = new JiraServerError('PROJ-123', 503);
+    expect(err.status).toBe(503);
+    expect(err.message).toContain('503');
+  });
 
-  const rateErr = new JiraRateLimitError('PROJ-123', 30);
-  assert(rateErr.status === 429, 'JiraRateLimitError has status 429');
-  assert(rateErr.message.includes('30s'), 'JiraRateLimitError mentions retry-after');
-
-  const serverErr = new JiraServerError('PROJ-123', 503);
-  assert(serverErr.status === 503, 'JiraServerError has status 503');
-  assert(serverErr.message.includes('503'), 'JiraServerError mentions status code');
-
-  const netErr = new JiraNetworkError('PROJ-123', new Error('ECONNREFUSED'));
-  assert(netErr.name === 'JiraNetworkError', 'JiraNetworkError has correct name');
-  assert(netErr.message.includes('ECONNREFUSED'), 'JiraNetworkError includes cause message');
-}
-
-async function main(): Promise<void> {
-  testErrorClasses();
-  console.log(`\n${passed} passed, ${failed} failed`);
-  if (failed > 0) process.exit(1);
-}
-
-main().catch(err => {
-  console.error('Fatal:', err);
-  process.exit(1);
+  it('JiraNetworkError has correct name and includes cause message', () => {
+    const err = new JiraNetworkError('PROJ-123', new Error('ECONNREFUSED'));
+    expect(err.name).toBe('JiraNetworkError');
+    expect(err.message).toContain('ECONNREFUSED');
+  });
 });
