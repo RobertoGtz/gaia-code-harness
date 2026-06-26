@@ -159,6 +159,7 @@ async function main(): Promise<void> {
 
   const jobInit = {
     jiraTicketId:         raw.jiraTicketId as string | undefined,
+    jiraEpicId:           raw.jiraEpicId   as string | undefined,
     initiativeId:         (raw.initiativeId as string | undefined) ?? 'cli',
     title:                raw.title as string,
     platform:             raw.platform as Platform,
@@ -166,6 +167,7 @@ async function main(): Promise<void> {
     module:               raw.module as string | undefined,
     targetBranch:         (raw.targetBranch as string | undefined) ?? 'develop',
     description:          raw.description as string | undefined,
+    figmaUrl:             raw.figmaUrl    as string | undefined,
     acceptanceCriteria,
     maxFilesToTouch:      (raw.maxFilesToTouch as number | undefined) ?? 5,
     requireTests:         (raw.requireTests as boolean | undefined) ?? true,
