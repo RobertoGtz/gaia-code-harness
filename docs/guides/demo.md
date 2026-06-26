@@ -251,11 +251,9 @@ Estados de error retryables: `test_error`, `build_error`, `review_error`, `faile
 
 Cuando el status sea `"done"`, en la respuesta verás:
 
-- **`prUrl`** — Link al Pull Request (en modo demo dice "dry-run" porque no tenemos token de GitHub)
+- **`prUrl`** — Link al Pull Request en GitHub (o `dry-run` si no hay `GITHUB_TOKEN` configurado)
 - **`progressLogs`** — Toda la bitácora de lo que hizo el sistema
 - **`spec`** — El plan técnico que aprobaste
-
-> **En producción**, el `prUrl` sería un link real a GitHub donde un desarrollador puede revisar el código antes de hacer merge.
 
 ---
 
@@ -280,8 +278,6 @@ Tú (Producto)                    Sistema (Harness)
 ```
 
 **Tiempo total: ~50–90 segundos**
-
----
 
 ---
 
@@ -464,4 +460,4 @@ curl -s -X POST http://localhost:3000/jobs/TU_JOB_ID/approve \
 
 ---
 
-> **¿Dudas?** Contacta al equipo en #gaia-code-harness en Slack.
+> **¿Dudas?** Revisa [`docs/guides/testing.md`](testing.md) para troubleshooting detallado.

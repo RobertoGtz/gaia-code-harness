@@ -81,14 +81,16 @@
 
 ### 0. Modo de Orquestación
 
-El harness soporta dos modos, ambos usan la misma máquina de estados:
+El harness soporta tres modos; todos usan la misma máquina de estados internamente:
 
-| Modo                | Entry point                  | State backend        | Casos de uso                                  |
-| ------------------- | ---------------------------- | -------------------- | --------------------------------------------- |
-| **HTTP + Postgres** | `npm run dev` → `POST /jobs` | `PostgresBackend`    | Integración con plataforma, demos, producción |
-| **Claude Code CLI** | `npx ts-node src/cli/run.ts` | `DiskBackend` (JSON) | Desarrollo local, sin DB                      |
+| Modo                      | Entry point                        | State backend        | Casos de uso                      |
+| ------------------------- | ---------------------------------- | -------------------- | --------------------------------- |
+| **A — HTTP API**          | `npm run dev` → `POST /jobs`       | `PostgresBackend`    | CI/CD, Postman, integraciones     |
+| **B — CLI**               | `npx ts-node src/cli/run.ts --job` | `DiskBackend` (JSON) | Desarrollo local, demos, sin DB   |
+| **C — Webhook**           | `POST /webhook/trigger`            | `PostgresBackend`    | Jira, Slack, automatización total |
+| **Claude Code (agentes)** | `.claude/agents/craftsman_lead`    | Archivos en disco    | Ciclo conversacional SDD          |
 
-`StateBackend` es una interfaz en `src/state/index.ts`. El Leader y las rutas HTTP importan de `state/` — nunca directamente de `db/`.
+`StateBackend` es una interfaz en `src/state/index.ts`; el Leader y las rutas HTTP importan de `state/` — nunca directamente de `db/`.
 
 ### 1. Creación de Job
 
@@ -427,7 +429,7 @@ Define el contrato que cada skill debe cumplir (`src/skills/index.ts`):
 
 **`executeTDD()` — modo Red-Green-Refactor:**
 
-1-3. Igual que `execute()` 4. Escribe todos los archivos impl (no test) para establecer el baseline 5. Por cada test task, en orden:
+1–3. Igual que `execute()` 4. Escribe todos los archivos impl (no test) para establecer el baseline 5. Por cada test task, en orden:
 
 - **RED**: escribe test → confirma que falla por razón correcta
 - **GREEN**: `fixAllFiles()` con LLM → confirma que pasa
@@ -653,7 +655,9 @@ CMD ["npm", "start"]
 
 ### AWS ECS + RDS
 
-Ver `DEPLOYMENT.md` para detalles completos.
+- Tarea ECS con variable `DATABASE_URL` apuntando a RDS PostgreSQL
+- Secrets en AWS Secrets Manager, no en variables de entorno planas
+- Ver `docs/guides/production.md` para el checklist completo
 
 ---
 
