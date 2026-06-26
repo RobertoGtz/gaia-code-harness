@@ -69,7 +69,7 @@ export async function setupJobRoutes(app: FastifyInstance) {
    * Accepts either full context from Gaia or just a Jira ticket ID.
    * Automatically starts orchestration in background.
    * 
-   * Request Body (Opción A - Flat body, preferido):
+   * Request Body (Option A — flat body, preferred):
    * {
    *   "title": "Feature name",
    *   "platform": "flutter",
@@ -77,10 +77,10 @@ export async function setupJobRoutes(app: FastifyInstance) {
    *   "acceptanceCriteria": ["WHEN x THEN y"]
    * }
    *
-   * Request Body (Opción B - Solo ticket Jira):
+   * Request Body (Option B — Jira ticket only):
    * { "jiraTicketId": "PROJ-123" }
    *
-   * Request Body (Opción C - fullContext wrapper, legacy):
+   * Request Body (Option C — fullContext wrapper, legacy):
    * { "fullContext": { "title": "...", "platform": "flutter", ... } }
    *
    * Response: 201 Created { job: CodeGenerationJob }
@@ -89,7 +89,7 @@ export async function setupJobRoutes(app: FastifyInstance) {
   app.post('/jobs', async (request, reply) => {
     const body = request.body as CreateJobRequest;
     
-    // Validar que tengamos suficiente contexto
+    // Validate that enough context is present
     const hasJira = body.jiraTicketId || body.jiraEpicId;
     const hasFlat = body.platform && body.title;
     const hasLegacy = body.fullContext;
@@ -100,11 +100,11 @@ export async function setupJobRoutes(app: FastifyInstance) {
     }
     
     try {
-      // Construir jobData según el formato del body recibido
+      // Build jobData based on the received body format
       let jobData: Omit<CodeGenerationJob, 'id' | 'status' | 'progressLogs' | 'createdAt' | 'updatedAt'>;
       
         if (body.fullContext) {
-        // Contexto completo via fullContext wrapper (formato legacy)
+        // Full context via fullContext wrapper (legacy format)
         jobData = {
           jiraTicketId: body.jiraTicketId,
           jiraEpicId: body.jiraEpicId,
@@ -181,8 +181,7 @@ export async function setupJobRoutes(app: FastifyInstance) {
       
       const job = await createJob(jobData);
       
-      // Iniciar orchestración asíncrona
-      // No esperamos a que termine, respondemos inmediatamente
+      // Start orchestration asynchronously — respond immediately without waiting
       orchestrateJob(job.id).catch(console.error);
       
       return reply.status(201).send({ job });
@@ -248,7 +247,7 @@ export async function setupJobRoutes(app: FastifyInstance) {
     await updateJobStatus(id, 'spec_approved');
     await addProgressLog(id, 'Spec approved by human');
     
-    // Continuar orchestración
+    // Resume orchestration
     orchestrateJob(id).catch(console.error);
     
     return { job: await getJob(id) };
