@@ -141,7 +141,7 @@ curl -s -X POST http://localhost:3000/jobs \
   }' | python3 -m json.tool
 ```
 
-> Cambia `"platform"` a `"ios"` y `"repo"` a `"demo-repo-ios"` para iOS, o `"android"` / `"demo-repo-android"` para Android.
+> Cambia `"platform"` a `"ios"` y `"repo"` a `"mi-org/demo-repo-ios"` para iOS, o `"android"` / `"mi-org/demo-repo-android"` para Android.
 >
 > Pasa `"tddMode": true` para activar el ciclo **Red-Green-Refactor** (un test a la vez — el implementador escribe primero el test que falla, luego hace que pase).
 >
@@ -331,7 +331,7 @@ curl -s -X POST http://localhost:3000/webhook/trigger \
   -d '{
     "title": "Add loyalty points banner",
     "platform": "flutter",
-    "repo": "demo-repo",
+    "repo": "mi-org/demo-repo",
     "targetBranch": "develop",
     "tddMode": true,
     "acceptanceCriteria": [
@@ -383,13 +383,13 @@ curl -s -X POST http://localhost:3000/webhook/trigger \
 Configura un Slash Command en tu workspace apuntando a `POST http://<tu-ip>:3000/webhook/trigger` y escribe en Slack:
 
 ```
-/gaia flutter demo-repo Add dark mode toggle
+/gaia flutter mi-org/demo-repo Add dark mode toggle
 ```
 
 ### Seguridad con firma HMAC
 
 ```bash
-BODY='{"title":"Test","platform":"flutter","repo":"demo-repo"}'
+BODY='{"title":"Test","platform":"flutter","repo":"mi-org/demo-repo"}'
 SIG=$(echo -n "$BODY" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | cut -d' ' -f2)
 
 curl -s -X POST http://localhost:3000/webhook/trigger \

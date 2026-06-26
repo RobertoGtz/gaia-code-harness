@@ -8,8 +8,8 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              GAIA PLATFORM                                    │
-│  (Donde PMs crean iniciativas y criterios de aceptación)                     │
+│                         CLIENTE / CI / JIRA WEBHOOK                          │
+│  (Postman, cURL, CI pipeline, o webhook automático)                          │
 └─────────────────────────────┬─────────────────────────────────────────────────┘
                               │ POST /jobs
                               │ { acceptanceCriteria, repo, module }
@@ -95,7 +95,7 @@ El harness soporta tres modos; todos usan la misma máquina de estados intername
 ### 1. Creación de Job
 
 ```
-Gaia → POST /jobs → API → DB insert → Leader.orchestrateJob()
+Cliente → POST /jobs → API → DB insert → Leader.orchestrateJob()
                                       ↓
                               Async processing begins
 ```
@@ -192,7 +192,7 @@ CREATE TABLE code_generation_jobs (
   title TEXT NOT NULL,
   platform TEXT NOT NULL,  -- flutter | flutter_web | ios | android
   repo TEXT NOT NULL,
-  module TEXT,             -- ej: pay_multiplatform_home_web
+  module TEXT,             -- ej: home_screen, checkout (opcional)
   target_branch TEXT NOT NULL DEFAULT 'develop',
 
   -- Contexto
@@ -238,7 +238,7 @@ Cuando un job falla, el Leader persiste un objeto estructurado con toda la infor
 {
   "code": "BUILD_ERROR",
   "stage": "implementing",
-  "message": "[Flutter] `flutter pub get` failed — dependency resolution error in my-repo",
+  "message": "[Flutter] `flutter pub get` failed — dependency resolution error in mi-org/mi-repo",
   "detail": "Because dependency_x >=2.0.0 requires sdk >=3.0.0…\n… (truncated at 1500 chars)",
   "timestamp": "2026-06-16T19:00:00.000Z",
   "retryCount": 1
@@ -317,13 +317,13 @@ Cuando un job entra en estado de error, se imprime:
 ║  ────────────────────────────────────────────────────────────  ║
 ║ 📦  BUILD ERROR  — Dependency resolution failed                  ║
 ║ Stage:   implementing                                           ║
-║ Message: [Flutter] `flutter pub get` failed — my-repo           ║
+║ Message: [Flutter] `flutter pub get` failed — mi-org/mi-repo    ║
 ║                                                                  ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║ JOB                                                              ║
 ║ ID:       3f2a1b4c-...                                          ║
 ║ Platform: flutter                                               ║
-║ Repo:     my-repo                                               ║
+║ Repo:     mi-org/mi-repo                                        ║
 ║                                                                  ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║ NEXT STEP                                                        ║
@@ -352,7 +352,7 @@ src/
 ├── state/
 │   ├── index.ts            ← StateBackend interface + setStateBackend()/getStateBackend()
 │   ├── postgres-backend.ts ← Adapter (HTTP mode)
-│   └── disk-backend.ts     ← Adapter (Claude Code mode)
+│   └── disk-backend.ts     ← Adapter (Modo B — CLI y Claude Code)
 ├── cli/
 │   └── run.ts              ← CLI entry point: --list, --job, --id
 └── skills/
