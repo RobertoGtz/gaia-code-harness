@@ -420,7 +420,7 @@ curl -s -X POST http://localhost:3000/webhook/trigger \
   }' | python3 -m json.tool
 ```
 
-> Requiere `DEFAULT_REPO=tu-org/tu-repo` en `.env`.
+> El label `tdd` en el ticket activa `tddMode: true` automáticamente. Requiere `DEFAULT_REPO=tu-org/tu-repo` en `.env`.
 
 ### Paso D: Slack slash command
 

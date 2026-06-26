@@ -73,9 +73,9 @@ Cuando todos los escenarios pasen:
 
 ## Equivalente en los modos TypeScript
 
-| Modo                          | Cómo se activa                                         | Quién lo ejecuta                |
-| ----------------------------- | ------------------------------------------------------ | ------------------------------- |
-| **A — HTTP API**              | `POST /jobs` con `"tddMode": true`                     | `ImplementerAgent.executeTDD()` |
-| **B — CLI**                   | `--job job.json --approve` con `tddMode: true` en JSON | `ImplementerAgent.executeTDD()` |
-| **C — Webhook**               | `POST /webhook/trigger` con `"tddMode": true`          | `ImplementerAgent.executeTDD()` |
-| **Claude Code (este agente)** | Invocado por `craftsman_lead`                          | Interactivo con humano en loop  |
+| Modo                          | Cómo se activa                                               | Quién lo ejecuta                |
+| ----------------------------- | ------------------------------------------------------------ | ------------------------------- |
+| **A — HTTP API**              | `POST /jobs` con `"tddMode": true`                           | `ImplementerAgent.executeTDD()` |
+| **B — CLI**                   | `--job job.json --tdd --approve` (o `tddMode: true` en JSON) | `ImplementerAgent.executeTDD()` |
+| **C — Webhook**               | `POST /webhook/trigger` con `"tddMode": true`                | `ImplementerAgent.executeTDD()` |
+| **Claude Code (este agente)** | Invocado por `craftsman_lead`                                | Interactivo con humano en loop  |
