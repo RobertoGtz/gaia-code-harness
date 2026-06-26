@@ -35,7 +35,7 @@
 
 - [ ] `src/agents/` tiene tests de integración o unit para el agente tocado.
 - [ ] Los tests usan fixtures reales, no mocks frágiles de filesystem.
-- [ ] `npx jest` (o el runner configurado) muestra > 0 tests y todos verdes.
+- [ ] `npm test` muestra > 0 tests y todos verdes (actualmente: 20 tests en 3 suites).
 
 ## C5 — La sesión se cerró bien
 

@@ -36,6 +36,8 @@ pending → [spec_partner] → [gherkin_author] → ⏸ HUMANO APRUEBA
 
 ```bash
 ./init.sh                                                    # verificar entorno al arrancar
+npm run build                                                # compilar TypeScript (verificar errores)
+npm test                                                     # correr suite Jest (20 tests)
 npx ts-node src/cli/run.ts --list                            # listar todos los jobs (Modo B)
 npx ts-node src/cli/run.ts --job job.json                    # crear job desde archivo JSON
 npx ts-node src/cli/run.ts --job job.json --approve          # crear y aprobar spec automáticamente
