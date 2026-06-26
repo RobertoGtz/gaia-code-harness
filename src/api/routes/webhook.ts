@@ -28,6 +28,8 @@ interface NormalizedTrigger {
   repo:        string;
   targetBranch: string;
   jiraTicketId?: string;
+  jiraEpicId?:   string;
+  figmaUrl?:     string;
   tddMode:     boolean;
   requireTests: boolean;
   maxFilesToTouch: number;
@@ -51,7 +53,7 @@ export function parseJiraWebhook(body: any): NormalizedTrigger | null {
     title:        summary,
     platform,
     repo,
-    targetBranch: 'main',
+    targetBranch: 'develop',
     jiraTicketId: issue.key,
     tddMode,
     requireTests: !labels.includes('skip-tests'),
@@ -74,7 +76,7 @@ export function parseSlackCommand(body: any): NormalizedTrigger | null {
     title:        titleParts.join(' '),
     platform:     platform as Platform,
     repo,
-    targetBranch: 'main',
+    targetBranch: 'develop',
     tddMode:      false,
     requireTests: true,
     maxFilesToTouch: 5,
@@ -87,8 +89,10 @@ export function parseGenericBody(body: any): NormalizedTrigger | null {
     title:             body.title,
     platform:          body.platform as Platform,
     repo:              body.repo,
-    targetBranch:      body.targetBranch ?? 'main',
+    targetBranch:      body.targetBranch ?? 'develop',
     jiraTicketId:      body.jiraTicketId,
+    jiraEpicId:        body.jiraEpicId,
+    figmaUrl:          body.figmaUrl,
     tddMode:           body.tddMode === true,
     requireTests:      body.requireTests !== false,
     maxFilesToTouch:   typeof body.maxFilesToTouch === 'number' ? body.maxFilesToTouch : 5,
@@ -158,9 +162,11 @@ export async function setupWebhookRoutes(app: FastifyInstance): Promise<void> {
         if (ticket.acceptanceCriteria.length > 0) {
           trigger.acceptanceCriteria = ticket.acceptanceCriteria.map(t => ({ text: t }));
         }
-        if (ticket.platform) trigger.platform = ticket.platform;
-        if (ticket.repo) trigger.repo = ticket.repo;
-        if (ticket.title) trigger.title = ticket.title;
+        if (ticket.platform)  trigger.platform  = ticket.platform;
+        if (ticket.repo)      trigger.repo       = ticket.repo;
+        if (ticket.title)     trigger.title      = ticket.title;
+        if (ticket.epicKey)   trigger.jiraEpicId = ticket.epicKey;
+        if (ticket.figmaUrl)  trigger.figmaUrl   = ticket.figmaUrl;
       } catch (err) {
         // Non-blocking: if Jira fetch fails, proceed with what we have.
         // Auth/not-found/config errors are logged clearly so operators can fix credentials.
@@ -182,6 +188,8 @@ export async function setupWebhookRoutes(app: FastifyInstance): Promise<void> {
       repo:               trigger.repo,
       targetBranch:       trigger.targetBranch,
       jiraTicketId:       trigger.jiraTicketId,
+      jiraEpicId:         trigger.jiraEpicId,
+      figmaUrl:           trigger.figmaUrl,
       tddMode:            trigger.tddMode,
       initiativeId:       `init-${Date.now()}`,
       maxFilesToTouch:    trigger.maxFilesToTouch,

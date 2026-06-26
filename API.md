@@ -410,6 +410,7 @@ Acepta tres formatos de payload:
 ```
 
 > La plataforma se detecta de los labels (`flutter`, `ios`, `android`, `flutter_web`). El label `tdd` activa `tddMode: true`. Requiere `DEFAULT_REPO` en `.env`.
+> Si el ticket tiene `JIRA_*` configurado, el harness enriquece el job automáticamente con los ACs, `epicKey`, `figmaUrl` y plataforma del ticket completo.
 
 **Formato C — Slack slash command** (`/gaia flutter mi-org/demo-repo Feature title here`):
 
