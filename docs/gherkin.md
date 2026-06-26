@@ -1,4 +1,4 @@
-# Gherkin — el contrato ejecutable
+# Gherkin — GAIA Code Harness
 
 > "Once the project-spec.md is done, I have it create a set of .feature
 > files from the project-spec.md." Los `.feature` son lo que el humano

@@ -1,4 +1,4 @@
-# TDD estricto — la disciplina del `tdd_craftsman`
+# TDD estricto — GAIA Code Harness
 
 > "Do you let it write all tests up front, then code or single test
 > followed by code (TDD)?" — La respuesta de esta rama: **single test

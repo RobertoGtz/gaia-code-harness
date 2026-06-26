@@ -1,4 +1,4 @@
-# Prueba de mutación — validar que los tests muerden
+# Mutation Testing — GAIA Code Harness
 
 > "Mutation testing is resource-heavy, but the ROI on code correctness is
 > worth every cycle." / "We are shifting from a bottleneck of human typing
