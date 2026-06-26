@@ -411,13 +411,13 @@ Acepta tres formatos de payload:
 
 > La plataforma se detecta de los labels. Requiere `DEFAULT_REPO` en `.env`.
 
-**Formato C — Slack slash command** (`/gaia flutter my-repo Feature title here`):
+**Formato C — Slack slash command** (`/gaia flutter mi-org/demo-repo Feature title here`):
 
 ```
 POST /webhook/trigger
 Content-Type: application/x-www-form-urlencoded
 
-command=/gaia&text=flutter my-repo Feature title here
+command=/gaia&text=flutter mi-org/demo-repo Feature title here
 ```
 
 **Response (202 Accepted):**
@@ -441,7 +441,7 @@ command=/gaia&text=flutter my-repo Feature title here
 curl -X POST http://localhost:3000/webhook/trigger \
   -H "Content-Type: application/json" \
   -H "X-GAIA-Signature: sha256=$(echo -n '{"title":"..."}' | openssl dgst -sha256 -hmac $WEBHOOK_SECRET | cut -d' ' -f2)" \
-  -d '{"title":"Add loyalty points banner","platform":"flutter","repo":"my-repo"}'
+  -d '{"title":"Add loyalty points banner","platform":"flutter","repo":"mi-org/demo-repo"}'
 ```
 
 ---

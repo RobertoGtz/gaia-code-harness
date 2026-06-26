@@ -435,7 +435,7 @@ WEBHOOK_SECRET=mi-secreto-super-seguro
 ```
 
 ```bash
-BODY='{"title":"Test","platform":"flutter","repo":"demo-repo"}'
+BODY='{"title":"Test","platform":"flutter","repo":"mi-org/demo-repo"}'
 SIG=$(echo -n "$BODY" | openssl dgst -sha256 -hmac "mi-secreto-super-seguro" | cut -d' ' -f2)
 
 curl -s -X POST http://localhost:3000/webhook/trigger \
