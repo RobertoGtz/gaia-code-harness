@@ -120,7 +120,7 @@ export interface CodeGenerationJob {
   platform: Platform;
   /** Repository name (e.g., 'mi-org/mi-repo') */
   repo: string;
-  /** Module within monorepo (e.g., 'pay_multiplatform_home_web') */
+  /** Module within monorepo (e.g., 'home_screen', 'checkout') */
   module?: string;
   /** Git branch to target (default: 'develop') */
   targetBranch: string;

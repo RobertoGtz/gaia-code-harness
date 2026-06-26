@@ -173,16 +173,18 @@ export async function getDirectoryStructure(
 }
 
 /**
- * Get relevant source files for a Flutter project or module.
- * Identifies lib/ and test/ directories, checks for pubspec.yaml.
+ * Get relevant source files for a project or module.
+ * Searches srcDirs (defaults to lib + test) with the given extension.
  * Used by SpecAuthorAgent to understand project structure.
  * 
  * @param repoPath - Root path to the repository
  * @param module - Optional module name for monorepos
- * @returns Object with lib files, test files, and pubspec existence
+ * @param srcDirs - Source directories to search (default: ['lib', 'test'])
+ * @param sourceExtension - File extension to match (default: 'dart')
+ * @returns Object with source files, test files, and pubspec existence
  * @example
- * const files = await getRelevantFiles('/repo', 'home_module');
- * // { lib: ['lib/main.dart', ...], test: ['test/main_test.dart', ...], pubspec: true }
+ * const files = await getRelevantFiles('/repo', 'home_module', ['lib', 'test'], 'dart');
+ * // { lib: ['lib/main.dart', ...], test: ['test/widget_test.dart', ...], pubspec: true }
  */
 export async function getRelevantFiles(
   repoPath: string,

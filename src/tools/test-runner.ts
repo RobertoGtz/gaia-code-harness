@@ -1,6 +1,6 @@
 /**
  * @fileoverview Test runner utilities
- * @description Flutter test execution and environment verification
+ * @description Platform-agnostic test execution utilities and environment verification
  * @module tools/test-runner
  */
 
@@ -42,10 +42,10 @@ export interface TestRunResult {
 }
 
 /**
- * Result of Flutter environment verification
+ * Result of platform environment verification
  */
 export interface EnvironmentCheck {
-  /** Whether the environment is valid for Flutter development */
+  /** Whether the toolchain is available and the project structure is valid */
   valid: boolean;
   /** List of validation errors if invalid */
   errors: string[];
