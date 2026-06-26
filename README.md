@@ -36,11 +36,11 @@ PM escribe ACs
 
 ## Tres modos de uso
 
-| Modo             | Cómo arranca                                          | Cuándo usarlo                   |
-| ---------------- | ----------------------------------------------------- | ------------------------------- |
-| **A — HTTP API** | `POST /jobs` (curl, Postman, CI/CD)                   | Integraciones, automatización   |
-| **B — CLI**      | `npx ts-node src/cli/run.ts --job mi-job.json`        | Desarrollo local, demos rápidos |
-| **C — Webhook**  | `POST /webhook/trigger` (Jira, Slack, GitHub Actions) | Producción, trigger automático  |
+| Modo             | Cómo arranca                                          | Aprobación de spec       | TDD              | Cuándo usarlo                   |
+| ---------------- | ----------------------------------------------------- | ------------------------ | ---------------- | ------------------------------- |
+| **A — HTTP API** | `POST /jobs` (curl, Postman, CI/CD)                   | `POST /jobs/:id/approve` | `"tddMode":true` | Integraciones, automatización   |
+| **B — CLI**      | `npx ts-node src/cli/run.ts --job mi-job.json`        | flag `--approve`         | flag `--tdd`     | Desarrollo local, demos rápidos |
+| **C — Webhook**  | `POST /webhook/trigger` (Jira, Slack, GitHub Actions) | Automática (sin pausa)   | label `tdd`      | Producción, trigger automático  |
 
 → Guía completa con ejemplos: **[`docs/guides/quick-start.md`](docs/guides/quick-start.md)**
 
@@ -108,9 +108,10 @@ npm run dev
 
 ### 5. Crear tu primer job
 
-**Con todos los datos:**
+**Modo A — HTTP API** (requiere servidor corriendo):
 
 ```bash
+# Con criterios de aceptación directos
 curl -X POST http://localhost:3000/jobs \
   -H "Content-Type: application/json" \
   -d '{
@@ -124,25 +125,19 @@ curl -X POST http://localhost:3000/jobs \
       "WHEN user taps banner THEN navigate to promotion details"
     ]
   }'
-```
 
-**Solo con ticket de Jira:**
-
-```bash
+# Solo con ticket de Jira
 curl -X POST http://localhost:3000/jobs \
   -H "Content-Type: application/json" \
   -d '{"jiraTicketId": "PROJ-1234", "repo": "tu-org/tu-repo"}'
-```
 
-**Aprobar el spec cuando esté `spec_ready`:**
-
-```bash
+# Aprobar el spec cuando esté spec_ready
 curl -X POST http://localhost:3000/jobs/<JOB_ID>/approve \
   -H "Content-Type: application/json" \
   -d '{"approved": true}'
 ```
 
-**O desde CLI (Modo B — sin servidor):**
+**Modo B — CLI** (sin servidor ni Docker):
 
 ```bash
 npx ts-node src/cli/run.ts --job mi-job.json --approve

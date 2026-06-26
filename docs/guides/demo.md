@@ -20,7 +20,19 @@ Todo esto sucede en ~50–90 segundos.
 
 ---
 
+## Elige tu modo
+
+| Modo             | Cuándo usarlo                           | Ir a                                            |
+| ---------------- | --------------------------------------- | ----------------------------------------------- |
+| **A — HTTP API** | Demo con Postman, CI/CD, presentaciones | [Paso 1 ↓](#paso-1-preparar-la-base-de-datos)   |
+| **B — CLI**      | Desarrollo local, sin Docker ni BD      | [Demo Modo B ↓](#demo--modo-b-cli-sin-servidor) |
+| **C — Webhook**  | Integración Jira/Slack, CI automático   | [Demo Modo C ↓](#demo--modo-ci--webhook)        |
+
+---
+
 ## Antes de empezar
+
+> **Solo para Modos A y C.** Si usas Modo B (CLI), salta directamente a [Demo — Modo B](#demo--modo-b-cli-sin-servidor) — no necesitas Docker ni base de datos.
 
 Necesitas tener instalado:
 
@@ -46,7 +58,9 @@ Si ves números de versión, ya los tienes instalados.
 
 ---
 
-## Paso 1: Preparar la base de datos
+## Demo — Modo A (HTTP API + PostgreSQL)
+
+### Paso 1: Preparar la base de datos
 
 Abre la **Terminal** (búscala en Spotlight con Cmd+Space → "Terminal").
 
@@ -74,7 +88,7 @@ Eso significa que la base de datos está corriendo. ✅
 
 ---
 
-## Paso 2: Iniciar el servidor
+### Paso 2: Iniciar el servidor
 
 En la **misma terminal**, escribe:
 
@@ -96,7 +110,7 @@ Deja esta terminal abierta. **No la cierres.** ✅
 
 ---
 
-## Paso 3: Ejecutar el demo automático
+### Paso 3: Ejecutar el demo automático
 
 La forma más fácil es usar el **script de demo**, que hace todos los pasos automáticamente.
 
@@ -117,7 +131,7 @@ El script crea el job, espera el spec, lo aprueba, monitorea la implementación 
 
 > **Tip:** Si prefieres hacerlo manual paso a paso, sigue leyendo.
 
-### Paso 3b: Crear un job manualmente
+#### Paso 3b: Crear un job manualmente
 
 Si prefieres el control manual, copia y pega:
 
@@ -177,7 +191,7 @@ Ejemplo:
 
 ---
 
-## Paso 4: Ver el spec generado
+### Paso 4: Ver el spec generado
 
 Espera 3 segundos y luego escribe (reemplaza `TU_JOB_ID` con el ID que copiaste):
 
@@ -198,7 +212,7 @@ Este es el momento donde **tú decides si el plan está bien**. ✅
 
 ---
 
-## Paso 5: Aprobar el spec (Human in the Loop)
+### Paso 5: Aprobar el spec (Human in the Loop)
 
 Si el spec te parece bien, apruébalo:
 
@@ -216,7 +230,7 @@ El status debería cambiar a `"implementing"`. ✅
 
 ---
 
-## Paso 6: Esperar a que termine
+### Paso 6: Esperar a que termine
 
 El sistema ahora está:
 
@@ -247,7 +261,7 @@ Estados de error retryables: `test_error`, `build_error`, `review_error`, `faile
 
 ---
 
-## Paso 7: Ver el resultado final
+### Paso 7: Ver el resultado final
 
 Cuando el status sea `"done"`, en la respuesta verás:
 
@@ -257,7 +271,7 @@ Cuando el status sea `"done"`, en la respuesta verás:
 
 ---
 
-## Resumen del flujo
+### Resumen del flujo
 
 ```
 Tú (Producto)                    Sistema (Harness)
