@@ -137,7 +137,7 @@ export function initGit(workspacePath: string): SimpleGit {
  * @param fromBranch - Source branch to branch from
  * @throws Error if branch creation fails
  * @example
- * await createBranch(git, 'feature/RPP-1234-banner', 'develop');
+ * await createBranch(git, 'feature/PROJ-123-banner', 'develop');
  */
 export async function createBranch(
   git: SimpleGit,
@@ -165,9 +165,9 @@ export async function createBranch(
  * @example
  * await commitAndPush(
  *   git,
- *   'feat: Add promotional banner\n\nCloses RPP-1234',
+ *   'feat: Add promotional banner\n\nCloses PROJ-123',
  *   ['.'],
- *   'feature/RPP-1234-banner'
+ *   'feature/PROJ-123-banner'
  * );
  */
 export async function commitAndPush(
@@ -205,12 +205,12 @@ export async function commitAndPush(
  * Format: feature/{ticketId}-{sanitized-title}
  * Sanitizes: lowercase, replaces spaces with hyphens, removes special chars.
  * 
- * @param ticketId - Jira ticket ID (e.g., 'RPP-1234')
+ * @param ticketId - Jira ticket ID (e.g., 'PROJ-123')
  * @param title - Feature title
  * @returns Sanitized branch name
  * @example
- * const branch = generateBranchName('RPP-1234', 'Add Banner');
- * // Returns: 'feature/RPP-1234-add-banner'
+ * const branch = generateBranchName('PROJ-123', 'Add Banner');
+ * // Returns: 'feature/PROJ-123-add-banner'
  */
 export function generateBranchName(ticketId: string, title: string): string {
   const sanitized = title
@@ -339,10 +339,10 @@ export async function createGitHubPR(options: {
  * Requires JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN environment variables.
  * Non-critical: failures are logged but not thrown.
  * 
- * @param ticketId - Jira ticket ID (e.g., 'RPP-1234')
+ * @param ticketId - Jira ticket ID (e.g., 'PROJ-123')
  * @param comment - Comment text (markdown supported)
  * @example
- * await addJiraComment('RPP-1234', 'PR created: https://github.com/...');
+ * await addJiraComment('PROJ-123', 'PR created: https://github.com/...');
  * // Adds comment to ticket, logs if credentials not configured
  */
 export async function addJiraComment(ticketId: string, comment: string): Promise<void> {
