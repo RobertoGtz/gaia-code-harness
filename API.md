@@ -499,6 +499,12 @@ npx ts-node src/cli/run.ts --list
 # Crear y correr un job desde archivo JSON
 npx ts-node src/cli/run.ts --job job.json
 
+# Crear y aprobar spec automáticamente (sin pausa)
+npx ts-node src/cli/run.ts --job job.json --approve
+
+# Crear job directo desde ticket Jira
+npx ts-node src/cli/run.ts --jira PROJ-123 --approve
+
 # Retomar job existente
 npx ts-node src/cli/run.ts --id <uuid>
 ```

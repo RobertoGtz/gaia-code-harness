@@ -1,7 +1,7 @@
 # GAIA Code Harness
 
-> AI-powered code generation orchestrator with mandatory human oversight.  
-> Generates a technical spec, waits for approval, writes code, and opens a Pull Request — in ~60 seconds.
+> Orquestador de generación de código con IA y supervisión humana obligatoria.  
+> Genera un plan técnico, espera aprobación, escribe código y abre un Pull Request — en ~60 segundos.
 
 ---
 
@@ -185,4 +185,4 @@ El sistema lee del ticket: título, descripción, criterios de aceptación, URL 
 
 ## License
 
-MIT © Rappi Engineering
+MIT
