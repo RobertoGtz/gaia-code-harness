@@ -113,7 +113,7 @@ curl -s -X POST http://localhost:3000/jobs \
   -d '{
     "platform": "flutter",
     "title": "Add promotional banner to home screen",
-    "repo": "RobertoGtz/demo-repo",
+    "repo": "mi-org/demo-repo",
     "targetBranch": "develop",
     "requireTests": false,
     "maxFilesToTouch": 6,
@@ -242,7 +242,7 @@ Crea un archivo JSON con la descripción de lo que quieres, por ejemplo `mi-job.
   "platform": "flutter",
   "title": "Add promotional banner to home screen",
   "jiraTicketId": "DEMO-100",
-  "repo": "RobertoGtz/demo-repo",
+  "repo": "mi-org/demo-repo",
   "targetBranch": "develop",
   "requireTests": false,
   "maxFilesToTouch": 6,
@@ -357,7 +357,7 @@ curl -s -X POST http://localhost:3000/webhook/trigger \
   -d '{
     "title": "Add loyalty points banner",
     "platform": "flutter",
-    "repo": "RobertoGtz/demo-repo",
+    "repo": "mi-org/demo-repo",
     "targetBranch": "develop",
     "requireTests": false,
     "maxFilesToTouch": 5,
@@ -400,7 +400,7 @@ curl -s -X POST http://localhost:3000/webhook/trigger \
       "fields": {
         "summary": "Add dark mode toggle to settings",
         "labels": ["flutter", "skip-tests"],
-        "customfield_repo": "RobertoGtz/demo-repo"
+        "customfield_repo": "mi-org/demo-repo"
       }
     }
   }' | python3 -m json.tool
@@ -421,7 +421,7 @@ POST http://<tu-ip-publica>:3000/webhook/trigger
 Luego en Slack escribe:
 
 ```
-/gaia flutter RobertoGtz/demo-repo Add dark mode toggle
+/gaia flutter mi-org/demo-repo Add dark mode toggle
 ```
 
 El formato es: `/gaia <plataforma> <repo> <descripción del feature>`
