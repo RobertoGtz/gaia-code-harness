@@ -46,9 +46,9 @@ Content-Type: application/json
 {
   "platform": "flutter",
   "title": "Agregar banner de promociones",
-  "jiraTicketId": "RPP-1234",
+  "jiraTicketId": "PROJ-123",
   "repo": "mi-org/mi-repo",
-  "module": "pay_multiplatform_home_web",
+  "module": "home_screen",
   "targetBranch": "develop",
   "description": "Mostrar carrusel de promociones destacadas",
   "figmaUrl": "https://figma.com/file/abc123/promo-banner",
@@ -70,7 +70,7 @@ Content-Type: application/json
 
 ```json
 {
-  "jiraTicketId": "RPP-1234",
+  "jiraTicketId": "PROJ-123",
   "tddMode": true,
   "fullContext": {
     "title": "Agregar banner de promociones",
@@ -87,7 +87,7 @@ Content-Type: application/json
 
 ```json
 {
-  "jiraTicketId": "RPP-1234",
+  "jiraTicketId": "PROJ-123",
   "requireTests": false,
   "maxFilesToTouch": 6
 }
