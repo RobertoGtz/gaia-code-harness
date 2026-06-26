@@ -23,15 +23,10 @@ const C = {
 };
 
 const AGENT_COLOR: Record<string, string> = {
-  FlutterSpecAuthor:  C.cyan,
-  IosSpecAuthor:      C.blue,
-  AndroidSpecAuthor:  C.magenta,
-  FlutterImplementer: C.cyan,
-  IosImplementer:     C.blue,
-  AndroidImplementer: C.magenta,
-  FlutterReviewer:    C.cyan,
-  IosReviewer:        C.blue,
-  AndroidReviewer:    C.magenta,
+  SpecAuthor:      C.cyan,
+  Implementer:     C.blue,
+  Reviewer:        C.magenta,
+  MutationTester:  C.yellow,
 };
 
 function timestamp(): string {
