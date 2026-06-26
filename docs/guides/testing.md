@@ -152,6 +152,9 @@ EOF
 # Correr con aprobación automática de spec
 npx ts-node src/cli/run.ts --job /tmp/test-job.json --approve
 
+# Con TDD (Red-Green-Refactor)
+npx ts-node src/cli/run.ts --job /tmp/test-job.json --tdd --approve
+
 # Listar jobs guardados en disco
 npx ts-node src/cli/run.ts --list
 
@@ -179,6 +182,7 @@ curl -s -X POST http://localhost:3000/webhook/trigger \
     "platform": "flutter",
     "repo": "mi-org/mi-repo",
     "targetBranch": "develop",
+    "tddMode": false,
     "acceptanceCriteria": [
       {"id":"ac-1","text":"WHEN user opens home THEN show banner"}
     ]

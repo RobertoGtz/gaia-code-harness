@@ -68,27 +68,36 @@ npm run db:init
 
 ### 5. Compilar y Correr
 
+**Modos A y C (servidor HTTP + Postgres):**
+
 ```bash
 npm run build
-npm start
+npm start        # o: npm run dev  (con auto-reload)
 ```
 
-O en modo desarrollo (con auto-reload):
+**Modo B (CLI, sin servidor):**
 
 ```bash
-npm run dev
+npm run build
+npx ts-node src/cli/run.ts --job mi-job.json --approve
 ```
+
+> En Modo B no hay servidor que levantar — el CLI crea el job, lo procesa y termina.
 
 ### 6. Verificar
 
+**Modos A y C:**
+
 ```bash
 curl http://localhost:3000/health
+# → { "status": "ok", "timestamp": "..." }
 ```
 
-Debería responder:
+**Modo B:**
 
-```json
-{ "status": "ok", "timestamp": "2024-01-15T..." }
+```bash
+npx ts-node src/cli/run.ts --list
+# → Lista de jobs en disco (vacía al inicio)
 ```
 
 ---
@@ -287,6 +296,7 @@ gaia-code-harness/
 │   │   ├── ios/              # IosSkill
 │   │   └── android/          # AndroidSkill
 │   ├── harness/              # Orchestrator (Leader)
+│   ├── cli/run.ts            # CLI entry point (Modo B)
 │   └── tools/                # Utilidades compartidas
 │       ├── file.ts           # Operaciones de archivos
 │       ├── git.ts            # Git + GitHub API (con dry-run)
@@ -334,6 +344,7 @@ gaia-code-harness/
 - [ ] `npm run db:init` exitoso _(solo Modos A y C)_
 - [ ] `npm run build` sin errores
 - [ ] `curl http://localhost:3000/health` responde OK _(Modos A y C)_
+- [ ] `npx ts-node src/cli/run.ts --list` funciona _(Modo B)_
 - [ ] Demo script funciona (`./scripts/demo.sh flutter`, `ios`, `android`)
 
 ---
