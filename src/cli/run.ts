@@ -97,7 +97,7 @@ async function main(): Promise<void> {
       initiativeId:    'cli',
       title:           ticket.title,
       platform:        ticket.platform,
-      repo:            ticket.repo || process.env.DEFAULT_REPO || 'demo-repo',
+      repo:            ticket.repo || process.env.DEFAULT_REPO || '',
       targetBranch:    ticket.targetBranch || 'develop',
       description:     ticket.description,
       acceptanceCriteria: ticket.acceptanceCriteria.map((text, i) => ({
