@@ -6,12 +6,14 @@
 
 ## Requisitos Previos
 
-- **Node.js** 18+
-- **PostgreSQL** 14+
-- **Git**
-- **Flutter** (para testing con repos Flutter)
-- **Swift 5.9+** (para testing con repos iOS, opcional)
-- **Java/JDK 17+** (para testing con repos Android, opcional)
+| Requisito      | Modo A (HTTP API) |   Modo B (CLI)    | Modo C (Webhook)  |
+| -------------- | :---------------: | :---------------: | :---------------: |
+| Node.js 18+    |        ✅         |        ✅         |        ✅         |
+| PostgreSQL 14+ |        ✅         |  ❌ no necesario  |        ✅         |
+| Git            |        ✅         |        ✅         |        ✅         |
+| Flutter SDK    | Solo jobs Flutter | Solo jobs Flutter | Solo jobs Flutter |
+| Swift 5.9+     |   Solo jobs iOS   |   Solo jobs iOS   |   Solo jobs iOS   |
+| JDK 17+        | Solo jobs Android | Solo jobs Android | Solo jobs Android |
 
 ---
 
@@ -160,7 +162,7 @@ El harness clonará desde el path local (preservando `.git`) en vez de intentar 
 4. Copiar token a `.env`:
    ```
    GITHUB_TOKEN=ghp_xxxxxxxx
-   GITHUB_OWNER=rappi
+   GITHUB_OWNER=mi-org
    ```
 
 ### Jira API Token (Opcional)
@@ -169,9 +171,11 @@ El harness clonará desde el path local (preservando `.git`) en vez de intentar 
 2. Crear token
 3. Copiar a `.env`:
    ```
-   JIRA_BASE_URL=https://rappi.atlassian.net
-   JIRA_EMAIL=tu.email@rappi.com
+   JIRA_BASE_URL=https://tu-org.atlassian.net
+   JIRA_EMAIL=tu.email@tu-org.com
    JIRA_API_TOKEN=xxxxxxxx
+   DEFAULT_PLATFORM=flutter          # plataforma si el ticket no tiene label
+   DEFAULT_REPO=mi-org/mi-repo       # repo si el ticket no tiene label repo:
    ```
 
 ---
@@ -184,16 +188,16 @@ El harness clonará desde el path local (preservando `.git`) en vez de intentar 
 # 1. Server corriendo
 curl http://localhost:3000/health
 
-# 2. Crear un job de prueba
-curl -X POST http://localhost:3000/jobs \
+# 2. Crear un job de prueba (formato flat)
+curl -s -X POST http://localhost:3000/jobs \
   -H "Content-Type: application/json" \
   -d '{
-    "fullContext": {
-      "title": "Test de instalación",
-      "acceptanceCriteria": ["WHEN test THEN success"],
-      "platform": "flutter",
-      "repo": "test-repo"
-    }
+    "title": "Test de instalación",
+    "platform": "flutter",
+    "repo": "mi-org/demo-repo",
+    "acceptanceCriteria": [
+      {"id":"ac-1","text":"WHEN test THEN success","testable":true}
+    ]
   }'
 
 # 3. Verificar jobs
@@ -300,9 +304,9 @@ gaia-code-harness/
    ```
 
 3. **Explorar documentación:**
-   - `docs/engineering/architecture.md` - Arquitectura profunda
-   - `API.md` - Referencia API
-   - `PLUGINS.md` - Custom agents
+   - [`docs/guides/testing.md`](testing.md) — Comandos por modo (A/B/C)
+   - [`docs/engineering/architecture.md`](../engineering/architecture.md) — Arquitectura profunda
+   - [`API.md`](../../API.md) — Referencia API completa
 
 ---
 
@@ -319,4 +323,4 @@ gaia-code-harness/
 
 ---
 
-**¿Problemas?** Revisar `PROJECT_REVIEW.md` para diagnóstico detallado.
+**¿Problemas?** Ver la tabla de troubleshooting en [`docs/guides/testing.md`](testing.md#troubleshooting).
