@@ -443,8 +443,8 @@ async function handleImplementing(job: CodeGenerationJob): Promise<void> {
 }
 
 /**
- * Estado: SPEC_APPROVED
- * Acción: Transición a implementing y ejecutar
+ * Handler for 'spec_approved' state.
+ * Transitions to 'implementing' and delegates to handleImplementing.
  */
 async function handleSpecApproved(job: CodeGenerationJob): Promise<void> {
   banner('Spec Approved — Starting Implementation', job.id, 'spec_approved');
@@ -703,13 +703,13 @@ function printErrorBox(job: CodeGenerationJob, ctx: ErrorContext): void {
   };
 
   const NEXT_STEP: Record<ErrorCode, string> = {
-    ENV_ERROR:    'Install/configure the platform toolchain, then POST /jobs/:id/retry',
-    REPO_ERROR:   'Check GITHUB_TOKEN, repo name, branch permissions, then POST /jobs/:id/retry',
-    BUILD_ERROR:  'Fix pubspec.yaml / build.gradle / Package.swift, then POST /jobs/:id/retry',
-    TEST_ERROR:   'Tests will be retried automatically (up to 3x). If still failing: POST /jobs/:id/retry',
-    REVIEW_ERROR: 'Check PR constraints (maxFilesToTouch, spec presence), then POST /jobs/:id/retry',
-    SPEC_ERROR:   'Check LLM API keys and acceptance criteria, then POST /jobs/:id/retry',
-    UNKNOWN:      'Check server logs, then POST /jobs/:id/retry',
+    ENV_ERROR:    'Install/configure the platform toolchain, then retry (POST /jobs/:id/retry  |  --id <id>)',
+    REPO_ERROR:   'Check GITHUB_TOKEN, repo name, branch permissions, then retry (POST /jobs/:id/retry  |  --id <id>)',
+    BUILD_ERROR:  'Fix pubspec.yaml / build.gradle / Package.swift, then retry (POST /jobs/:id/retry  |  --id <id>)',
+    TEST_ERROR:   'Tests retried automatically (up to 3x). If still failing: POST /jobs/:id/retry  |  --id <id>',
+    REVIEW_ERROR: 'Check PR constraints (maxFilesToTouch, spec presence), then retry (POST /jobs/:id/retry  |  --id <id>)',
+    SPEC_ERROR:   'Check LLM API keys and acceptance criteria, then retry (POST /jobs/:id/retry  |  --id <id>)',
+    UNKNOWN:      'Check server logs, then retry (POST /jobs/:id/retry  |  --id <id>)',
   };
 
   console.log(`\n${top}`);
