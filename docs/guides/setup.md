@@ -49,7 +49,7 @@ PORT=3000
 DATABASE_URL=postgresql://localhost:5432/gaia_harness
 OPENAI_API_KEY=sk-...        # o ANTHROPIC_API_KEY
 GITHUB_TOKEN=ghp_...
-GITHUB_OWNER=mi-org
+GITHUB_OWNER=tu-org
 ```
 
 **Mínimo necesario — Modo B (CLI, sin Postgres):**
@@ -57,7 +57,7 @@ GITHUB_OWNER=mi-org
 ```bash
 OPENAI_API_KEY=sk-...        # o ANTHROPIC_API_KEY
 GITHUB_TOKEN=ghp_...
-GITHUB_OWNER=mi-org
+GITHUB_OWNER=tu-org
 ```
 
 ### 4. Inicializar Base de Datos _(Modos A y C — omitir en Modo B)_
@@ -172,7 +172,7 @@ El harness clonará desde el path local (preservando `.git`) en vez de intentar 
 4. Copiar token a `.env`:
    ```
    GITHUB_TOKEN=ghp_xxxxxxxx
-   GITHUB_OWNER=mi-org
+   GITHUB_OWNER=tu-org
    ```
 
 ### Jira API Token (Opcional)
