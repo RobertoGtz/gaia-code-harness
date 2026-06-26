@@ -94,11 +94,16 @@ El harness soporta tres modos; todos usan la misma máquina de estados intername
 
 ### 1. Creación de Job
 
+El punto de entrada varía por modo, pero todos llegan al mismo `orchestrateJob()`:
+
 ```
-Cliente → POST /jobs → API → DB insert → Leader.orchestrateJob()
-                                      ↓
-                              Async processing begins
+Modo A  POST /jobs              → PostgresBackend.createJob() → orchestrateJob() [async]
+Modo B  src/cli/run.ts --job    → DiskBackend.createJob()     → orchestrateJob() [blocking]
+Modo C  POST /webhook/trigger   → PostgresBackend.createJob() → orchestrateJob() [async]
 ```
+
+> Todos los campos opcionales (`figmaUrl`, `jiraEpicId`, `description`, `module`) son
+> soportados en los tres modos. El webhook Jira los enriquece automáticamente desde el ticket.
 
 ### 2. Generación de Spec
 
@@ -115,13 +120,19 @@ Leader → SpecAuthorAgent.execute()
 
 ### 3. Aprobación Humana
 
+El mecanismo varía por modo:
+
 ```
-Tech Lead → POST /jobs/:id/approve
-              ↓
-    DB: status='spec_approved'
-    Leader.continue()
-              ↓
-    ImplementerAgent.execute()
+Modo A  Tech Lead → POST /jobs/:id/approve   [manual, bloqueante hasta llamada]
+Modo B  CLI flag --approve                   [automática al arrancar]
+Modo C  Automática                           [no hay pausa; webhook dispara el pipeline completo]
+```
+
+En los tres casos, al aprobarse el spec:
+
+```
+DB/Disco: status='spec_approved'
+Leader.continue() → ImplementerAgent.execute()
 ```
 
 ### 4. Implementación
@@ -626,6 +637,14 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 # Workspace
 REPOS_BASE_PATH=/tmp/gaia-workspace
+
+# Modo B (CLI) — no requiere DB
+LOCAL_REPOS_PATH=/path/to/repos   # repos locales en lugar de clonar desde GitHub
+
+# Modo C (Webhook)
+WEBHOOK_SECRET=...                # HMAC-SHA256 para verificar firma X-GAIA-Signature
+DEFAULT_REPO=tu-org/tu-repo      # repo por defecto si el ticket Jira no tiene label repo:
+DEFAULT_PLATFORM=flutter          # plataforma por defecto si el ticket no tiene label
 ```
 
 ---
@@ -694,6 +713,14 @@ CMD ["npm", "start"]
 - Recuperación de errores clara
 - Visibilidad del proceso
 - Testing más simple
+
+### ¿Por qué tres modos?
+
+- **Modo A** (HTTP): integrable en cualquier CI/CD, permite monitoreo y aprobación remota.
+- **Modo B** (CLI): cero infraestructura, ideal para desarrollo local y demostraciones rápidas.
+- **Modo C** (Webhook): totalmente automático; sistemas externos (Jira, Slack) disparan el pipeline sin intervención manual.
+
+Los tres comparten el mismo `leader.ts` y agentes — la diferencia es solo el adaptador de entrada y el backend de estado.
 
 ### ¿Por qué human-in-the-loop?
 
