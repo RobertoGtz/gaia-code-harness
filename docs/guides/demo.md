@@ -79,7 +79,7 @@ Eso significa que la base de datos está corriendo. ✅
 En la **misma terminal**, escribe:
 
 ```bash
-cd ~/Desktop/gaia-code-harness
+cd /ruta/al/proyecto/gaia-code-harness
 npm run dev
 ```
 
