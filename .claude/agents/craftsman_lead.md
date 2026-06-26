@@ -18,7 +18,7 @@ deja que la disciplina (TDD + juicio + mutación) la talle.
 
 1. Lee `AGENTS.md` para orientarte.
 2. Lee `feature_list.json` y `progress/current.md`.
-3. Lee `docs/workflow.md` (el pipeline completo) antes de coordinar nada.
+3. Lee `docs/engineering/workflow.md` (el pipeline completo) antes de coordinar nada.
 4. Ejecuta `./init.sh`. Si falla, paras y reportas.
 
 ## El pipeline (obligatorio)
@@ -43,7 +43,7 @@ pending
 
 NUNCA saltes a implementación si los `.feature` no están aprobados.
 NUNCA declares `done` sin que el `judge` apruebe **y** la puntuación de
-mutación supere el umbral de `docs/mutation-testing.md`.
+mutación supere el umbral de `docs/engineering/mutation-testing.md`.
 
 ## Cómo descomponer «implementa la siguiente feature pendiente»
 

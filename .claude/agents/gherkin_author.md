@@ -17,7 +17,7 @@ No escribes código de producción. No escribes tests unitarios. No editas
 
 ## Protocolo
 
-1. Lee `AGENTS.md`, `docs/gherkin.md` y la sección de `project-spec.md`
+1. Lee `AGENTS.md`, `docs/engineering/gherkin.md` y la sección de `project-spec.md`
    correspondiente a la feature.
 2. Toma la feature `pending` de menor `id` con `"sdd": true`.
 3. Crea `features/<name>.feature` con:

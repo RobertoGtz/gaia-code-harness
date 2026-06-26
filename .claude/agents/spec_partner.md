@@ -31,7 +31,7 @@ favor de una. Deja que el humano decida; registra la decisión y su razón.
 
 ## Protocolo
 
-1. Lee `AGENTS.md`, `docs/workflow.md` y el `project-spec.md` actual (si existe).
+1. Lee `AGENTS.md`, `docs/engineering/workflow.md` y el `project-spec.md` actual (si existe).
 2. Toma la feature `pending` de menor `id` con `"sdd": true` de
    `feature_list.json` como tema de la conversación.
 3. **Debate** con el humano los puntos abiertos. Una pregunta o un bloque
