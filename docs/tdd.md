@@ -1,8 +1,8 @@
 # TDD estricto — GAIA Code Harness
 
-> "Do you let it write all tests up front, then code or single test
-> followed by code (TDD)?" — La respuesta de esta rama: **single test
-> followed by code**. Un test a la vez. Nunca toda la batería por delante.
+> Un test a la vez. Nunca toda la batería por delante. Nunca código de producción sin un test rojo que lo pida.
+
+---
 
 ## Las Tres Leyes del TDD
 
@@ -16,7 +16,9 @@
 El efecto: nunca tienes código sin un test que lo justifique, ni un test
 que no esté empujando código real. El alcance no se infla.
 
-## El ciclo, en pequeño y repetido
+---
+
+## El ciclo
 
 ```
    ┌──────────────────────────────────────────────┐
@@ -38,11 +40,15 @@ que no esté empujando código real. El alcance no se infla.
   funciones largas. Vuelve a correr los tests tras cada cambio. Si algo se
   pone rojo, no estás refactorizando: estás cambiando comportamiento.
 
+---
+
 ## Granularidad: un escenario, uno o más ciclos
 
 Cada `@s` del `.feature` se traduce en al menos un ciclo Rojo-Verde-Refactor.
 Un escenario con varias aristas puede necesitar dos ciclos para forzar la
 generalización del código.
+
+---
 
 ## Trazabilidad obligatoria
 
@@ -51,13 +57,16 @@ El `tdd_craftsman` escribe el mapa en `progress/tdd_<name>.md`:
 
 ```markdown
 ## Trazabilidad
-- @s1 (archivo vacío → 0)        → test_count_archivo_vacio
-- @s2 (tres notas → 3)           → test_count_varias_notas
-- @s3 (no modifica el archivo)   → test_count_no_muta_archivo
+
+- @s1 (archivo vacío → 0) → test_count_archivo_vacio
+- @s2 (tres notas → 3) → test_count_varias_notas
+- @s3 (no modifica el archivo) → test_count_no_muta_archivo
 ```
 
 El `judge` rechaza si algún `@s` queda sin test, y el `mutation_tester`
 rechaza si los tests existen pero no muerden.
+
+---
 
 ## Cómo correr los tests por plataforma
 
@@ -77,6 +86,8 @@ flutter test                             # en el directorio del proyecto
 # Python (fallback)
 python3 -m unittest discover -s tests -v
 ```
+
+---
 
 ## Olores que el `judge` busca
 

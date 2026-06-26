@@ -1,8 +1,8 @@
 # Mutation Testing — GAIA Code Harness
 
-> "Mutation testing is resource-heavy, but the ROI on code correctness is
-> worth every cycle." / "We are shifting from a bottleneck of human typing
-> speed to a bottleneck of compute-driven validation."
+> Valida que tu suite de tests realmente detectaría bugs. Score mínimo aceptable: 80%.
+
+---
 
 ## El problema que resuelve
 
@@ -11,7 +11,7 @@ Una suite verde dice "el código no explota con estas entradas". **No** dice
 fuertes pasa siempre y no protege nada.
 
 La prueba de mutación lo mide al revés: introduce un defecto pequeño
-(un *mutante*) y observa la suite.
+(un _mutante_) y observa la suite.
 
 - Si **algún test falla** → el mutante está **muerto** (killed). La red
   atrapó el defecto.
@@ -25,6 +25,7 @@ La prueba de mutación lo mide al revés: introduce un defecto pequeño
 ## La herramienta: `tools/mutate.py`
 
 Sin dependencias externas (solo stdlib Python 3.9+). Soporta:
+
 - **Python** — tokenizer nativo (sin falsos positivos en strings/comments)
 - **TypeScript / JavaScript** — regex consciente de strings y template literals
 - **Swift** — regex para operadores y keywords Swift
@@ -32,13 +33,13 @@ Sin dependencias externas (solo stdlib Python 3.9+). Soporta:
 
 ### Catálogo de mutaciones
 
-| Categoría    | Ejemplos |
-|---|---|
-| Comparación  | `<=` → `<`, `==` → `!=`, `===` → `!==` |
-| Aritmética   | `+` → `-`, `-` → `+` |
-| Lógica       | `&&` → `\|\|`, `true` → `false` |
-| Retorno      | `return <expr>` → `return null/nil/None` |
-| Constantes   | `0` → `1`, `1` → `0` (solo Python) |
+| Categoría   | Ejemplos                                 |
+| ----------- | ---------------------------------------- |
+| Comparación | `<=` → `<`, `==` → `!=`, `===` → `!==`   |
+| Aritmética  | `+` → `-`, `-` → `+`                     |
+| Lógica      | `&&` → `\|\|`, `true` → `false`          |
+| Retorno     | `return <expr>` → `return null/nil/None` |
+| Constantes  | `0` → `1`, `1` → `0` (solo Python)       |
 
 El script **restaura siempre** el archivo original (`finally`), incluso ante Ctrl-C.
 
@@ -77,17 +78,18 @@ python3 tools/mutate.py src/agents/implementer.ts \
 
 ### Exit codes
 
-| Código | Significado |
-|---|---|
-| `0` | Score ≥ threshold — **PASS** |
-| `1` | Score < threshold — **FAIL** |
-| `2` | Suite roja antes de mutar — arregla los tests primero |
+| Código | Significado                                           |
+| ------ | ----------------------------------------------------- |
+| `0`    | Score ≥ threshold — **PASS**                          |
+| `1`    | Score < threshold — **FAIL**                          |
+| `2`    | Suite roja antes de mutar — arregla los tests primero |
 
 ---
 
 ## El umbral
 
-### Claude Code mode (agente `mutation_tester`)
+### Modo Claude Code (agente `mutation_tester`)
+
 - **100% sobre las líneas nuevas o tocadas** por la feature es el ideal.
 - Mínimo aceptable: **80%** — alineado con `MutationTesterAgent.ts`.
 - Para código heredado no tocado por la feature, se mide pero no se bloquea.
@@ -95,7 +97,8 @@ python3 tools/mutate.py src/agents/implementer.ts \
   excluirse, pero **solo** con justificación explícita en
   `progress/mutation_<name>.md`. Abusar de esto es hacer trampa al juez.
 
-### HTTP mode (`MutationTesterAgent.ts`)
+### Modo HTTP (`MutationTesterAgent.ts`)
+
 - Mismo umbral del 80%.
 - **No bloqueante**: si score < 80%, emite una advertencia en `progressLogs`
   del job y continúa. El PR se crea igualmente.
@@ -106,10 +109,10 @@ python3 tools/mutate.py src/agents/implementer.ts \
 
 ## Quién hace qué
 
-| Modo | Quién ejecuta | Efecto si falla |
-|---|---|---|
+| Modo        | Quién ejecuta                                | Efecto si falla                   |
+| ----------- | -------------------------------------------- | --------------------------------- |
 | Claude Code | agente `mutation_tester` (humano en el loop) | Bloquea; vuelve a `tdd_craftsman` |
-| HTTP | `MutationTesterAgent.ts` (automático) | Warning en logs; no bloquea PR |
+| HTTP        | `MutationTesterAgent.ts` (automático)        | Warning en logs; no bloquea PR    |
 
 El `mutation_tester` **mide y reporta**. No edita código.
 Un mutante sobreviviente es trabajo del `tdd_craftsman`: escribe el test
