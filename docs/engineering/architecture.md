@@ -351,8 +351,8 @@ src/
 │   └── registry.ts         ← PlatformAgents: specAuthor, implementer, reviewer, mutationTester
 ├── state/
 │   ├── index.ts            ← StateBackend interface + setStateBackend()/getStateBackend()
-│   ├── postgres-backend.ts ← Adapter (HTTP mode)
-│   └── disk-backend.ts     ← Adapter (Modo B — CLI y Claude Code)
+│   ├── postgres-backend.ts ← Adapter — Modes A and C (HTTP/Webhook + Postgres)
+│   └── disk-backend.ts     ← Adapter — Mode B (CLI + disk)
 ├── cli/
 │   └── run.ts              ← CLI entry point: --list, --job, --id
 └── skills/

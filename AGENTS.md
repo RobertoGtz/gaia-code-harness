@@ -4,9 +4,11 @@
 > NO es una biblia de reglas: es un **mapa**. Lee solo lo que necesites
 > cuando lo necesites (divulgación progresiva).
 >
-> **GAIA Code Harness** — soporta dos modos de orquestación simultáneamente:
-> - **HTTP + Postgres** (modo producción/demo): `npm run dev` → `POST /jobs`
-> - **Claude Code CLI** (modo artesano): flujo conversación → Gherkin → TDD → review → mutación
+> **GAIA Code Harness** — soporta tres modos de orquestación simultáneamente:
+>
+> - **Modo A — HTTP + Postgres** (producción/demo): `npm run dev` → `POST /jobs`
+> - **Modo B — CLI + disco** (artesano/local): `npx ts-node src/cli/run.ts --job job.json`
+> - **Modo C — Webhook + Postgres** (integración CI): `POST /webhook/trigger`
 
 ---
 
@@ -25,34 +27,34 @@
 
 ### Archivos de orquestación (Claude Code mode)
 
-| Archivo / carpeta              | Qué contiene                                                                    | Cuándo leerlo |
-|--------------------------------|---------------------------------------------------------------------------------|---------------|
-| `feature_list.json`            | Lista de tareas con estado (`pending / spec_ready / in_progress / done / blocked`) | Siempre, al empezar |
-| `progress/current.md`          | Estado de la sesión actual                                                      | Siempre, al empezar |
-| `progress/history.md`          | Bitácora append-only de sesiones anteriores                                     | Si necesitas contexto histórico |
-| `project-spec.md`              | Spec conversada: propósito, contrato y decisiones por feature                   | Antes de destilar Gherkin o implementar |
-| `features/<name>.feature`      | Escenarios Gherkin (el contrato ejecutable que el humano aprueba)               | Antes de empezar el ciclo TDD |
-| `docs/engineering/workflow.md`             | El pipeline completo y los insights de cada fase                                | Antes de coordinar |
-| `docs/engineering/tdd.md`                  | Las Tres Leyes del TDD; el ciclo Rojo-Verde-Refactor                            | Antes de escribir código |
-| `docs/engineering/gherkin.md`              | Cómo escribir `.feature`; de Gherkin a test                                     | Antes de redactar/leer escenarios |
-| `docs/engineering/mutation-testing.md`     | Por qué y cómo; umbral; uso de `tools/mutate.py`                                | Antes de validar la suite |
-| `CHECKPOINTS.md`               | Criterios objetivos de "estado final correcto"                                  | Para auto-evaluarte |
-| `tools/mutate.py`              | Mutador determinístico sin dependencias (Python, TS, Swift, Kotlin)             | Fase de mutación |
-| `.claude/agents/`              | `craftsman_lead`, `spec_partner`, `gherkin_author`, `tdd_craftsman`, `judge`, `mutation_tester` | Si orquestas trabajo |
+| Archivo / carpeta                      | Qué contiene                                                                                    | Cuándo leerlo                           |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `feature_list.json`                    | Lista de tareas con estado (`pending / spec_ready / in_progress / done / blocked`)              | Siempre, al empezar                     |
+| `progress/current.md`                  | Estado de la sesión actual                                                                      | Siempre, al empezar                     |
+| `progress/history.md`                  | Bitácora append-only de sesiones anteriores                                                     | Si necesitas contexto histórico         |
+| `project-spec.md`                      | Spec conversada: propósito, contrato y decisiones por feature                                   | Antes de destilar Gherkin o implementar |
+| `features/<name>.feature`              | Escenarios Gherkin (el contrato ejecutable que el humano aprueba)                               | Antes de empezar el ciclo TDD           |
+| `docs/engineering/workflow.md`         | El pipeline completo y los insights de cada fase                                                | Antes de coordinar                      |
+| `docs/engineering/tdd.md`              | Las Tres Leyes del TDD; el ciclo Rojo-Verde-Refactor                                            | Antes de escribir código                |
+| `docs/engineering/gherkin.md`          | Cómo escribir `.feature`; de Gherkin a test                                                     | Antes de redactar/leer escenarios       |
+| `docs/engineering/mutation-testing.md` | Por qué y cómo; umbral; uso de `tools/mutate.py`                                                | Antes de validar la suite               |
+| `CHECKPOINTS.md`                       | Criterios objetivos de "estado final correcto"                                                  | Para auto-evaluarte                     |
+| `tools/mutate.py`                      | Mutador determinístico sin dependencias (Python, TS, Swift, Kotlin)                             | Fase de mutación                        |
+| `.claude/agents/`                      | `craftsman_lead`, `spec_partner`, `gherkin_author`, `tdd_craftsman`, `judge`, `mutation_tester` | Si orquestas trabajo                    |
 
 ### Archivos del harness TypeScript (HTTP mode)
 
-| Archivo / carpeta              | Qué contiene                                                                    | Cuándo leerlo |
-|--------------------------------|---------------------------------------------------------------------------------|---------------|
-| `src/agents/`                  | `SpecAuthorAgent`, `ImplementerAgent` (+ `executeTDD()`), `ReviewerAgent`, `MutationTesterAgent` | Si modificas agentes TS |
-| `src/state/`                   | `StateBackend` interface + `PostgresBackend` + `DiskBackend`                    | Si modificas persistencia |
-| `src/harness/leader.ts`        | Máquina de estados — orquesta los 4 agentes TS                                  | Si modificas el flujo HTTP |
-| `src/api/routes/jobs.ts`       | `POST /jobs` con `tddMode` flag                                                 | Si modificas la API REST |
-| `src/cli/run.ts`               | CLI entry point para Claude Code mode con DiskBackend                           | Si modificas el CLI TS |
-| `src/db/index.ts`              | Postgres schema + `tdd_mode` column                                             | Si modificas la DB |
-| `src/types/index.ts`           | `CodeGenerationJob`, `CreateJobRequest` con `tddMode`                           | Si modificas tipos |
-| `docs/engineering/architecture.md`         | Arquitectura técnica profunda (dual-mode, agents, state machine)                | Antes de cambios estructurales |
-| `API.md`                       | Referencia completa REST API                                                    | Antes de integrar HTTP mode |
+| Archivo / carpeta                  | Qué contiene                                                                                     | Cuándo leerlo                  |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------ |
+| `src/agents/`                      | `SpecAuthorAgent`, `ImplementerAgent` (+ `executeTDD()`), `ReviewerAgent`, `MutationTesterAgent` | Si modificas agentes TS        |
+| `src/state/`                       | `StateBackend` interface + `PostgresBackend` + `DiskBackend`                                     | Si modificas persistencia      |
+| `src/harness/leader.ts`            | Máquina de estados — orquesta los 4 agentes TS                                                   | Si modificas el flujo HTTP     |
+| `src/api/routes/jobs.ts`           | `POST /jobs` con `tddMode` flag                                                                  | Si modificas la API REST       |
+| `src/cli/run.ts`                   | CLI entry point para Claude Code mode con DiskBackend                                            | Si modificas el CLI TS         |
+| `src/db/index.ts`                  | Postgres schema + `tdd_mode` column                                                              | Si modificas la DB             |
+| `src/types/index.ts`               | `CodeGenerationJob`, `CreateJobRequest` con `tddMode`                                            | Si modificas tipos             |
+| `docs/engineering/architecture.md` | Arquitectura técnica profunda (dual-mode, agents, state machine)                                 | Antes de cambios estructurales |
+| `API.md`                           | Referencia completa REST API                                                                     | Antes de integrar HTTP mode    |
 
 ---
 
@@ -91,14 +93,14 @@ pending
 
 ### Mapeo Claude Code ↔ HTTP mode (TypeScript)
 
-| Agente Claude Code  | Equivalente TypeScript                | Diferencia clave |
-|---------------------|---------------------------------------|------------------|
-| `spec_partner`      | `SpecAuthorAgent`                     | Conversacional (Claude) vs bulk (TS) |
-| `gherkin_author`    | *(parte de SpecAuthorAgent)*          | Separado en Claude mode |
-| `tdd_craftsman`     | `ImplementerAgent.executeTDD()`       | Activo cuando `tddMode: true` |
-| *(bulk)*            | `ImplementerAgent.execute()`          | `tddMode: false` (default) |
-| `judge`             | `ReviewerAgent`                       | Judge bloquea; reviewer no bloquea lint |
-| `mutation_tester`   | `MutationTesterAgent.ts`              | Claude mode bloquea; HTTP mode warning |
+| Agente Claude Code | Equivalente TypeScript          | Diferencia clave                        |
+| ------------------ | ------------------------------- | --------------------------------------- |
+| `spec_partner`     | `SpecAuthorAgent`               | Conversacional (Claude) vs bulk (TS)    |
+| `gherkin_author`   | _(parte de SpecAuthorAgent)_    | Separado en Claude mode                 |
+| `tdd_craftsman`    | `ImplementerAgent.executeTDD()` | Activo cuando `tddMode: true`           |
+| _(bulk)_           | `ImplementerAgent.execute()`    | `tddMode: false` (default)              |
+| `judge`            | `ReviewerAgent`                 | Judge bloquea; reviewer no bloquea lint |
+| `mutation_tester`  | `MutationTesterAgent.ts`        | Claude mode bloquea; HTTP mode warning  |
 
 ---
 
