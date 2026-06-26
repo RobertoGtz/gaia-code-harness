@@ -1,321 +1,231 @@
 # Guía de Testing — GAIA Code Harness
 
-> Cómo probar el proyecto localmente
+> Cómo verificar y probar el sistema localmente en los tres modos.
 
 ---
 
-## Testing Rápido (5 minutos)
-
-### 1. Verificar Instalación
+## Verificación rápida del entorno
 
 ```bash
-# Verificar que el server está corriendo
-curl http://localhost:3000/health
+./init.sh          # verifica Node, TS, archivos base, toolchains nativos
+./init.sh --http   # + verifica Postgres accesible
+./init.sh --quick  # solo Node + compilación TS
 ```
-
-**Esperado:**
-
-```json
-{ "status": "ok", "timestamp": "2024-01-15T..." }
-```
-
-### 2. Crear un Job de Prueba
-
-```bash
-curl -X POST http://localhost:3000/jobs \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jiraTicketId": "TEST-123",
-    "fullContext": {
-      "title": "Agregar botón de login",
-      "description": "Botón para iniciar sesión en la app",
-      "acceptanceCriteria": [
-        "WHEN user taps login button THEN show login form",
-        "WHEN login succeeds THEN navigate to home"
-      ],
-      "platform": "flutter",
-      "repo": "test-repo",
-      "targetBranch": "main"
-    }
-  }'
-```
-
-**Esperado:** Status 201 con objeto `job` incluyendo `id`.
-
-### 3. Verificar Job
-
-```bash
-# Reemplazar $JOB_ID con el ID devuelto
-curl http://localhost:3000/jobs/$JOB_ID | jq .
-```
-
-**Esperado:** Job con status "pending" o "spec_generating".
-
-### 4. Ejecutar Demo Completo
-
-```bash
-# Flutter
-./scripts/demo.sh flutter
-
-# iOS
-./scripts/demo.sh ios
-
-# Android
-./scripts/demo.sh android
-```
-
-**Esperado:** Script completa todo el flujo y muestra PR URL para la plataforma elegida.
 
 ---
 
-## Testing Manual de Componentes
+## Modo A — HTTP API
 
-### Testing de Agentes
+### Iniciar servidor
 
-Todos los agentes son genéricos. El `platform` del job determina qué `PlatformSkill` se carga en runtime.
-
-#### SpecAuthorAgent
-
-```typescript
-// Cambiar platform a "ios" o "android" para probar otras plataformas
-import { SpecAuthorAgent } from "./src/agents/spec-author";
-
-const agent = new SpecAuthorAgent();
-const result = await agent.execute({
-  job: {
-    id: "test-123",
-    title: "Test feature",
-    acceptanceCriteria: [
-      { id: "1", text: "WHEN test THEN success", testable: true },
-    ],
-    platform: "flutter", // ← cambia aqui: "flutter"|"flutter_web"|"ios"|"android"
-    repo: "test-repo",
-    targetBranch: "main",
-    maxFilesToTouch: 5,
-    requireTests: true,
-    initiativeId: "test",
-    status: "pending",
-    progressLogs: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  workspacePath: "/tmp/test",
-});
-
-console.log(result.spec);
+```bash
+npm run dev
 ```
 
-#### ImplementerAgent
-
-Requiere:
-
-- Repo de la plataforma clonado
-- Toolchain instalado según `platform`: Flutter SDK / Xcode+Swift / JDK+Gradle
-- Git configurado
-
-#### ReviewerAgent
-
-Requiere:
-
-- Código implementado
-- Toolchain instalado (el skill verifica automáticamente)
-- GitHub token configurado (opcional, usa dry-run sin él)
-
----
-
-## Testing de API
-
-### Colección de Requests
-
-#### Health Check
+### Health check
 
 ```bash
 curl http://localhost:3000/health
+# → { "status": "ok", "timestamp": "..." }
 ```
 
-#### Listar Jobs
+### Crear job con contexto completo (formato flat)
 
 ```bash
-curl http://localhost:3000/jobs
-```
-
-#### Crear Job (Contexto Completo)
-
-```bash
-curl -X POST http://localhost:3000/jobs \
+curl -s -X POST http://localhost:3000/jobs \
   -H "Content-Type: application/json" \
   -d '{
-    "fullContext": {
-      "title": "Feature title",
-      "acceptanceCriteria": ["WHEN x THEN y"],
-      "platform": "flutter",
-      "repo": "rpp-pyme-multiplatform",
-      "module": "pay_multiplatform_home_web",
-      "targetBranch": "develop"
-    }
-  }'
+    "title": "Agregar banner promocional en home",
+    "platform": "flutter",
+    "repo": "mi-org/mi-repo",
+    "targetBranch": "develop",
+    "requireTests": false,
+    "maxFilesToTouch": 6,
+    "acceptanceCriteria": [
+      { "id": "ac-1", "text": "WHEN user opens home THEN show promotional banner", "testable": true },
+      { "id": "ac-2", "text": "WHEN user taps banner THEN navigate to promotion details", "testable": true }
+    ]
+  }' | jq '{id: .job.id, status: .job.status}'
 ```
 
-#### Crear Job (Solo Jira)
+### Crear job solo con Jira
 
 ```bash
-curl -X POST http://localhost:3000/jobs \
+curl -s -X POST http://localhost:3000/jobs \
   -H "Content-Type: application/json" \
-  -d '{"jiraTicketId": "RPP-1234"}'
+  -d '{"jiraTicketId": "PROJ-123"}' | jq '{id: .job.id, status: .job.status}'
 ```
 
-#### Aprobar Spec
+### Monitorear estado
 
 ```bash
-curl -X POST http://localhost:3000/jobs/$JOB_ID/approve \
+JOB_ID=<id-del-job>
+
+# Estado actual
+curl -s http://localhost:3000/jobs/$JOB_ID | jq '.job.status'
+
+# Progress logs
+curl -s http://localhost:3000/jobs/$JOB_ID | jq '.job.progressLogs'
+
+# Spec generado
+curl -s http://localhost:3000/jobs/$JOB_ID | jq '.job.spec'
+```
+
+### Aprobar spec
+
+```bash
+curl -s -X POST http://localhost:3000/jobs/$JOB_ID/approve \
   -H "Content-Type: application/json" \
   -d '{"approved": true}'
-```
 
-#### Rechazar Spec
-
-```bash
-curl -X POST http://localhost:3000/jobs/$JOB_ID/approve \
+# Rechazar con feedback
+curl -s -X POST http://localhost:3000/jobs/$JOB_ID/approve \
   -H "Content-Type: application/json" \
-  -d '{"approved": false, "feedback": "Need more details"}'
+  -d '{"approved": false, "feedback": "Necesita más detalle en el caso de error"}'
 ```
 
-#### Reintentar Job
+### Reintentar job en error
 
 ```bash
-curl -X POST http://localhost:3000/jobs/$JOB_ID/retry
+curl -s -X POST http://localhost:3000/jobs/$JOB_ID/retry
 ```
 
----
-
-## Debugging
-
-### Ver Logs del Server
+### Script de flujo completo (Modo A)
 
 ```bash
-# Terminal 1: Server con logs	npm run dev
+BASE="http://localhost:3000"
 
-# Terminal 2: Monitorear
-watch -n 2 'curl -s http://localhost:3000/jobs/$JOB_ID | jq .status'
-```
-
-### Ver Progress Logs
-
-```bash
-curl http://localhost:3000/jobs/$JOB_ID | jq '.job.progressLogs'
-```
-
-### Ver Especificación Generada
-
-```bash
-curl http://localhost:3000/jobs/$JOB_ID | jq '.job.spec'
-```
-
----
-
-## Testing de Flujo Completo
-
-### Script de Testing Automatizado
-
-```bash
-#!/bin/bash
-
-BASE_URL="http://localhost:3000"
-
-echo "=== Testing Gaia Code Harness ==="
-
-# 1. Health check
-echo "[1/6] Health check..."
-curl -s $BASE_URL/health | jq .
-
-# 2. Create job
-echo "[2/6] Creating job..."
-JOB_RESPONSE=$(curl -s -X POST $BASE_URL/jobs \
+# 1. Crear
+JOB_ID=$(curl -s -X POST $BASE/jobs \
   -H "Content-Type: application/json" \
   -d '{
-    "fullContext": {
-      "title": "Test job",
-      "acceptanceCriteria": ["WHEN test THEN pass"],
-      "platform": "flutter",
-      "repo": "demo-repo"
-    }
-  }')
+    "title": "Test job",
+    "platform": "flutter",
+    "repo": "mi-org/demo-repo",
+    "acceptanceCriteria": [
+      {"id":"ac-1","text":"WHEN test THEN pass","testable":true}
+    ]
+  }' | python3 -c "import sys,json; print(json.load(sys.stdin)['job']['id'])")
+echo "Job: $JOB_ID"
 
-JOB_ID=$(echo $JOB_RESPONSE | jq -r '.job.id')
-echo "Created job: $JOB_ID"
-
-# Nota: cambiar platform a "ios"/"android" y repo a
-# "demo-repo-ios"/"demo-repo-android" para otras plataformas
-
-# 3. Wait for spec_ready
-echo "[3/6] Waiting for spec..."
-for i in {1..10}; do
-  STATUS=$(curl -s $BASE_URL/jobs/$JOB_ID | jq -r '.job.status')
-  echo "  Status: $STATUS"
-  [ "$STATUS" = "spec_ready" ] && break
-  sleep 2
+# 2. Esperar spec_ready
+for i in $(seq 1 15); do
+  ST=$(curl -s $BASE/jobs/$JOB_ID | python3 -c "import sys,json; print(json.load(sys.stdin)['job']['status'])")
+  echo "  → $ST"; [ "$ST" = "spec_ready" ] && break; sleep 3
 done
 
-# 4. Approve spec
-echo "[4/6] Approving spec..."
-curl -s -X POST $BASE_URL/jobs/$JOB_ID/approve \
+# 3. Aprobar
+curl -s -X POST $BASE/jobs/$JOB_ID/approve \
+  -H "Content-Type: application/json" -d '{"approved":true}' > /dev/null
+
+# 4. Esperar done
+for i in $(seq 1 20); do
+  ST=$(curl -s $BASE/jobs/$JOB_ID | python3 -c "import sys,json; print(json.load(sys.stdin)['job']['status'])")
+  echo "  → $ST"; [ "$ST" = "done" ] && break; sleep 4
+done
+
+# 5. Resultado
+curl -s $BASE/jobs/$JOB_ID | python3 -c "import sys,json; j=json.load(sys.stdin)['job']; print(j.get('prUrl','No PR'))"
+```
+
+---
+
+## Modo B — CLI
+
+No requiere servidor ni Postgres. Usa disco (`progress/.state/`).
+
+```bash
+# Job con archivo JSON
+cat > /tmp/test-job.json <<'EOF'
+{
+  "title": "Agregar banner promocional",
+  "platform": "flutter",
+  "repo": "mi-org/mi-repo",
+  "targetBranch": "develop",
+  "requireTests": false,
+  "acceptanceCriteria": [
+    {"id":"ac-1","text":"WHEN user opens home THEN show banner","testable":true}
+  ]
+}
+EOF
+
+# Correr con aprobación automática de spec
+npx ts-node src/cli/run.ts --job /tmp/test-job.json --approve
+
+# Listar jobs guardados en disco
+npx ts-node src/cli/run.ts --list
+
+# Reanudar job existente
+npx ts-node src/cli/run.ts --id <JOB_ID>
+
+# Demo completo con script
+./scripts/demo.sh flutter b   # Flutter
+./scripts/demo.sh ios b       # iOS
+./scripts/demo.sh android b   # Android
+```
+
+---
+
+## Modo C — Webhook
+
+Requiere servidor corriendo (`npm run dev`).
+
+```bash
+# Trigger genérico
+curl -s -X POST http://localhost:3000/webhook/trigger \
   -H "Content-Type: application/json" \
-  -d '{"approved": true}' | jq .
+  -d '{
+    "title": "Agregar banner promocional",
+    "platform": "flutter",
+    "repo": "mi-org/mi-repo",
+    "targetBranch": "develop",
+    "acceptanceCriteria": [
+      {"id":"ac-1","text":"WHEN user opens home THEN show banner"}
+    ]
+  }' | jq '{jobId: .jobId, status: .status}'
 
-# 5. Wait for completion
-echo "[5/6] Waiting for completion..."
-for i in {1..20}; do
-  STATUS=$(curl -s $BASE_URL/jobs/$JOB_ID | jq -r '.job.status')
-  echo "  Status: $STATUS"
-  [ "$STATUS" = "done" ] && break
-  sleep 3
-done
+# Trigger simulando Jira
+curl -s -X POST http://localhost:3000/webhook/trigger \
+  -H "Content-Type: application/json" \
+  -d '{
+    "webhookEvent": "jira:issue_created",
+    "issue": {
+      "key": "PROJ-123",
+      "fields": {
+        "summary": "[MOBILE] Agregar banner promocional",
+        "description": "Descripción del ticket"
+      }
+    }
+  }' | jq '{jobId: .jobId, status: .status}'
 
-# 6. Final result
-echo "[6/6] Final result:"
-curl -s $BASE_URL/jobs/$JOB_ID | jq '{id, status, prUrl}'
-
-echo "=== Test Complete ==="
+# Demo con script
+./scripts/demo.sh flutter c
 ```
 
 ---
 
 ## Troubleshooting
 
-### Problema: Job se queda en "pending"
-
-**Causa:** Leader no está procesando.
-**Solución:** Verificar que `orchestrateJob` fue llamado.
-
-### Problema: Spec no se genera
-
-**Causa:** SpecAuthorAgent falló silenciosamente.
-**Solución:** Verificar logs del server.
-
-### Problema: "Cannot approve spec"
-
-**Causa:** Job no está en estado "spec_ready".
-**Solución:** Esperar a que termine de generar.
-
-### Problema: PR no se crea
-
-**Causa:** GitHub token no configurado.
-**Solución:** Verificar `GITHUB_TOKEN` en `.env`.
+| Síntoma          | Causa probable         | Solución                                                   |
+| ---------------- | ---------------------- | ---------------------------------------------------------- |
+| Job en `pending` | Leader no procesa      | Verificar que `orchestrateJob` fue llamado; revisar logs   |
+| `spec_error`     | Falla LLM              | Verificar `OPENAI_API_KEY` o `ANTHROPIC_API_KEY` en `.env` |
+| `env_error`      | Toolchain faltante     | Correr `./init.sh` para ver qué falta                      |
+| `repo_error`     | Acceso a repo          | Verificar `GITHUB_TOKEN` y permisos del repo               |
+| `build_error`    | Dependencias           | Revisar que el repo tenga lockfile correcto                |
+| No aprueba spec  | Job no en `spec_ready` | Esperar más; monitorear con `/jobs/$JOB_ID`                |
+| Webhook `401`    | Firma inválida         | Verificar `WEBHOOK_SECRET` en `.env`                       |
 
 ---
 
-## Métricas de Testing
+## Tiempos esperados
 
-| Test         | Tiempo Esperado | Status |
-| ------------ | --------------- | ------ |
-| Health check | < 1s            | ⬜     |
-| Crear job    | < 2s            | ⬜     |
-| Generar spec | < 30s           | ⬜     |
-| Aprobar spec | < 1s            | ⬜     |
-| Implementar  | < 60s           | ⬜     |
-| Crear PR     | < 10s           | ⬜     |
-| **Total**    | **< 2 min**     | ⬜     |
-
----
-
-**Ticket:** RPCO-37575
+| Fase         | Tiempo típico |
+| ------------ | ------------- |
+| Health check | < 1 s         |
+| Crear job    | < 2 s         |
+| Generar spec | 15–45 s       |
+| Aprobar spec | < 1 s         |
+| Implementar  | 30–90 s       |
+| Crear PR     | < 10 s        |
+| **Total**    | **~2–3 min**  |
