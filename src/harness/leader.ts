@@ -105,7 +105,7 @@ function leaderJSON(label: string, data: unknown): void {
 /**
  * Main orchestrator function that manages the job lifecycle.
  * Decides which agent to execute based on the current job status.
- * Implements a state machine with 10 possible states.
+ * Implements a state machine with 13 possible states (including 6 granular error states).
  * 
  * @param jobId - UUID of the job to process
  * @throws Error if job not found or unexpected error occurs
@@ -374,7 +374,7 @@ async function handleSpecGenerating(job: CodeGenerationJob): Promise<void> {
  * Handler for 'implementing' state.
  * Executes ImplementerAgent to modify code according to approved spec.
  * Includes retry logic: attempts up to 3 times on failure.
- * Steps: verify Flutter env → create branch → melos bootstrap → write code → tests → commit & push.
+ * Steps: verify platform env → create branch → resolve deps → write code → tests → commit & push.
  * 
  * @param job - The job with approved spec
  * @throws Error after 3 failed retries
@@ -460,7 +460,7 @@ async function handleSpecApproved(job: CodeGenerationJob): Promise<void> {
 /**
  * Handler for 'reviewing' state.
  * Executes ReviewerAgent to validate implementation and create GitHub PR.
- * Validations: dart analyze, flutter test, file count, traceability.
+ * Validations: static analysis, platform tests, file count, traceability.
  * On failure: returns to 'implementing' for retry.
  * On success: creates PR, comments on Jira, transitions to 'pr_created'.
  * 
@@ -614,9 +614,10 @@ async function handlePRCreated(job: CodeGenerationJob, notifier?: JobNotifier): 
   const durationSec = (durationMs / 1000).toFixed(1);
 
   const platformLabel: Record<string, string> = {
-    flutter: 'Flutter',
-    ios:     'iOS',
-    android: 'Android',
+    flutter:     'Flutter',
+    flutter_web: 'Flutter Web',
+    ios:         'iOS',
+    android:     'Android',
   };
 
   // ── Header ──

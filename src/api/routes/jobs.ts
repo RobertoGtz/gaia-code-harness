@@ -69,22 +69,20 @@ export async function setupJobRoutes(app: FastifyInstance) {
    * Accepts either full context from Gaia or just a Jira ticket ID.
    * Automatically starts orchestration in background.
    * 
-   * Request Body (Option A - Full Context):
+   * Request Body (Opción A - Flat body, preferido):
    * {
-   *   "fullContext": {
-   *     "title": "Feature name",
-   *     "acceptanceCriteria": ["WHEN x THEN y"],
-   *     "platform": "flutter",
-   *     "repo": "repo-name",
-   *     "module": "optional-module"
-   *   }
+   *   "title": "Feature name",
+   *   "platform": "flutter",
+   *   "repo": "mi-org/mi-repo",
+   *   "acceptanceCriteria": ["WHEN x THEN y"]
    * }
-   * 
-   * Request Body (Option B - Jira Only):
-   * {
-   *   "jiraTicketId": "PROJ-123"
-   * }
-   * 
+   *
+   * Request Body (Opción B - Solo ticket Jira):
+   * { "jiraTicketId": "PROJ-123" }
+   *
+   * Request Body (Opción C - fullContext wrapper, legacy):
+   * { "fullContext": { "title": "...", "platform": "flutter", ... } }
+   *
    * Response: 201 Created { job: CodeGenerationJob }
    * Errors: 400 if insufficient context, 500 on server error
    */
@@ -92,18 +90,21 @@ export async function setupJobRoutes(app: FastifyInstance) {
     const body = request.body as CreateJobRequest;
     
     // Validar que tengamos suficiente contexto
-    if (!body.jiraTicketId && !body.jiraEpicId && !body.fullContext) {
+    const hasJira = body.jiraTicketId || body.jiraEpicId;
+    const hasFlat = body.platform && body.title;
+    const hasLegacy = body.fullContext;
+    if (!hasJira && !hasFlat && !hasLegacy) {
       return reply.status(400).send({
-        error: 'Must provide jiraTicketId, jiraEpicId, or fullContext',
+        error: 'Must provide: (title + platform) for flat body, jiraTicketId for Jira, or fullContext for legacy wrapper',
       });
     }
     
     try {
-      // Si viene de Jira, necesitamos fetchear info (mock por ahora)
+      // Construir jobData según el formato del body recibido
       let jobData: Omit<CodeGenerationJob, 'id' | 'status' | 'progressLogs' | 'createdAt' | 'updatedAt'>;
       
         if (body.fullContext) {
-        // Contexto completo via fullContext wrapper
+        // Contexto completo via fullContext wrapper (formato legacy)
         jobData = {
           jiraTicketId: body.jiraTicketId,
           jiraEpicId: body.jiraEpicId,
@@ -135,7 +136,7 @@ export async function setupJobRoutes(app: FastifyInstance) {
           platform: body.platform,
           repo: body.repo || 'demo-repo',
           module: body.module,
-          targetBranch: body.targetBranch || 'main',
+          targetBranch: body.targetBranch || 'develop',
           description: body.description,
           acceptanceCriteria: rawAC.map((ac, i) => ({
             id: typeof ac === 'string' ? `ac-${i}` : (ac.id ?? `ac-${i}`),
