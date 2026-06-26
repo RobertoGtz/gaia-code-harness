@@ -75,7 +75,7 @@ export async function setupRepository(
     // job.repo may be 'owner/name' or just 'name'
     const fullRepo = job.repo.includes('/')
       ? job.repo
-      : `${process.env.GITHUB_OWNER || 'mi-org'}/${job.repo}`;
+      : `${process.env.GITHUB_OWNER || ''}/${job.repo}`;
     const repoUrl = `https://github.com/${fullRepo}.git`;
     const token = process.env.GITHUB_TOKEN;
     const auth = token ? { username: 'x-access-token', password: token } : undefined;

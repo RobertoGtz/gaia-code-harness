@@ -183,7 +183,7 @@ export async function commitAndPush(
     // If GITHUB_TOKEN + repo provided, point origin to GitHub before pushing
     const token = process.env.GITHUB_TOKEN;
     if (token && repo) {
-      const fullRepo = repo.includes('/') ? repo : `${process.env.GITHUB_OWNER || 'mi-org'}/${repo}`;
+      const fullRepo = repo.includes('/') ? repo : `${process.env.GITHUB_OWNER || ''}/${repo}`;
       const githubUrl = `https://${token}@github.com/${fullRepo}.git`;
       try {
         await git.remote(['set-url', 'origin', githubUrl]);

@@ -134,7 +134,7 @@ export async function setupJobRoutes(app: FastifyInstance) {
           initiativeId: `init-${Date.now()}`,
           title: body.title,
           platform: body.platform,
-          repo: body.repo || 'demo-repo',
+          repo: body.repo || '',
           module: body.module,
           targetBranch: body.targetBranch || 'develop',
           description: body.description,
@@ -165,7 +165,7 @@ export async function setupJobRoutes(app: FastifyInstance) {
           initiativeId: `init-${Date.now()}`,
           title: ticket.title,
           platform: ticket.platform,
-          repo: ticket.repo || process.env.DEFAULT_REPO || 'demo-repo',
+          repo: ticket.repo || process.env.DEFAULT_REPO || '',
           targetBranch: ticket.targetBranch || 'develop',
           description: ticket.description,
           acceptanceCriteria: ticket.acceptanceCriteria.map((text, i) => ({

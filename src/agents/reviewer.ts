@@ -62,7 +62,7 @@ export class ReviewerAgent extends BaseAgent {
 
       // 5. GitHub PR
       this.logStep('Creating GitHub PR...');
-      const prOwner = job.repo.includes('/') ? job.repo.split('/')[0] : (process.env.GITHUB_OWNER || 'mi-org');
+      const prOwner = job.repo.includes('/') ? job.repo.split('/')[0] : (process.env.GITHUB_OWNER || '');
       const prRepo = job.repo.includes('/') ? job.repo.split('/')[1] : job.repo;
       let pr: { url: string; id: string; number: number };
       try {
