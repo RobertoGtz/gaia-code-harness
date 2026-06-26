@@ -21,7 +21,7 @@
 
 ### Jira (si se usan tickets)
 
-- [ ] `JIRA_BASE_URL` — subdominio **exacto** del tenant (ej. `https://rappidev.atlassian.net`)
+- [ ] `JIRA_BASE_URL` — subdominio **exacto** del tenant (ej. `https://tu-org.atlassian.net`)
 - [ ] `JIRA_EMAIL` — email de la cuenta Jira
 - [ ] `JIRA_API_TOKEN` — obtener en https://id.atlassian.com/manage-profile/security/api-tokens
 - [ ] `DEFAULT_PLATFORM` — plataforma por defecto si el ticket no tiene label (`flutter`)
@@ -93,4 +93,3 @@ CMD ["npm", "start"]
 - [ ] Variables de entorno en secrets manager (no en archivos)
 - [ ] Firewall: solo la fuente de triggers tiene acceso a `POST /jobs` y `POST /webhook/trigger`
 - [ ] `WEBHOOK_SECRET` configurado si usas el webhook de Jira/Slack
-
