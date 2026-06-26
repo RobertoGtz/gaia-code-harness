@@ -231,7 +231,6 @@ export interface AgentResult {
 export interface CreateJobRequest {
   jiraTicketId?: string;
   jiraEpicId?: string;
-  // Flat fields — can be sent directly without wrapping in fullContext
   title?: string;
   platform?: Platform;
   repo?: string;
