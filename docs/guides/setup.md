@@ -26,7 +26,7 @@ cd ~/Desktop/gaia-code-harness
 npm install
 ```
 
-### 2. Configurar Base de Datos
+### 2. Configurar Base de Datos _(Modos A y C — omitir en Modo B)_
 
 ```bash
 # Crear base de datos
@@ -43,14 +43,25 @@ cp .env.example .env
 # Editar .env con tus credenciales
 ```
 
-**Mínimo necesario para probar:**
+**Mínimo necesario — Modos A y C (servidor HTTP):**
 
 ```bash
 PORT=3000
 DATABASE_URL=postgresql://localhost:5432/gaia_harness
+OPENAI_API_KEY=sk-...        # o ANTHROPIC_API_KEY
+GITHUB_TOKEN=ghp_...
+GITHUB_OWNER=mi-org
 ```
 
-### 4. Inicializar Base de Datos
+**Mínimo necesario — Modo B (CLI, sin Postgres):**
+
+```bash
+OPENAI_API_KEY=sk-...        # o ANTHROPIC_API_KEY
+GITHUB_TOKEN=ghp_...
+GITHUB_OWNER=mi-org
+```
+
+### 4. Inicializar Base de Datos _(Modos A y C — omitir en Modo B)_
 
 ```bash
 npm run db:init
@@ -265,12 +276,17 @@ gaia-code-harness/
 │   ├── types/                # TypeScript types
 │   ├── db/                   # PostgreSQL
 │   ├── api/                  # REST API
-│   ├── agents/               # Agentes por plataforma
+│   ├── agents/               # Agentes genéricos (platform-agnostic)
 │   │   ├── base.ts           # BaseAgent abstract class
-│   │   ├── registry.ts       # Factory: selecciona agentes según platform
-│   │   ├── flutter/          # Agentes Flutter/Dart
-│   │   ├── ios/              # Agentes iOS/Swift
-│   │   └── android/          # Agentes Android/Kotlin
+│   │   ├── spec-author.ts    # SpecAuthorAgent
+│   │   ├── implementer.ts    # ImplementerAgent (+ executeTDD)
+│   │   ├── reviewer.ts       # ReviewerAgent
+│   │   └── mutation-tester.ts# MutationTesterAgent
+│   ├── skills/               # Lógica específica por plataforma
+│   │   ├── flutter/          # FlutterSkill
+│   │   ├── flutter_web/      # FlutterWebSkill
+│   │   ├── ios/              # IosSkill
+│   │   └── android/          # AndroidSkill
 │   ├── harness/              # Orchestrator (Leader)
 │   └── tools/                # Utilidades compartidas
 │       ├── file.ts           # Operaciones de archivos
@@ -313,12 +329,12 @@ gaia-code-harness/
 ## Checklist de Verificación
 
 - [ ] Node.js 18+ instalado
-- [ ] PostgreSQL corriendo
+- [ ] PostgreSQL corriendo _(solo Modos A y C)_
 - [ ] `npm install` completado
 - [ ] `.env` configurado
-- [ ] `npm run db:init` exitoso
+- [ ] `npm run db:init` exitoso _(solo Modos A y C)_
 - [ ] `npm run build` sin errores
-- [ ] `curl http://localhost:3000/health` responde OK
+- [ ] `curl http://localhost:3000/health` responde OK _(Modos A y C)_
 - [ ] Demo script funciona (`./scripts/demo.sh flutter`, `ios`, `android`)
 
 ---
