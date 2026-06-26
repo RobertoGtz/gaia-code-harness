@@ -80,7 +80,7 @@ export async function initDatabase(): Promise<void> {
  * const job = await createJob({
  *   title: 'Add banner',
  *   platform: 'flutter',
- *   repo: 'my-repo',
+ *   repo: 'mi-org/mi-repo',
  *   acceptanceCriteria: [...],
  *   maxFilesToTouch: 5,
  *   requireTests: true,

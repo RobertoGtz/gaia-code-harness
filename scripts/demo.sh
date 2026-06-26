@@ -47,17 +47,17 @@ fi
 # ── Platform config ───────────────────────────────────────────────────────────
 case "$PLATFORM" in
   flutter)
-    REPO="RobertoGtz/demo-repo"
+    REPO="mi-org/demo-repo"
     TICKET="DEMO-FLUTTER-001"
     PLATFORM_LABEL="Flutter/Dart"
     ;;
   ios)
-    REPO="RobertoGtz/demo-repo-ios"
+    REPO="mi-org/demo-repo-ios"
     TICKET="DEMO-IOS-001"
     PLATFORM_LABEL="iOS/Swift"
     ;;
   android)
-    REPO="RobertoGtz/demo-repo-android"
+    REPO="mi-org/demo-repo-android"
     TICKET="DEMO-ANDROID-001"
     PLATFORM_LABEL="Android/Kotlin"
     ;;

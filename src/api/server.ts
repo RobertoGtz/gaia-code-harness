@@ -66,7 +66,7 @@ export async function startServer(port: number = 3000) {
     done();
   });
 
-  // Enable CORS for cross-origin requests from Gaia Platform
+  // Enable CORS for cross-origin requests (Postman, frontends, CI integrations)
   await app.register(cors, {
     origin: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
