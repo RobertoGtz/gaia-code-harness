@@ -43,7 +43,7 @@
 - [ ] `progress/history.md` tiene una entrada por la última sesión completada.
 - [ ] La última feature trabajada está en el estado correcto en `feature_list.json`.
 
-## C6 — Contrato Gherkin (BDD / Claude Code mode)
+## C6 — Contrato Gherkin (features con `"sdd": true`)
 
 - [ ] Toda feature con `"sdd": true` en estado `spec_ready`, `in_progress`
       o `done` tiene su `features/<name>.feature` y una sección en `project-spec.md`.

@@ -19,45 +19,21 @@ La diferencia es en cómo entra el job, dónde persiste el estado y si la aproba
 
 ## El pipeline de un vistazo
 
-```
-pending
-  │  spec_partner — CONVERSACIÓN  ────────────────►  project-spec.md
-  │      "We debate various topics and decisions."
-  │
-  │  gherkin_author — DESTILACIÓN ────────────────►  features/<name>.feature
-  │      "Create .feature files from the project-spec.md"
-  │
-  ▼  ⏸  PUERTA HUMANA: el humano aprueba los escenarios (el contrato)
-  │
-in_progress
-  │  tdd_craftsman — ROJO → VERDE → REFACTOR ─────►  src/ (workspace) + tests/
-  │      un test a la vez; las Tres Leyes del TDD
-  │      [activado si tddMode: true en feature_list.json]
-  │
-  │  judge — REVIEW ──────────────────────────────►  progress/judge_<name>.md
-  │      "Agents draft, judgment prunes."
-  │
-  │  mutation_tester — MUTACIÓN ──────────────────►  progress/mutation_<name>.md
-  │      python3 tools/mutate.py; score ≥ 80%
-  ▼
-done
-```
+> El diagrama describe el flujo completo. La columna "Agente" muestra el agente Claude Code;
+> la columna "Equivalente HTTP" muestra el módulo TypeScript que ejecuta lo mismo en Modos A y C.
+
+| Fase                | Agente (Claude Code)           | Equivalente HTTP                | Artefacto                     |
+| ------------------- | ------------------------------ | ------------------------------- | ----------------------------- |
+| Spec                | `spec_partner`                 | `SpecAuthorAgent`               | `project-spec.md`             |
+| Gherkin             | `gherkin_author`               | _(parte de SpecAuthorAgent)_    | `features/<name>.feature`     |
+| ⏸ **PUERTA HUMANA** | `craftsman_lead` para          | `POST /jobs/:id/approve`        | —                             |
+| Implementación      | `tdd_craftsman` (si `tddMode`) | `ImplementerAgent.executeTDD()` | `src/` + `tests/`             |
+| _(bulk)_            | _(bulk implementer)_           | `ImplementerAgent.execute()`    | `src/` + `tests/`             |
+| Review              | `judge`                        | `ReviewerAgent`                 | `progress/judge_<name>.md`    |
+| Mutación            | `mutation_tester`              | `MutationTesterAgent`           | `progress/mutation_<name>.md` |
 
 Una sola feature a la vez. Una sola puerta de aprobación humana: sobre los
 escenarios Gherkin, **antes** de escribir producción.
-
----
-
-## Mapeo Claude Code ↔ HTTP mode
-
-| Fase           | Claude Code agent    | TypeScript equivalent           | Diferencia clave                    |
-| -------------- | -------------------- | ------------------------------- | ----------------------------------- |
-| Spec           | `spec_partner`       | `SpecAuthorAgent`               | Conversacional vs bulk              |
-| Gherkin        | `gherkin_author`     | _(parte de SpecAuthorAgent)_    | Separado en Claude mode             |
-| Implementación | `tdd_craftsman`      | `ImplementerAgent.executeTDD()` | Activo si `tddMode: true`           |
-| _(bulk)_       | _(bulk implementer)_ | `ImplementerAgent.execute()`    | `tddMode: false`                    |
-| Review         | `judge`              | `ReviewerAgent`                 | Judge bloquea; reviewer no bloquea  |
-| Mutación       | `mutation_tester`    | `MutationTesterAgent`           | Claude mode bloquea; HTTP mode warn |
 
 ---
 
