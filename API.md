@@ -502,8 +502,12 @@ npx ts-node src/cli/run.ts --job job.json
 # Crear y aprobar spec automáticamente (sin pausa)
 npx ts-node src/cli/run.ts --job job.json --approve
 
+# Activar TDD (Red-Green-Refactor)
+npx ts-node src/cli/run.ts --job job.json --tdd --approve
+
 # Crear job directo desde ticket Jira
 npx ts-node src/cli/run.ts --jira PROJ-123 --approve
+npx ts-node src/cli/run.ts --jira PROJ-123 --tdd --approve
 
 # Retomar job existente
 npx ts-node src/cli/run.ts --id <uuid>

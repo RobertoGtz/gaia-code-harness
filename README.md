@@ -142,6 +142,14 @@ curl -X POST http://localhost:3000/jobs/<JOB_ID>/approve \
   -d '{"approved": true}'
 ```
 
+**O desde CLI (Modo B — sin servidor):**
+
+```bash
+npx ts-node src/cli/run.ts --job mi-job.json --approve
+npx ts-node src/cli/run.ts --job mi-job.json --tdd --approve   # con TDD
+npx ts-node src/cli/run.ts --jira PROJ-1234 --approve          # desde Jira
+```
+
 ### 6. Demo automático (todo en un comando)
 
 ```bash
