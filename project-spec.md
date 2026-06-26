@@ -1,7 +1,7 @@
 # Project Spec
 
-This file is maintained by `spec_partner`. Each feature section captures the decisions made during the spec conversation.
+Mantenido por `spec_partner`. Cada sección captura las decisiones tomadas durante la conversación de especificación.
 
 ---
 
-<!-- spec_partner will append feature sections here -->
+<!-- spec_partner añade una sección por feature aquí -->

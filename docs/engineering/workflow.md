@@ -20,9 +20,9 @@ La diferencia es en cómo entra el job, dónde persiste el estado y si la aproba
 ## El pipeline de un vistazo
 
 > El diagrama describe el flujo completo. La columna "Agente" muestra el agente Claude Code;
-> la columna "Equivalente HTTP" muestra el módulo TypeScript que ejecuta lo mismo en Modos A y C.
+> la columna "Equivalente TypeScript" muestra el módulo que ejecuta lo mismo en los Modos A, B y C.
 
-| Fase                | Agente (Claude Code)           | Equivalente HTTP                | Artefacto                     |
+| Fase                | Agente (Claude Code)           | Equivalente TypeScript          | Artefacto                     |
 | ------------------- | ------------------------------ | ------------------------------- | ----------------------------- |
 | Spec                | `spec_partner`                 | `SpecAuthorAgent`               | `project-spec.md`             |
 | Gherkin             | `gherkin_author`               | _(parte de SpecAuthorAgent)_    | `features/<name>.feature`     |

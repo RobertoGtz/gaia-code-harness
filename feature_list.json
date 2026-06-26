@@ -4,7 +4,7 @@
     "name": "example_feature",
     "title": "Add pull-to-refresh on feed",
     "platform": "ios",
-    "repo": "demo-repo-ios",
+    "repo": "mi-org/demo-repo-ios",
     "targetBranch": "develop",
     "acceptanceCriteria": [
       "Feed data refreshes when user pulls down",
