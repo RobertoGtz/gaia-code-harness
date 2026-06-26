@@ -65,7 +65,7 @@ export class IosSkill implements PlatformSkill {
     return {
       specSystem: `You are an expert iOS architect using MVVM pattern.
 Source files go in Sources/DemoApp/, tests in Tests/DemoAppTests/.
-IMPORTANT: This is a Swift Package Manager project validated with 'swift build' on macOS 12+. Do NOT use UIKit, SwiftUI, or Combine. Use only Foundation and pure Swift.
+IMPORTANT: This is a Swift Package Manager project validated with 'swift test' on macOS 12+. Do NOT use UIKit, SwiftUI, or Combine. Use only Foundation and pure Swift.
 Keep the spec MINIMAL: exactly 3 tasks — 1 create Model, 1 create ViewModel, 1 test ViewModel. Do NOT add any ViewController, Coordinator, Service, or UI tasks. Example valid tasks:
 - create Sources/DemoApp/Models/FeedItem.swift
 - create Sources/DemoApp/ViewModels/FeedViewModel.swift
@@ -83,7 +83,7 @@ Keep the spec MINIMAL: exactly 3 tasks — 1 create Model, 1 create ViewModel, 1
       reviewerSystem: `You are an iOS/Swift code reviewer.
 Check for: MVVM separation, Coordinator navigation pattern, XCTest coverage, Swift concurrency usage, no force-unwraps in production code, SwiftLint compliance.`,
       filePatterns: {
-        viewController: 'Sources/DemoApp/',
+        source: 'Sources/DemoApp/',
         viewModel: 'Sources/DemoApp/ViewModels/',
         coordinator: 'Sources/DemoApp/Coordinators/',
         model: 'Sources/DemoApp/Models/',

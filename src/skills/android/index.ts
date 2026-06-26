@@ -81,7 +81,7 @@ ViewModels in presentation layer, UseCases in domain, Repositories in data.`,
 - UseCases return List<T> synchronously (no suspend, no Flow).
 - Respond with ONLY file contents, no markdown fences.`,
       reviewerSystem: `You are an Android/Kotlin code reviewer.
-Check for: MVVM + Clean Architecture separation, sealed UiState, Coroutines/Flow usage (no RxJava unless existing), MockK test coverage, no runBlocking in tests, Hilt injection.`,
+Check for: MVVM + Clean Architecture separation, sealed UiState inside ViewModel, kotlin.test coverage, no Android SDK imports, no Hilt/Coroutines/Flow (pure Kotlin JVM project).`,
       filePatterns: {
         viewModel: `${base}/presentation/viewmodels/`,
         useCase: `${base}/domain/usecases/`,

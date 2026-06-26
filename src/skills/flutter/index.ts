@@ -81,7 +81,7 @@ Use BLoC or Riverpod for state management. Target Dart files in lib/src/presenta
 - Data: ${base}/lib/src/data/
 - Tests: ${base}/test/
 - Use flutter_test for all tests. Generate widget tests for every new widget.
-- CRITICAL: In tests, NEVER import or reference 'MyApp' or anything from 'main.dart'. Import only the specific widget/class file being tested (e.g. 'package:demo_repo/src/presentation/screens/settings_screen.dart'). Keep modifications to main.dart minimal \u2014 only add a route or theme provider, do NOT add named parameters to existing widgets.
+- CRITICAL: In tests, NEVER import or reference 'MyApp' or anything from 'main.dart'. Import only the specific widget/class file being tested (e.g. 'package:{repo_name}/src/presentation/screens/settings_screen.dart'). Keep modifications to main.dart minimal \u2014 only add a route or theme provider, do NOT add named parameters to existing widgets.
 - Respond with ONLY file contents, no markdown fences.`,
       reviewerSystem: `You are a Flutter mobile code reviewer. Check for: Clean MVVM separation, BLoC/Riverpod usage, widget test coverage, no hardcoded strings, no business logic in widgets.`,
       filePatterns: {
