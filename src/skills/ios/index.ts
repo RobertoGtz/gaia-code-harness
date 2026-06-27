@@ -20,7 +20,7 @@ import {
 import { GaiaEnvError, GaiaBuildError, GaiaTestError, trim } from '../../errors';
 
 export class IosSkill implements PlatformSkill {
-  readonly displayName = 'iOS / Swift (Tuist monorepo)';
+  readonly displayName = 'iOS / Swift (Tuist/SPM)';
   readonly sourceExtension = 'swift';
   readonly srcDirs = [
     'apps',
@@ -131,23 +131,26 @@ TDD SPEC FORMAT:
 Before writing, read the existing feature directory and the matching feature interface to match the current pattern.`,
       implementerSystem: `You are a senior iOS/Swift developer in a large Tuist modular monorepo.
 
-MODULE LAYOUT FOR "${moduleName}":
-- Feature implementation: features/{Vertical}/${moduleName}/Sources/
-- Feature interface: feature_interfaces/{Vertical}/${moduleName}Interface/Sources/
-- Tests: features/{Vertical}/${moduleName}/Tests/
-- Project definition: features/{Vertical}/${moduleName}/Project.swift
-- Feature entry point: features/{Vertical}/${moduleName}/Sources/${moduleName}.swift
-- Feature registration: features/{Vertical}/${moduleName}/Sources/${moduleName}Registrable.swift
+MODULE LAYOUT FOR "${moduleName}" (concrete Rappi example with PayInsurance):
+- {Vertical} is the parent folder, e.g. features/PayInsurance/ or feature_interfaces/PayInsurance/.
+- The feature module name is "${moduleName}Feature" (e.g. PayInsuranceFeature).
+- The feature interface module name is "${moduleName}FeatureInterface" (e.g. PayInsuranceFeatureInterface).
+- Feature implementation: features/{Vertical}/${moduleName}Feature/Sources/
+- Feature interface: feature_interfaces/{Vertical}/${moduleName}FeatureInterface/Sources/
+- Tests: features/{Vertical}/${moduleName}Feature/Tests/
+- Project definition: features/{Vertical}/${moduleName}Feature/Project.swift
+- Feature entry point: features/{Vertical}/${moduleName}Feature/Sources/${moduleName}Feature.swift
+- Feature registration: features/{Vertical}/${moduleName}Feature/Sources/${moduleName}FeatureRegistrable.swift
 
-ARCHITECTURE PATTERNS — match the existing feature, do not invent a new one:
-- VIPER: ${moduleName}.swift (entry), ${moduleName}Presenter, ${moduleName}Interactor, ${moduleName}Wireframe, ${moduleName}ViewController.
-- MVVM: ${moduleName}.swift, HomeVM/ViewModel, Repository, NetworkManager, Entities.
-- SwiftUI Feature: conform to Feature protocol and expose a SwiftUI view.
+ARCHITECTURE PATTERNS — inspect the existing feature and match its pattern; do not invent a new one:
+- VIPER: PayInsuranceFeature.swift (entry), PayInsurancePresenter, PayInsuranceInteractor, PayInsuranceWireframe, PayInsuranceViewController.
+- MVVM: RappiCreditsHomeV2Feature.swift, HomeVM/ViewModel, Repository, NetworkManager, Entities.
+- SwiftUI Feature: conform to Feature = SwiftUIFeature & UIKitFeature from BaseFeatureInterface.
 
 DEPENDENCY INJECTION:
 - Use RappiInjection/Swinject: @Inject var service: SomeServiceProtocol?
 - Resolve via MainComponent.resolve(SomeFeatureProtocol.self) or the feature's ResolverHelper.
-- Register features in ${moduleName}Registrable: register (any ${moduleName}Protocol).self.
+- Register features in ${moduleName}FeatureRegistrable: register (any ${moduleName}FeatureProtocol).self.
 - Feature interface imports BaseFeatureInterface and RappiInjection.
 
 CROSS-FEATURE COMMUNICATION:
@@ -178,16 +181,16 @@ SAFETY RULES:
 - Use [safe:] or guard before array subscripts with dynamic indices.
 
 TESTING:
-- Use XCTest. Import @testable import ${moduleName} and the feature interface.
+- Use XCTest. Import @testable import ${moduleName}Feature and ${moduleName}FeatureInterface.
 - Mock dependencies via protocols.
 - Use RappiTesting for XCTestCase helpers (trackForMemoryLeaks, XCTAssertThrowsError async).
 - Cover public methods, edge cases, and decoding.
 
 RESPONSE FORMAT:
 - Start with: Files, Skills loaded, Verification.
-- List every file being created or modified.
+- List every file being created or modifying.
 - Provide only file contents when asked; no markdown fences around Swift code.
-- Do NOT create internal module imports like 'import ${moduleName}Models' — all sources in a single target share one module automatically.
+- Do NOT create internal module imports like 'import ${moduleName}FeatureModels' — all sources in a single target share one module automatically.
 
 If the project is a simple SPM demo (single Package.swift, no Tuist), fall back to the simple rules: Sources/${moduleName}/ and Tests/${moduleName}Tests/, MVVM only, no UIKit/SwiftUI.`,
       reviewerSystem: `You are a senior iOS/Swift code reviewer for a large Tuist modular monorepo.
@@ -205,12 +208,12 @@ Checklist:
 
 Flag any violation with a concrete file path and a suggested fix aligned with the Rappi standards.`,
       filePatterns: {
-        source: `features/{Vertical}/${moduleName}/Sources/`,
-        featureEntry: `features/{Vertical}/${moduleName}/Sources/${moduleName}.swift`,
-        registrable: `features/{Vertical}/${moduleName}/Sources/${moduleName}Registrable.swift`,
-        interface: `feature_interfaces/{Vertical}/${moduleName}Interface/Sources/`,
-        projectDef: `features/{Vertical}/${moduleName}/Project.swift`,
-        tests: `features/{Vertical}/${moduleName}/Tests/`,
+        source: `features/{Vertical}/${moduleName}Feature/Sources/`,
+        featureEntry: `features/{Vertical}/${moduleName}Feature/Sources/${moduleName}Feature.swift`,
+        registrable: `features/{Vertical}/${moduleName}Feature/Sources/${moduleName}FeatureRegistrable.swift`,
+        interface: `feature_interfaces/{Vertical}/${moduleName}FeatureInterface/Sources/`,
+        projectDef: `features/{Vertical}/${moduleName}Feature/Project.swift`,
+        tests: `features/{Vertical}/${moduleName}Feature/Tests/`,
         designSystem: 'ui/DesignSystemDelivery/Sources/',
         apps: 'apps/',
       },

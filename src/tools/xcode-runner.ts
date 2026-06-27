@@ -44,13 +44,14 @@ done
  */
 export async function runSwiftTests(workingDir: string, scheme?: string): Promise<TestRunResult> {
   const startTime = Date.now();
-  
+
   // Determine if SPM or Xcode project
   const hasSPM = await fileExists(path.join(workingDir, 'Package.swift'));
 
   if (!hasSPM) {
     // xcodeproj / xcworkspace — use xcodebuild with simulator
-    const command = `xcodebuild test -scheme ${scheme || 'App'} -destination 'platform=iOS Simulator,name=iPhone 15' -quiet`;
+    const workspaceFlag = await getXcodeWorkspaceFlag(workingDir);
+    const command = `xcodebuild test ${workspaceFlag} -scheme ${scheme || 'App'} -destination 'platform=iOS Simulator,name=iPhone 15' -quiet`;
     try {
       const { stdout, stderr } = await execAsync(command, { cwd: workingDir, timeout: 300000 });
       return { passed: true, command, stdout, stderr, exitCode: 0, duration: Date.now() - startTime };
@@ -118,7 +119,8 @@ export async function runSwiftLint(workingDir: string): Promise<TestRunResult> {
  */
 export async function runXcodeBuild(workingDir: string, scheme?: string): Promise<TestRunResult> {
   const startTime = Date.now();
-  const command = `xcodebuild build -scheme ${scheme || 'App'} -destination 'platform=iOS Simulator,name=iPhone 15' -quiet`;
+  const workspaceFlag = await getXcodeWorkspaceFlag(workingDir);
+  const command = `xcodebuild build ${workspaceFlag} -scheme ${scheme || 'App'} -destination 'platform=iOS Simulator,name=iPhone 15' -quiet`;
 
   try {
     const { stdout, stderr } = await execAsync(command, {
@@ -144,6 +146,24 @@ export async function runXcodeBuild(workingDir: string, scheme?: string): Promis
       duration: Date.now() - startTime,
     };
   }
+}
+
+/**
+ * Return the appropriate -workspace or -project flag for xcodebuild.
+ * Prefers .xcworkspace (Tuist monorepo) when present, otherwise falls back to
+ * the first .xcodeproj, or an empty string for implicit project/scheme.
+ */
+async function getXcodeWorkspaceFlag(workingDir: string): Promise<string> {
+  try {
+    const entries = await fs.readdir(workingDir);
+    const workspace = entries.find(e => e.endsWith('.xcworkspace'));
+    if (workspace) return `-workspace ${workspace}`;
+    const xcodeproj = entries.find(e => e.endsWith('.xcodeproj'));
+    if (xcodeproj) return `-project ${xcodeproj}`;
+  } catch {
+    // ignore
+  }
+  return '';
 }
 
 /**
