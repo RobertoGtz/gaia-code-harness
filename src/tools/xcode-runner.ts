@@ -50,8 +50,8 @@ export async function runSwiftTests(workingDir: string, scheme?: string): Promis
 
   if (!hasSPM) {
     // xcodeproj / xcworkspace — use xcodebuild with simulator
-    const workspaceFlag = await getXcodeWorkspaceFlag(workingDir);
-    const command = `xcodebuild test ${workspaceFlag} -scheme ${scheme || 'App'} -destination 'platform=iOS Simulator,name=iPhone 15' -quiet`;
+    const projectFlag = await getXcodeProjectFlag(workingDir, scheme);
+    const command = `xcodebuild test ${projectFlag} -scheme ${scheme || 'App'} -destination 'platform=iOS Simulator,name=iPhone 15' -quiet`;
     try {
       const { stdout, stderr } = await execAsync(command, { cwd: workingDir, timeout: 300000 });
       return { passed: true, command, stdout, stderr, exitCode: 0, duration: Date.now() - startTime };
@@ -119,8 +119,8 @@ export async function runSwiftLint(workingDir: string): Promise<TestRunResult> {
  */
 export async function runXcodeBuild(workingDir: string, scheme?: string): Promise<TestRunResult> {
   const startTime = Date.now();
-  const workspaceFlag = await getXcodeWorkspaceFlag(workingDir);
-  const command = `xcodebuild build ${workspaceFlag} -scheme ${scheme || 'App'} -destination 'platform=iOS Simulator,name=iPhone 15' -quiet`;
+  const projectFlag = await getXcodeProjectFlag(workingDir, scheme);
+  const command = `xcodebuild build ${projectFlag} -scheme ${scheme || 'App'} -destination 'platform=iOS Simulator,name=iPhone 15' -quiet`;
 
   try {
     const { stdout, stderr } = await execAsync(command, {
@@ -149,12 +149,21 @@ export async function runXcodeBuild(workingDir: string, scheme?: string): Promis
 }
 
 /**
- * Return the appropriate -workspace or -project flag for xcodebuild.
- * Prefers .xcworkspace (Tuist monorepo) when present, otherwise falls back to
- * the first .xcodeproj, or an empty string for implicit project/scheme.
+ * Return the appropriate -project or -workspace flag for xcodebuild.
+ * Strategy:
+ * 1. If a scheme is provided, search for a module-specific .xcodeproj
+ *    (e.g. features/PayInsurance/PayInsuranceFeature/PayInsuranceFeature.xcodeproj)
+ *    or with a 'Feature' suffix (e.g. PayInsuranceFeature.xcodeproj).
+ * 2. Otherwise, prefer a root .xcworkspace (Tuist monorepo), then a root .xcodeproj,
+ *    or an empty string for implicit project/scheme.
  */
-async function getXcodeWorkspaceFlag(workingDir: string): Promise<string> {
+async function getXcodeProjectFlag(workingDir: string, scheme?: string): Promise<string> {
   try {
+    if (scheme) {
+      const moduleProject = await findModuleXcodeproj(workingDir, scheme);
+      if (moduleProject) return `-project ${moduleProject}`;
+    }
+
     const entries = await fs.readdir(workingDir);
     const workspace = entries.find(e => e.endsWith('.xcworkspace'));
     if (workspace) return `-workspace ${workspace}`;
@@ -164,6 +173,32 @@ async function getXcodeWorkspaceFlag(workingDir: string): Promise<string> {
     // ignore
   }
   return '';
+}
+
+/**
+ * Search for a module-specific .xcodeproj under the repo root.
+ * Tries exact scheme name first, then scheme + 'Feature' suffix.
+ * Returns a relative path from workingDir, or undefined if not found.
+ */
+async function findModuleXcodeproj(workingDir: string, scheme: string): Promise<string | undefined> {
+  const candidates = [
+    `${scheme}.xcodeproj`,
+    `${scheme}Feature.xcodeproj`,
+  ];
+
+  try {
+    const entries = await fs.readdir(workingDir, { withFileTypes: true, recursive: true });
+    for (const entry of entries) {
+      if (entry.isDirectory() && candidates.includes(entry.name)) {
+        // parentPath (Node 20.12+) with path (Node 18) fallback
+        const parent = (entry as any).parentPath || (entry as any).path || workingDir;
+        return path.relative(workingDir, path.join(parent, entry.name));
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return undefined;
 }
 
 /**
