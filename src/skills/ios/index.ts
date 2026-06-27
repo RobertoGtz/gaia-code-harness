@@ -1,21 +1,38 @@
 /**
- * @fileoverview iOS / Swift Platform Skill
+ * @fileoverview iOS / Swift Platform Skill — Rappi monorepo edition
+ * @description Toolchain and prompt context for iOS/Swift projects.
+ *              Supports both single-module Swift Package Manager demos and large
+ *              Tuist-based modular monorepos (e.g. Rappi iOS) with feature
+ *              interfaces, dependency injection, VIPER/MVVM, and a shared
+ *              Design System.
  */
 
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import { PlatformSkill, BuildResult, TestResult, AnalyzeResult, PromptContext } from '../index';
 import {
   runSwiftPackageResolve,
   runSwiftTests,
   runSwiftLint,
+  runXcodeBuild,
   verifyIosEnvironment,
 } from '../../tools/xcode-runner';
 import { GaiaEnvError, GaiaBuildError, GaiaTestError, trim } from '../../errors';
-import * as path from 'path';
 
 export class IosSkill implements PlatformSkill {
-  readonly displayName = 'iOS / Swift';
+  readonly displayName = 'iOS / Swift (Tuist monorepo)';
   readonly sourceExtension = 'swift';
-  readonly srcDirs = ['Sources', 'Tests', 'App'];
+  readonly srcDirs = [
+    'apps',
+    'features',
+    'feature_interfaces',
+    'services',
+    'libraries',
+    'foundations',
+    'ui',
+    'Sources',
+    'Tests',
+  ];
 
   async verifyEnvironment(repoPath: string) {
     const result = await verifyIosEnvironment(repoPath);
@@ -28,7 +45,20 @@ export class IosSkill implements PlatformSkill {
     return result;
   }
 
-  async build(repoPath: string): Promise<BuildResult> {
+  async build(repoPath: string, module?: string): Promise<BuildResult> {
+    const isTuist = await this.hasXcodeProject(repoPath);
+    if (isTuist) {
+      const scheme = module || 'App';
+      const result = await runXcodeBuild(repoPath, scheme);
+      if (!result.passed) {
+        throw new GaiaBuildError(
+          `[iOS] \`xcodebuild build -scheme ${scheme}\` failed in ${path.basename(repoPath)}`,
+          trim(result.stderr)
+        );
+      }
+      return result;
+    }
+
     const result = await runSwiftPackageResolve(repoPath);
     if (!result.passed) {
       throw new GaiaBuildError(
@@ -39,11 +69,11 @@ export class IosSkill implements PlatformSkill {
     return result;
   }
 
-  async test(repoPath: string): Promise<TestResult> {
-    const result = await runSwiftTests(repoPath);
+  async test(repoPath: string, module?: string): Promise<TestResult> {
+    const result = await runSwiftTests(repoPath, module);
     if (!result.passed) {
       throw new GaiaTestError(
-        `[iOS] \`swift test\` failed in ${path.basename(repoPath)}`,
+        `[iOS] tests failed in ${path.basename(repoPath)}${module ? ` (scheme ${module})` : ''}`,
         trim(result.stderr)
       );
     }
@@ -62,34 +92,155 @@ export class IosSkill implements PlatformSkill {
   }
 
   getPromptContext(job: { title: string; module?: string; repo: string }): PromptContext {
+    const moduleName = job.module || 'Feature';
     return {
-      specSystem: `You are an expert iOS architect using MVVM pattern.
-Source files go in Sources/DemoApp/, tests in Tests/DemoAppTests/.
-IMPORTANT: This is a Swift Package Manager project validated with 'swift test' on macOS 12+. Do NOT use UIKit, SwiftUI, or Combine. Use only Foundation and pure Swift.
-Keep the spec MINIMAL: exactly 3 tasks — 1 create Model, 1 create ViewModel, 1 test ViewModel. Do NOT add any ViewController, Coordinator, Service, or UI tasks. Example valid tasks:
-- create Sources/DemoApp/Models/FeedItem.swift
-- create Sources/DemoApp/ViewModels/FeedViewModel.swift
-- test Tests/DemoAppTests/FeedViewModelTests.swift`,
-      implementerSystem: `You are an expert iOS/Swift developer.
-- Architecture: MVVM + Coordinator
-- Source files: Sources/DemoApp/
-- Tests: Tests/DemoAppTests/
-- Use XCTest for unit tests. Mock dependencies with protocols.
-- Use async/await for asynchronous code — no completion handlers unless interfacing legacy APIs.
-- CRITICAL: Do NOT import UIKit, SwiftUI, or Combine. Do NOT use UIRefreshControl, UITableView, UIViewController, UIView, or ANY UIKit class. Do NOT use ObservableObject, @Published, @StateObject, Task{}, or any API requiring @available(macOS 10.15+). This project compiles with 'swift build' on macOS 12+ — the iOS SDK is NOT available.
-- Implement ONLY pure business logic: data models, services that return data arrays, and ViewModels that call services. ViewModels are plain classes with a closure/delegate for updates — no UI code whatsoever.
-- NEVER define a type (struct/class/enum) in more than one file. All files in Sources/DemoApp/ belong to the SAME Swift module (DemoApp) — do NOT add any import statements between them. Never write 'import DemoApp', 'import DemoAppModels', or any internal module import. Types defined in other files in Sources/DemoApp/ are automatically visible.
-- Respond with ONLY file contents, no markdown fences.`,
-      reviewerSystem: `You are an iOS/Swift code reviewer.
-Check for: MVVM separation, Coordinator navigation pattern, XCTest coverage, Swift concurrency usage, no force-unwraps in production code, SwiftLint compliance.`,
+      specSystem: `You are a senior iOS architect working in a large Tuist-based modular monorepo.
+
+PROJECT STRUCTURE:
+- apps/                        App targets
+- features/                    Feature implementations (e.g. features/PayInsurance/PayInsuranceFeature)
+- feature_interfaces/          Public protocols only (e.g. feature_interfaces/PayInsurance/PayInsuranceFeatureInterface)
+- services/                    Shared services (e.g. services/CoreMobile/RappiInjection)
+- libraries/                   Reusable libraries
+- foundations/                 Low-level utilities
+- ui/                          Design System and server-driven UI components
+
+DEPENDENCY RULES:
+- Direction: apps -> features -> services -> libraries -> foundations
+- A feature NEVER imports another feature directly. Use the protocol in feature_interfaces/.
+- Feature interfaces live in a separate module: {FeatureName}FeatureInterface.
+- Every feature module has Project.swift (Tuist) and Package.swift (SPM compatibility).
+
+ARCHITECTURE:
+- Verify the existing pattern in the feature before adding files. Common patterns: VIPER (Presenter, Interactor, Wireframe, View/Controller), MVVM (ViewModel + Repository + Network), or SwiftUI Feature protocol.
+- Prefer protocol-first design with dependency injection.
+- For UIKit flows: Feature -> Presenter -> Interactor -> Wireframe/Controller.
+- For SwiftUI flows: conform to Feature = SwiftUIFeature & UIKitFeature from BaseFeatureInterface.
+
+DESIGN SYSTEM:
+- Use DSCore.Colors.*, DSCore.Typography.*, L10n.* for strings.
+- In SwiftUI, DSColor.* returns UIColor. Always append .suColor.
+- Check ui/DesignSystemDelivery/Sources/Atoms/DSEtaAtoms/DSIconResolver.swift before using SF Symbols.
+- Never hardcode colors, fonts, or URLs.
+
+TDD SPEC FORMAT:
+- Break work into small, testable tasks.
+- Prefer creating/reusing entities, use cases/interactors, view models, and XCTest files.
+- Do NOT add large UI tasks unless the job explicitly asks for screen work.
+
+Before writing, read the existing feature directory and the matching feature interface to match the current pattern.`,
+      implementerSystem: `You are a senior iOS/Swift developer in a large Tuist modular monorepo.
+
+MODULE LAYOUT FOR "${moduleName}":
+- Feature implementation: features/{Vertical}/${moduleName}/Sources/
+- Feature interface: feature_interfaces/{Vertical}/${moduleName}Interface/Sources/
+- Tests: features/{Vertical}/${moduleName}/Tests/
+- Project definition: features/{Vertical}/${moduleName}/Project.swift
+- Feature entry point: features/{Vertical}/${moduleName}/Sources/${moduleName}.swift
+- Feature registration: features/{Vertical}/${moduleName}/Sources/${moduleName}Registrable.swift
+
+ARCHITECTURE PATTERNS — match the existing feature, do not invent a new one:
+- VIPER: ${moduleName}.swift (entry), ${moduleName}Presenter, ${moduleName}Interactor, ${moduleName}Wireframe, ${moduleName}ViewController.
+- MVVM: ${moduleName}.swift, HomeVM/ViewModel, Repository, NetworkManager, Entities.
+- SwiftUI Feature: conform to Feature protocol and expose a SwiftUI view.
+
+DEPENDENCY INJECTION:
+- Use RappiInjection/Swinject: @Inject var service: SomeServiceProtocol?
+- Resolve via MainComponent.resolve(SomeFeatureProtocol.self) or the feature's ResolverHelper.
+- Register features in ${moduleName}Registrable: register (any ${moduleName}Protocol).self.
+- Feature interface imports BaseFeatureInterface and RappiInjection.
+
+CROSS-FEATURE COMMUNICATION:
+- NEVER import another feature module directly.
+- ALWAYS import its feature interface module and use the protocol.
+- Use the feature's ResolverHelper to resolve the concrete implementation.
+
+DESIGN SYSTEM & SWIFTUI:
+- @MainActor for UI code. Sendable across actor boundaries.
+- Use weak var delegate.
+- L10n.* for strings; DSCore.Colors.* / DSCore.Typography.* for design tokens.
+- In SwiftUI: DSColor.* returns UIColor; always append .suColor.
+- DSIconResolver lives in DesignSystemDelivery; import DesignSystemDelivery when using it.
+- @Observable classes used in a struct View must be wrapped in @State private var.
+- Atomic design: decompose screens into Row views first, then a thin container.
+- Check .config/ios-deployment-target for the actual iOS version; currently 17.0.
+
+SAFETY RULES:
+- NO force unwrap (!), as! or try! in production code.
+- NO [self] in closures; use [weak self].
+- NO Float/Double for money; use Decimal.
+- NO hardcoded colors, fonts, URLs, or strings.
+- NO unverified imports or APIs — grep first.
+- NO heavy computation in SwiftUI body or Equatable.==.
+- NO JSON decoding in SwiftUI body.
+- NO print() in production; use os_log or structured logging.
+- NO fatalError() outside tests.
+- Use [safe:] or guard before array subscripts with dynamic indices.
+
+TESTING:
+- Use XCTest. Import @testable import ${moduleName} and the feature interface.
+- Mock dependencies via protocols.
+- Use RappiTesting for XCTestCase helpers (trackForMemoryLeaks, XCTAssertThrowsError async).
+- Cover public methods, edge cases, and decoding.
+
+RESPONSE FORMAT:
+- Start with: Files, Skills loaded, Verification.
+- List every file being created or modified.
+- Provide only file contents when asked; no markdown fences around Swift code.
+- Do NOT create internal module imports like 'import ${moduleName}Models' — all sources in a single target share one module automatically.
+
+If the project is a simple SPM demo (single Package.swift, no Tuist), fall back to the simple rules: Sources/${moduleName}/ and Tests/${moduleName}Tests/, MVVM only, no UIKit/SwiftUI.`,
+      reviewerSystem: `You are a senior iOS/Swift code reviewer for a large Tuist modular monorepo.
+
+Checklist:
+- Modular boundaries: feature only imports its own code and feature interfaces; no feature-to-feature imports.
+- Architecture consistency: matches the existing VIPER/MVVM/SwiftUI pattern in the feature.
+- Dependency injection: @Inject used, MainComponent.resolve for cross-feature, ResolverHelper present.
+- Design System: DSCore tokens, L10n strings, DSColor.suColor in SwiftUI, DSIconResolver checked before SF Symbols.
+- Safety: no force unwraps/as!/try!, [weak self] in closures, Decimal for money, safe array access, @MainActor for UI.
+- SwiftUI performance: no singleton/cache access in body, no I/O in Equatable, no .id() with mutable values, @State private var for @Observable state.
+- Tests: XCTest, @testable import, protocol mocks, edge cases, memory leak tracking.
+- SwiftLint compliance and no hardcoded constants.
+- Git: branch from develop, commit messages reference task/TICKET_ID.
+
+Flag any violation with a concrete file path and a suggested fix aligned with the Rappi standards.`,
       filePatterns: {
-        source: 'Sources/DemoApp/',
-        viewModel: 'Sources/DemoApp/ViewModels/',
-        coordinator: 'Sources/DemoApp/Coordinators/',
-        model: 'Sources/DemoApp/Models/',
-        test: 'Tests/DemoAppTests/',
+        source: `features/{Vertical}/${moduleName}/Sources/`,
+        featureEntry: `features/{Vertical}/${moduleName}/Sources/${moduleName}.swift`,
+        registrable: `features/{Vertical}/${moduleName}/Sources/${moduleName}Registrable.swift`,
+        interface: `feature_interfaces/{Vertical}/${moduleName}Interface/Sources/`,
+        projectDef: `features/{Vertical}/${moduleName}/Project.swift`,
+        tests: `features/{Vertical}/${moduleName}/Tests/`,
+        designSystem: 'ui/DesignSystemDelivery/Sources/',
+        apps: 'apps/',
       },
-      forbidden: [],
+      forbidden: [
+        'force unwrap (!) in production code',
+        'as! / try! in production code',
+        '[self] in closures',
+        'Float/Double for money (use Decimal)',
+        'hardcoded colors, fonts, URLs, strings',
+        'feature importing another feature module directly',
+        'DSColor.* without .suColor in SwiftUI',
+        'Color(hex:) custom extension',
+        'Image(systemName:) without checking DSIconResolver first',
+        'let state = SomeObservable() in View (use @State private var)',
+        'heavy computation in SwiftUI body',
+        'JSON decoding in SwiftUI body',
+        'print() in production code',
+        'fatalError() outside tests',
+      ],
     };
+  }
+
+  private async hasXcodeProject(repoPath: string): Promise<boolean> {
+    try {
+      const entries = await fs.readdir(repoPath);
+      return entries.some(e => e.endsWith('.xcodeproj') || e.endsWith('.xcworkspace')) ||
+        entries.includes('Tuist.swift') ||
+        entries.includes('Workspace.swift');
+    } catch {
+      return false;
+    }
   }
 }
