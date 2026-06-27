@@ -35,7 +35,9 @@ npm test -- webhook       # filtra por nombre de suite
 | `llm-utils.test.ts`        | `extractJSON` — parseo de JSON de respuestas LLM                  |
 | `repo-setup.test.ts`       | `setupRepository` — local clone, GitHub clone, errores            |
 | `agent-registry.test.ts`   | `getAgentsForPlatform` — plataformas soportadas, singleton, error |
-| `notifier-factory.test.ts` | `buildNotifier` — NullNotifier, Slack, Webhook, Jira, composite   |
+| `notifier-factory.test.ts`  | `buildNotifier` — NullNotifier, Slack, Webhook, Jira, composite   |
+| `generic-notifier.test.ts`  | `GenericWebhookNotifier` — POST, HMAC signing, error resilience   |
+| `plugin-loader.test.ts`     | `PluginLoader` — gaia.json, RULES.md, UNIT_TESTS.md, getRulesAsContext |
 
 > Estos tests son los más rápidos de correr y deben pasar siempre. Si alguno falla, hay un bug en el harness mismo, no en el workspace del job.
 
