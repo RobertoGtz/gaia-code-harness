@@ -133,6 +133,7 @@ export async function setupJobRoutes(app: FastifyInstance) {
           maxFilesToTouch: body.fullContext.maxFilesToTouch ?? 5,
           requireTests: body.fullContext.requireTests ?? true,
           tddMode: body.tddMode ?? false,
+          buildStrategy: body.fullContext.buildStrategy,
         };
       } else if (body.platform && body.title) {
         // Flat body — platform/title/repo/acceptanceCriteria directly
@@ -156,6 +157,7 @@ export async function setupJobRoutes(app: FastifyInstance) {
           maxFilesToTouch: body.maxFilesToTouch ?? 5,
           requireTests: body.requireTests ?? true,
           tddMode: body.tddMode ?? false,
+          buildStrategy: body.buildStrategy,
         };
       } else {
         // Jira-only — fetch full data from ticket

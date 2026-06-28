@@ -2,7 +2,7 @@
  * @fileoverview Flutter Web Platform Skill
  */
 
-import { PlatformSkill, BuildResult, TestResult, AnalyzeResult, PromptContext } from '../index';
+import { PlatformSkill, BuildResult, TestResult, AnalyzeResult, PromptContext, BuildStrategy } from '../index';
 import {
   runFlutterPubGet,
   runFlutterTests,
@@ -50,7 +50,7 @@ export class FlutterWebSkill implements PlatformSkill {
     return { valid: true, errors: [] };
   }
 
-  async build(repoPath: string): Promise<BuildResult> {
+  async build(repoPath: string, _module?: string, _strategy?: BuildStrategy): Promise<BuildResult> {
     const result = await runFlutterPubGet(repoPath);
     if (!result.passed) {
       throw new GaiaBuildError(

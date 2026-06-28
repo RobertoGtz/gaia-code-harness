@@ -477,12 +477,12 @@ Define el contrato que cada skill debe cumplir (`src/skills/index.ts`):
 
 ### Toolchains por plataforma
 
-| Platform      | build                                 | test                        | analyze                              | Tool file          |
-| ------------- | ------------------------------------- | --------------------------- | ------------------------------------ | ------------------ |
-| `flutter`     | `flutter pub get` / `melos bootstrap` | `flutter test`              | `dart analyze`                       | `test-runner.ts`   |
-| `flutter_web` | `flutter pub get`                     | `flutter test`              | `dart analyze` + forbidden pkg check | `test-runner.ts`   |
-| `ios`         | `xcodebuild build` (Tuist/SPM)        | `xcodebuild test`           | `swiftlint` (module-aware)           | `xcode-runner.ts`  |
-| `android`     | `gradlew dependencies`                | `gradlew testDebugUnitTest` | `lintDebug`                          | `gradle-runner.ts` |
+| Platform      | build                                                                | test                        | analyze                              | Tool file          |
+| ------------- | -------------------------------------------------------------------- | --------------------------- | ------------------------------------ | ------------------ |
+| `flutter`     | `flutter pub get` / `melos bootstrap`                                | `flutter test`              | `dart analyze`                       | `test-runner.ts`   |
+| `flutter_web` | `flutter pub get`                                                    | `flutter test`              | `dart analyze` + forbidden pkg check | `test-runner.ts`   |
+| `ios`         | `swift package resolve` (default), `tuist build`, `xcodebuild build` | `xcodebuild test`           | `swiftlint` (module-aware)           | `xcode-runner.ts`  |
+| `android`     | `gradlew dependencies`                                               | `gradlew testDebugUnitTest` | `lintDebug`                          | `gradle-runner.ts` |
 
 ---
 
@@ -491,12 +491,15 @@ Define el contrato que cada skill debe cumplir (`src/skills/index.ts`):
 El skill de iOS está calibrado para un monorepo de gran escala basado en **Tuist + Swift Package Manager** (por ejemplo, el repositorio de Rappi iOS). Sus responsabilidades:
 
 1. **Detectar el tipo de proyecto**
-   - Si el directorio raíz contiene `.xcodeproj`, `.xcworkspace`, `Tuist.swift` o `Workspace.swift`, asume un monorepo Tuist y usa `xcodebuild`.
-   - Si no, cae a `swift package resolve` para un proyecto SPM plano.
+   - Si el directorio raíz contiene `.xcodeproj`, `.xcworkspace`, `Tuist.swift` o `Workspace.swift`, asume un monorepo Tuist.
+   - Si solo existe `Package.swift`, cae a un proyecto SPM plano.
 
-2. **Build**
-   - `skill.build(repoPath, module)` ejecuta `xcodebuild build` con el scheme `module` (o `App` si no se provee).
-   - `xcode-runner.ts` descubre el flag correcto (`-workspace` vs `-project`) y, en monorepo, busca el `.xcodeproj` específico del módulo: `{module}.xcodeproj` o `{module}Feature.xcodeproj` bajo `features/`, `feature_interfaces/`, etc.
+2. **Build strategy (`buildStrategy` en el job: `resolve` | `xcodebuild` | `tuist` | `auto`)**
+   - `resolve` (default recomendado para grandes monorepos Tuist): solo ejecuta `swift package resolve`. Rápido, no compila el módulo; deja la validación de compilación para CI.
+   - `tuist`: ejecuta `tuist build [scheme]` (con `tuist generate` previo si es necesario). Elige esta opción cuando quieras validación local completa y el repo soporte simulador.
+   - `xcodebuild`: ejecuta `xcodebuild build` con el scheme `module` (o `App`).
+   - `auto` (default): intenta `tuist build`, luego `xcodebuild build`, y finalmente cae a `swift package resolve` si todo falla.
+   - `xcode-runner.ts` descubre el flag correcto (`-workspace` raíz si existe, luego `-project` del módulo) y elige un simulador iOS disponible con `xcrun simctl list devices`.
 
 3. **Test**
    - `skill.test(repoPath, module)` ejecuta `xcodebuild test` con el mismo descubrimiento de workspace/proyecto y scheme.

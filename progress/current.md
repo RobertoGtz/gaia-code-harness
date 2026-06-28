@@ -6,8 +6,10 @@ Enhance iOS Skill Implementation: tests, monorepo module analysis, and documenta
 
 ## Estado
 
-- `src/tools/xcode-runner.ts`: tests added, module-aware lint helper, mutation score 84%
-- `src/skills/ios/index.ts`: tests added, `analyze()` accepts module, prompts refactored to string arrays, mutation score 92%
+- `src/tools/xcode-runner.ts`: dynamic iOS simulator detection, workspace-first project flag, `ensureTuistGenerated`, `runTuistBuild`, tests updated
+- `src/skills/ios/index.ts`: `build()` supports `resolve`/`xcodebuild`/`tuist`/`auto` strategies with fallback, tests updated
+- `src/types/index.ts` / `src/db/index.ts` / `src/api/routes/jobs.ts` / `src/cli/run.ts`: added `buildStrategy` field
+- `src/skills/index.ts` / `android` / `flutter` / `flutter_web`: `build` accepts optional `BuildStrategy`
 - `src/skills/index.ts`: `PlatformSkill.analyze` signature now accepts optional `module`
 - `src/skills/android/index.ts`, `flutter/index.ts`, `flutter_web/index.ts`: `analyze` updated to accept module
 - `docs/engineering/architecture.md`: added iOS skill section and updated toolchain table

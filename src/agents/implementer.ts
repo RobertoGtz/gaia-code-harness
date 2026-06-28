@@ -52,7 +52,7 @@ export class ImplementerAgent extends BaseAgent {
       this.logSuccess(`Branch created: ${branchName}`);
 
       this.logStep('Resolving dependencies...');
-      await skill.build(repoPath, job.module); // throws GaiaBuildError on failure
+      await skill.build(repoPath, job.module, job.buildStrategy); // throws GaiaBuildError on failure
 
       const spec = job.spec;
       if (!spec) return { success: false, output: '', error: 'No spec found in job' };
@@ -174,7 +174,7 @@ export class ImplementerAgent extends BaseAgent {
       this.logSuccess(`Branch created: ${branchName}`);
 
       this.logStep('Resolving dependencies...');
-      await skill.build(repoPath, job.module);
+      await skill.build(repoPath, job.module, job.buildStrategy);
 
       const spec = job.spec;
       if (!spec) return { success: false, output: '', error: 'No spec found' };

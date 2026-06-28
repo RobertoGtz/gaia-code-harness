@@ -34,8 +34,12 @@ function mockStat(dirs: string[]) {
 }
 
 function mockExecSuccess(stdout = '', stderr = '') {
-  mockedExec.mockImplementation((_cmd: any, _opts: any, callback: any) => {
+  mockedExec.mockImplementation((cmd: any, _opts: any, callback: any) => {
     if (typeof callback === 'function') {
+      if (String(cmd).includes('xcrun simctl list devices')) {
+        callback(null, { stdout: JSON.stringify({ devices: { 'com.apple.CoreSimulator.SimRuntime.iOS-17-5': [{ name: 'iPhone 17 Pro', udid: 'E29BECD0-53E2-4B5F-9BBA-0BDE473121D5', state: 'Shutdown', isAvailable: true }] } }), stderr: '' });
+        return undefined;
+      }
       callback(null, { stdout, stderr });
     }
     return undefined;
@@ -193,16 +197,18 @@ describe('xcode-runner', () => {
   });
 
   describe('runSwiftTests with Xcode project', () => {
-    it('uses root xcworkspace when no module-specific project found', async () => {
+    it('uses root xcworkspace when available', async () => {
       mockAccess([]);
       mockReaddir(['RappiMonorepo.xcworkspace'], '/repo');
       const result = await runSwiftTests('/repo');
       expect(result.passed).toBe(true);
       expect(result.command).toContain('xcodebuild test');
       expect(result.command).toContain('-workspace RappiMonorepo.xcworkspace');
+      expect(result.command).toContain('-destination');
+      expect(result.command).toContain('id=E29BECD0-53E2-4B5F-9BBA-0BDE473121D5');
     });
 
-    it('uses module-specific xcodeproj when available', async () => {
+    it('falls back to module-specific xcodeproj when no workspace exists', async () => {
       mockAccess([]);
       mockReaddir(
         [
@@ -214,6 +220,31 @@ describe('xcode-runner', () => {
       expect(result.passed).toBe(true);
       expect(result.command).toContain('-project features/PayInsurance/PayInsuranceFeature.xcodeproj');
       expect(result.command).toContain('-scheme PayInsurance');
+    });
+
+    it('runs tuist generate when tuist config exists and no generated xcodeproj/workspace', async () => {
+      mockAccess(['/repo/Tuist.swift']);
+      mockReaddir(['Tuist.swift'], '/repo');
+      let tuistCalled = false;
+      mockedExec.mockImplementation((cmd: any, _opts: any, callback: any) => {
+        if (typeof callback === 'function') {
+          if (String(cmd).includes('xcrun simctl list devices')) {
+            callback(null, { stdout: JSON.stringify({ devices: { 'iOS': [{ name: 'iPhone 17 Pro', udid: 'abc', state: 'Shutdown', isAvailable: true }] } }), stderr: '' });
+            return undefined;
+          }
+          if (String(cmd).includes('tuist generate')) {
+            tuistCalled = true;
+            callback(null, { stdout: 'generated', stderr: '' });
+            return undefined;
+          }
+          callback(null, { stdout: '', stderr: '' });
+        }
+        return undefined;
+      });
+      const result = await runSwiftTests('/repo');
+      expect(result.passed).toBe(true);
+      expect(tuistCalled).toBe(true);
+      expect(result.command).toContain('xcodebuild test');
     });
   });
 

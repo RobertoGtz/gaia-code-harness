@@ -2,7 +2,7 @@
  * @fileoverview Android / Kotlin Platform Skill
  */
 
-import { PlatformSkill, BuildResult, TestResult, AnalyzeResult, PromptContext } from '../index';
+import { PlatformSkill, BuildResult, TestResult, AnalyzeResult, PromptContext, BuildStrategy } from '../index';
 import {
   runGradleSync,
   runGradleTests,
@@ -28,7 +28,7 @@ export class AndroidSkill implements PlatformSkill {
     return result;
   }
 
-  async build(repoPath: string): Promise<BuildResult> {
+  async build(repoPath: string, _module?: string, _strategy?: BuildStrategy): Promise<BuildResult> {
     const result = await runGradleSync(repoPath);
     if (!result.passed) {
       throw new GaiaBuildError(

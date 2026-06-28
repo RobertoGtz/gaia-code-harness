@@ -9,12 +9,14 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { PlatformSkill, BuildResult, TestResult, AnalyzeResult, PromptContext } from '../index';
+import { PlatformSkill, BuildResult, TestResult, AnalyzeResult, PromptContext, BuildStrategy } from '../index';
+import { fileExists } from '../../tools/file';
 import {
   runSwiftPackageResolve,
   runSwiftTests,
   runSwiftLint,
   runXcodeBuild,
+  runTuistBuild,
   verifyIosEnvironment,
 } from '../../tools/xcode-runner';
 import { GaiaEnvError, GaiaBuildError, GaiaTestError, trim } from '../../errors';
@@ -45,20 +47,46 @@ export class IosSkill implements PlatformSkill {
     return result;
   }
 
-  async build(repoPath: string, module?: string): Promise<BuildResult> {
-    const isTuist = await this.hasXcodeProject(repoPath);
-    if (isTuist) {
-      const scheme = module || 'App';
-      const result = await runXcodeBuild(repoPath, scheme);
-      if (!result.passed) {
-        throw new GaiaBuildError(
-          `[iOS] \`xcodebuild build -scheme ${scheme}\` failed in ${path.basename(repoPath)}`,
-          trim(result.stderr)
-        );
-      }
-      return result;
+  async build(repoPath: string, module?: string, strategy?: BuildStrategy): Promise<BuildResult> {
+    const hasTuist = await this.hasTuistConfig(repoPath);
+    const hasXcode = await this.hasXcodeProject(repoPath);
+    const scheme = module || 'App';
+
+    // Explicit strategy: resolve only — fast, no compilation. Best default for large Tuist monorepos.
+    if (strategy === 'resolve') {
+      return this.resolveOrFail(repoPath);
     }
 
+    // Explicit strategy: Tuist build
+    if (strategy === 'tuist') {
+      return this.buildOrFail(runTuistBuild(repoPath, scheme), 'tuist build');
+    }
+
+    // Explicit strategy: xcodebuild
+    if (strategy === 'xcodebuild') {
+      return this.buildOrFail(runXcodeBuild(repoPath, scheme), 'xcodebuild build');
+    }
+
+    // Auto: try the strongest validation available, falling back to lighter checks.
+    if (hasTuist) {
+      const tuistResult = await runTuistBuild(repoPath, scheme);
+      if (tuistResult.passed) return tuistResult;
+
+      const xcodeResult = await runXcodeBuild(repoPath, scheme);
+      if (xcodeResult.passed) return xcodeResult;
+
+      return this.resolveOrFail(repoPath);
+    }
+
+    if (hasXcode) {
+      const xcodeResult = await runXcodeBuild(repoPath, scheme);
+      if (xcodeResult.passed) return xcodeResult;
+    }
+
+    return this.resolveOrFail(repoPath);
+  }
+
+  private async resolveOrFail(repoPath: string): Promise<BuildResult> {
     const result = await runSwiftPackageResolve(repoPath);
     if (!result.passed) {
       throw new GaiaBuildError(
@@ -67,6 +95,26 @@ export class IosSkill implements PlatformSkill {
       );
     }
     return result;
+  }
+
+  private async buildOrFail(promise: Promise<BuildResult>, label: string): Promise<BuildResult> {
+    const result = await promise;
+    if (!result.passed) {
+      throw new GaiaBuildError(
+        `[iOS] \`${label}\` failed`,
+        trim(result.stderr)
+      );
+    }
+    return result;
+  }
+
+  private async hasTuistConfig(repoPath: string): Promise<boolean> {
+    try {
+      const entries = await fs.readdir(repoPath);
+      return entries.some(e => e === 'Tuist.swift' || e === 'Workspace.swift' || e === 'Project.swift');
+    } catch {
+      return false;
+    }
   }
 
   async test(repoPath: string, module?: string): Promise<TestResult> {

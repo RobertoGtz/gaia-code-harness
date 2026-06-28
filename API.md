@@ -53,6 +53,7 @@ Content-Type: application/json
   "description": "Mostrar carrusel de promociones destacadas",
   "figmaUrl": "https://figma.com/file/abc123/promo-banner",
   "tddMode": false,
+  "buildStrategy": "resolve",
   "requireTests": true,
   "maxFilesToTouch": 6,
   "acceptanceCriteria": [
@@ -63,6 +64,7 @@ Content-Type: application/json
 ```
 
 > Pasa `"tddMode": true` para activar el ciclo Red-Green-Refactor (un test a la vez).  
+> Pasa `"buildStrategy": "resolve"` para iOS en grandes monorepos Tuist; usa `"tuist"` o `"xcodebuild"` para validación completa de compilación local.  
 > Pasa `"requireTests": false` para deshabilitar la ejecución de tests en Implementer y Reviewer (útil para demos o ambientes sin toolchain).  
 > `maxFilesToTouch` limita cuántos archivos puede modificar el agente (default: 5).
 
@@ -72,6 +74,7 @@ Content-Type: application/json
 {
   "jiraTicketId": "PROJ-123",
   "tddMode": true,
+  "buildStrategy": "resolve",
   "fullContext": {
     "title": "Agregar banner de promociones",
     "platform": "flutter",
@@ -384,6 +387,7 @@ Acepta tres formatos de payload:
   "repo": "mi-org/mi-repo",
   "targetBranch": "develop",
   "tddMode": true,
+  "buildStrategy": "resolve",
   "requireTests": false,
   "maxFilesToTouch": 6,
   "description": "Descripción opcional de la feature",
@@ -520,7 +524,7 @@ npx ts-node src/cli/run.ts --jira PROJ-123 --tdd --approve
 npx ts-node src/cli/run.ts --id <uuid>
 ```
 
-El `job.json` acepta los mismos campos que `POST /jobs` body flat (incluido `tddMode`).
+El `job.json` acepta los mismos campos que `POST /jobs` body flat (incluido `tddMode` y `buildStrategy`).
 
 ---
 

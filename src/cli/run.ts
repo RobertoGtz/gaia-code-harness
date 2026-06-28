@@ -172,6 +172,7 @@ async function main(): Promise<void> {
     maxFilesToTouch:      (raw.maxFilesToTouch as number | undefined) ?? 5,
     requireTests:         (raw.requireTests as boolean | undefined) ?? true,
     tddMode:              has('--tdd') || (raw.tddMode as boolean | undefined) || false,
+    buildStrategy:        raw.buildStrategy as CodeGenerationJob['buildStrategy'],
     status:               'pending' as const,
     progressLogs:         [] as string[],
   } satisfies Omit<CodeGenerationJob, 'id' | 'createdAt' | 'updatedAt'>;

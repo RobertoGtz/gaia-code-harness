@@ -2,7 +2,7 @@
  * @fileoverview Flutter (mobile) Platform Skill
  */
 
-import { PlatformSkill, BuildResult, TestResult, AnalyzeResult, PromptContext } from '../index';
+import { PlatformSkill, BuildResult, TestResult, AnalyzeResult, PromptContext, BuildStrategy } from '../index';
 import {
   runFlutterPubGet,
   runMelosBootstrap,
@@ -30,7 +30,7 @@ export class FlutterSkill implements PlatformSkill {
     return result;
   }
 
-  async build(repoPath: string, module?: string): Promise<BuildResult> {
+  async build(repoPath: string, module?: string, _strategy?: BuildStrategy): Promise<BuildResult> {
     const isMonorepo = await fileExists(path.join(repoPath, 'melos.yaml'));
     const cmd = isMonorepo ? 'melos bootstrap' : 'flutter pub get';
     const result = isMonorepo

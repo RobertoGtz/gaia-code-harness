@@ -14,6 +14,15 @@ import { TestRunResult } from '../tools/test-runner';
 export type BuildResult = TestRunResult;
 export type AnalyzeResult = TestRunResult;
 
+/**
+ * Build strategy hints how a platform skill should validate generated code.
+ * - `resolve`: only resolve dependencies (fast, no compilation — default for iOS monorepos)
+ * - `xcodebuild`: use xcodebuild build/test
+ * - `tuist`: use tuist build (best for Tuist monorepos, but slow)
+ * - `auto`: let the skill pick the best available strategy
+ */
+export type BuildStrategy = 'resolve' | 'xcodebuild' | 'tuist' | 'auto';
+
 /** Re-export so skill implementations can import from one place */
 export type { TestResult };
 
@@ -34,8 +43,11 @@ export interface PlatformSkill {
   /** Verify the local toolchain is available (flutter, xcode, gradle…) */
   verifyEnvironment(repoPath: string): Promise<{ valid: boolean; errors: string[] }>;
 
-  /** Resolve dependencies (pub get, melos, gradle, swift package resolve…) */
-  build(repoPath: string, module?: string): Promise<BuildResult>;
+  /**
+   * Resolve dependencies and optionally validate compilation.
+   * (pub get, melos, gradle, swift package resolve, xcodebuild, tuist…)
+   */
+  build(repoPath: string, module?: string, strategy?: BuildStrategy): Promise<BuildResult>;
 
   /** Run the test suite — returns TestResult (domain type with command/exitCode/duration) */
   test(repoPath: string, module?: string): Promise<TestRunResult>;

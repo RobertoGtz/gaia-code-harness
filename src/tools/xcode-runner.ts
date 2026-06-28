@@ -50,8 +50,11 @@ export async function runSwiftTests(workingDir: string, scheme?: string): Promis
 
   if (!hasSPM) {
     // xcodeproj / xcworkspace — use xcodebuild with simulator
+    const tuistResult = await ensureTuistGenerated(workingDir);
+    if (!tuistResult.passed) return tuistResult;
     const projectFlag = await getXcodeProjectFlag(workingDir, scheme);
-    const command = `xcodebuild test ${projectFlag} -scheme ${scheme || 'App'} -destination 'platform=iOS Simulator,name=iPhone 15' -quiet`;
+    const destination = await getAvailableIosSimulator();
+    const command = `xcodebuild test ${projectFlag} -scheme ${scheme || 'App'} -destination '${destination}' -quiet`;
     try {
       const { stdout, stderr } = await execAsync(command, { cwd: workingDir, timeout: 300000 });
       return { passed: true, command, stdout, stderr, exitCode: 0, duration: Date.now() - startTime };
@@ -165,8 +168,11 @@ async function findModuleDir(workingDir: string, module: string): Promise<string
  */
 export async function runXcodeBuild(workingDir: string, scheme?: string): Promise<TestRunResult> {
   const startTime = Date.now();
+  const tuistResult = await ensureTuistGenerated(workingDir);
+  if (!tuistResult.passed) return tuistResult;
   const projectFlag = await getXcodeProjectFlag(workingDir, scheme);
-  const command = `xcodebuild build ${projectFlag} -scheme ${scheme || 'App'} -destination 'platform=iOS Simulator,name=iPhone 15' -quiet`;
+  const destination = await getAvailableIosSimulator();
+  const command = `xcodebuild build ${projectFlag} -scheme ${scheme || 'App'} -destination '${destination}' -quiet`;
 
   try {
     const { stdout, stderr } = await execAsync(command, {
@@ -205,14 +211,19 @@ export async function runXcodeBuild(workingDir: string, scheme?: string): Promis
  */
 async function getXcodeProjectFlag(workingDir: string, scheme?: string): Promise<string> {
   try {
+    const entries = await fs.readdir(workingDir);
+
+    // Monorepo: a root workspace (Tuist) is the only reliable way to build
+    // modules with cross-dependencies. Use it whenever it exists.
+    const workspace = entries.find(e => e.endsWith('.xcworkspace'));
+    if (workspace) return `-workspace ${workspace}`;
+
+    // Fallback to a module-specific project only if there is no workspace.
     if (scheme) {
       const moduleProject = await findModuleXcodeproj(workingDir, scheme);
       if (moduleProject) return `-project ${moduleProject}`;
     }
 
-    const entries = await fs.readdir(workingDir);
-    const workspace = entries.find(e => e.endsWith('.xcworkspace'));
-    if (workspace) return `-workspace ${workspace}`;
     const xcodeproj = entries.find(e => e.endsWith('.xcodeproj'));
     if (xcodeproj) return `-project ${xcodeproj}`;
   } catch {
@@ -245,6 +256,111 @@ async function findModuleXcodeproj(workingDir: string, scheme: string): Promise<
     // ignore
   }
   return undefined;
+}
+
+/**
+ * Discover an available iOS Simulator to use as xcodebuild destination.
+ * Prefers a booted simulator, then the newest iPhone simulator, then any
+ * iOS simulator. Falls back to a generic destination string.
+ */
+async function getAvailableIosSimulator(): Promise<string> {
+  try {
+    const { stdout } = await execAsync('xcrun simctl list devices available -j', { timeout: 15000 });
+    const data = JSON.parse(stdout);
+    const devices: Array<{ name: string; udid: string; state?: string; isAvailable: boolean }> = [];
+    for (const runtime of Object.values(data.devices as Record<string, any[]>)) {
+      for (const device of runtime) {
+        if (device.isAvailable && device.name && device.udid) {
+          devices.push(device);
+        }
+      }
+    }
+
+    const booted = devices.find(d => d.state === 'Booted' && d.name.toLowerCase().includes('iphone'));
+    if (booted) return `platform=iOS Simulator,id=${booted.udid}`;
+
+    const iPhones = devices
+      .filter(d => d.name.toLowerCase().includes('iphone'))
+      .sort((a, b) => b.name.localeCompare(a.name)); // newest names (e.g. iPhone 17) sort first
+    if (iPhones.length) return `platform=iOS Simulator,id=${iPhones[0].udid}`;
+
+    if (devices.length) return `platform=iOS Simulator,id=${devices[0].udid}`;
+  } catch {
+    // ignore
+  }
+  return 'platform=iOS Simulator';
+}
+
+/**
+ * Generate the Xcode workspace/project with Tuist if the repo is a Tuist monorepo
+ * and the generated files are missing or stale. Returns a success result if no
+ * Tuist project is detected or generation succeeds.
+ */
+async function ensureTuistGenerated(workingDir: string): Promise<TestRunResult> {
+  const startTime = Date.now();
+  const hasTuistConfig = await fileExists(path.join(workingDir, 'Tuist.swift')) ||
+    await fileExists(path.join(workingDir, 'Workspace.swift')) ||
+    await fileExists(path.join(workingDir, 'Project.swift'));
+  if (!hasTuistConfig) {
+    return { passed: true, command: '', stdout: '', stderr: '', exitCode: 0, duration: 0 };
+  }
+
+  const hasGeneratedWorkspace = await fileExists(path.join(workingDir, 'RappiMonorepo.xcworkspace')) ||
+    await findByExtension(workingDir, '.xcodeproj');
+  if (hasGeneratedWorkspace) {
+    return { passed: true, command: '', stdout: '', stderr: '', exitCode: 0, duration: 0 };
+  }
+
+  const command = 'tuist generate';
+  try {
+    const { stdout, stderr } = await execAsync(command, { cwd: workingDir, timeout: 300000 });
+    return { passed: true, command, stdout, stderr, exitCode: 0, duration: Date.now() - startTime };
+  } catch (error: any) {
+    return {
+      passed: false,
+      command,
+      stdout: error.stdout || '',
+      stderr: error.stderr || '',
+      exitCode: error.code || 1,
+      duration: Date.now() - startTime,
+    };
+  }
+}
+
+/**
+ * Build the project using Tuist. This is the most reliable option for
+ * Tuist-based modular monorepos because it understands the dependency graph
+ * and cached precompiled binaries. Accepts an optional scheme name.
+ */
+export async function runTuistBuild(workingDir: string, scheme?: string): Promise<TestRunResult> {
+  const startTime = Date.now();
+  const generateResult = await ensureTuistGenerated(workingDir);
+  if (!generateResult.passed) return generateResult;
+
+  const command = scheme ? `tuist build ${scheme}` : 'tuist build';
+  try {
+    const { stdout, stderr } = await execAsync(command, {
+      cwd: workingDir,
+      timeout: 1200000, // 20 min — monorepo builds can be slow
+    });
+    return {
+      passed: true,
+      command,
+      stdout,
+      stderr,
+      exitCode: 0,
+      duration: Date.now() - startTime,
+    };
+  } catch (error: any) {
+    return {
+      passed: false,
+      command,
+      stdout: error.stdout || '',
+      stderr: error.stderr || '',
+      exitCode: error.code || 1,
+      duration: Date.now() - startTime,
+    };
+  }
 }
 
 /**

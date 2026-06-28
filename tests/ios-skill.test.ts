@@ -12,6 +12,7 @@ jest.mock('../src/tools/xcode-runner', () => ({
   runSwiftTests: jest.fn(),
   runSwiftLint: jest.fn(),
   runXcodeBuild: jest.fn(),
+  runTuistBuild: jest.fn(),
 }));
 
 jest.mock('fs/promises', () => ({
@@ -23,6 +24,7 @@ const mockedRunSwiftPackageResolve = xcodeRunner.runSwiftPackageResolve as jest.
 const mockedRunSwiftTests = xcodeRunner.runSwiftTests as jest.MockedFunction<typeof xcodeRunner.runSwiftTests>;
 const mockedRunSwiftLint = xcodeRunner.runSwiftLint as jest.MockedFunction<typeof xcodeRunner.runSwiftLint>;
 const mockedRunXcodeBuild = xcodeRunner.runXcodeBuild as jest.MockedFunction<typeof xcodeRunner.runXcodeBuild>;
+const mockedRunTuistBuild = xcodeRunner.runTuistBuild as jest.MockedFunction<typeof xcodeRunner.runTuistBuild>;
 const mockedReaddir = fs.readdir as unknown as jest.Mock<any, any>;
 
 function mockHasXcodeProject(hasProject = true) {
@@ -42,7 +44,7 @@ describe('IosSkill', () => {
 
   beforeEach(() => {
     skill = new IosSkill();
-    jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   describe('verifyEnvironment', () => {
@@ -60,25 +62,64 @@ describe('IosSkill', () => {
   });
 
   describe('build', () => {
-    it('uses xcodebuild when Tuist workspace exists', async () => {
-      mockHasXcodeProject(true);
+    it('uses tuist build first in auto mode when Tuist config exists', async () => {
+      mockedReaddir.mockResolvedValue(['Tuist.swift', 'RappiMonorepo.xcworkspace']);
+      mockedRunTuistBuild.mockResolvedValue(successResult('tuist build PayInsurance'));
+      const result = await skill.build('/repo', 'PayInsurance');
+      expect(result.passed).toBe(true);
+      expect(mockedRunTuistBuild).toHaveBeenCalledWith('/repo', 'PayInsurance');
+      expect(mockedRunXcodeBuild).not.toHaveBeenCalled();
+    });
+
+    it('falls back to xcodebuild when tuist build fails', async () => {
+      mockedReaddir.mockResolvedValue(['Tuist.swift', 'RappiMonorepo.xcworkspace']);
+      mockedRunTuistBuild.mockResolvedValue(failureResult('tuist build'));
       mockedRunXcodeBuild.mockResolvedValue(successResult('xcodebuild build'));
       const result = await skill.build('/repo', 'PayInsurance');
       expect(result.passed).toBe(true);
       expect(mockedRunXcodeBuild).toHaveBeenCalledWith('/repo', 'PayInsurance');
-      expect(mockedRunSwiftPackageResolve).not.toHaveBeenCalled();
     });
 
-    it('uses xcodebuild with default App scheme when no module provided', async () => {
-      mockHasXcodeProject(true);
+    it('falls back to swift package resolve when tuist and xcodebuild fail', async () => {
+      mockedReaddir.mockResolvedValue(['Tuist.swift', 'RappiMonorepo.xcworkspace']);
+      mockedRunTuistBuild.mockResolvedValue(failureResult('tuist build'));
+      mockedRunXcodeBuild.mockResolvedValue(failureResult('xcodebuild build'));
+      mockedRunSwiftPackageResolve.mockResolvedValue(successResult('swift package resolve'));
+      const result = await skill.build('/repo', 'PayInsurance');
+      expect(result.passed).toBe(true);
+      expect(mockedRunSwiftPackageResolve).toHaveBeenCalledWith('/repo');
+    });
+
+    it('uses resolve only when strategy is resolve', async () => {
+      mockedReaddir.mockResolvedValue(['Tuist.swift', 'RappiMonorepo.xcworkspace']);
+      mockedRunSwiftPackageResolve.mockResolvedValue(successResult('swift package resolve'));
+      const result = await skill.build('/repo', 'PayInsurance', 'resolve');
+      expect(result.passed).toBe(true);
+      expect(mockedRunSwiftPackageResolve).toHaveBeenCalledWith('/repo');
+      expect(mockedRunTuistBuild).not.toHaveBeenCalled();
+      expect(mockedRunXcodeBuild).not.toHaveBeenCalled();
+    });
+
+    it('uses xcodebuild when strategy is xcodebuild', async () => {
+      mockedReaddir.mockResolvedValue(['Tuist.swift', 'RappiMonorepo.xcworkspace']);
+      mockedRunXcodeBuild.mockResolvedValue(successResult('xcodebuild build'));
+      const result = await skill.build('/repo', 'PayInsurance', 'xcodebuild');
+      expect(result.passed).toBe(true);
+      expect(mockedRunXcodeBuild).toHaveBeenCalledWith('/repo', 'PayInsurance');
+      expect(mockedRunTuistBuild).not.toHaveBeenCalled();
+    });
+
+    it('uses xcodebuild for plain xcodeproj repo without Tuist config', async () => {
+      mockedReaddir.mockResolvedValue(['App.xcodeproj']);
       mockedRunXcodeBuild.mockResolvedValue(successResult('xcodebuild build'));
       const result = await skill.build('/repo');
       expect(result.passed).toBe(true);
       expect(mockedRunXcodeBuild).toHaveBeenCalledWith('/repo', 'App');
+      expect(mockedRunTuistBuild).not.toHaveBeenCalled();
     });
 
     it('uses swift package resolve for SPM-only repo', async () => {
-      mockHasXcodeProject(false);
+      mockedReaddir.mockResolvedValue(['Package.swift']);
       mockedRunSwiftPackageResolve.mockResolvedValue(successResult('swift package resolve'));
       const result = await skill.build('/repo');
       expect(result.passed).toBe(true);
@@ -86,35 +127,10 @@ describe('IosSkill', () => {
       expect(mockedRunXcodeBuild).not.toHaveBeenCalled();
     });
 
-    it('throws GaiaBuildError when xcodebuild fails', async () => {
-      mockHasXcodeProject(true);
+    it('throws GaiaBuildError when explicit xcodebuild fails', async () => {
+      mockedReaddir.mockResolvedValue(['Tuist.swift', 'RappiMonorepo.xcworkspace']);
       mockedRunXcodeBuild.mockResolvedValue(failureResult('xcodebuild build'));
-      await expect(skill.build('/repo', 'PayInsurance')).rejects.toThrow('[iOS] `xcodebuild build -scheme PayInsurance` failed');
-    });
-
-    it('detects xcodebuild project from .xcodeproj alone', async () => {
-      mockedReaddir.mockResolvedValue(['App.xcodeproj']);
-      mockedRunXcodeBuild.mockResolvedValue(successResult('xcodebuild build'));
-      const result = await skill.build('/repo');
-      expect(result.passed).toBe(true);
-      expect(mockedRunXcodeBuild).toHaveBeenCalledWith('/repo', 'App');
-      expect(mockedRunSwiftPackageResolve).not.toHaveBeenCalled();
-    });
-
-    it('detects xcodebuild project from Tuist.swift alone', async () => {
-      mockedReaddir.mockResolvedValue(['Tuist.swift']);
-      mockedRunXcodeBuild.mockResolvedValue(successResult('xcodebuild build'));
-      const result = await skill.build('/repo');
-      expect(result.passed).toBe(true);
-      expect(mockedRunXcodeBuild).toHaveBeenCalledWith('/repo', 'App');
-    });
-
-    it('detects xcodebuild project from Workspace.swift alone', async () => {
-      mockedReaddir.mockResolvedValue(['Workspace.swift']);
-      mockedRunXcodeBuild.mockResolvedValue(successResult('xcodebuild build'));
-      const result = await skill.build('/repo');
-      expect(result.passed).toBe(true);
-      expect(mockedRunXcodeBuild).toHaveBeenCalledWith('/repo', 'App');
+      await expect(skill.build('/repo', 'PayInsurance', 'xcodebuild')).rejects.toThrow('[iOS] `xcodebuild build` failed');
     });
 
     it('falls back to swift package resolve when readdir fails', async () => {

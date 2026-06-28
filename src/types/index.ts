@@ -5,9 +5,18 @@
  */
 
 /**
+ * iOS build validation strategy.
+ * - `resolve`: only resolve dependencies (fast, no compilation)
+ * - `xcodebuild`: use xcodebuild build
+ * - `tuist`: use tuist build (best for Tuist monorepos)
+ * - `auto`: let the skill pick the best available strategy (default)
+ */
+export type BuildStrategy = 'resolve' | 'xcodebuild' | 'tuist' | 'auto';
+
+/**
  * Represents the current state of a code generation job in the state machine.
  * The job transitions through these states from creation to completion.
- * 
+ *
  * @example
  * 'pending' → 'spec_generating' → 'spec_ready' → 'spec_approved' → 'implementing' → 'reviewing' → 'pr_created' → 'done'
  */
@@ -138,6 +147,9 @@ export interface CodeGenerationJob {
   requireTests: boolean;
   /** Use TDD mode: Red-Green-Refactor one test at a time instead of bulk generation */
   tddMode?: boolean;
+
+  /** iOS build validation strategy: resolve | xcodebuild | tuist | auto (default: auto) */
+  buildStrategy?: BuildStrategy;
   
   /** Current state in the state machine */
   status: JobStatus;
@@ -243,6 +255,7 @@ export interface CreateJobRequest {
   description?: string;
   figmaUrl?: string;
   tddMode?: boolean;
+  buildStrategy?: BuildStrategy;
   requireTests?: boolean;
   maxFilesToTouch?: number;
   acceptanceCriteria?: Array<string | { id: string; text: string; priority?: string }>;
@@ -257,6 +270,7 @@ export interface CreateJobRequest {
     targetBranch?: string;
     requireTests?: boolean;
     maxFilesToTouch?: number;
+    buildStrategy?: BuildStrategy;
   };
 }
 
