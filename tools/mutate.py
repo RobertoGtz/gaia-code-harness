@@ -156,10 +156,10 @@ def _strip_strings_and_comments(source: str, lang: str) -> str:
     # Strings simples y dobles (no multiline)
     result = re.sub(r'("(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\')',
                     lambda m: ' ' * len(m.group()), result)
-    # Template literals TS
+    # Template literals TS (multiline support)
     if lang in ("ts", "js"):
         result = re.sub(r'`(?:[^`\\]|\\.)*`',
-                        lambda m: ' ' * len(m.group()), result)
+                        lambda m: ' ' * len(m.group()), result, flags=re.DOTALL)
     return result
 
 
