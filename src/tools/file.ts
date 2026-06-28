@@ -109,14 +109,18 @@ export async function searchFiles(
         }
       } else {
         if (minimatch(entry.name, pattern) || minimatch(relativePath, pattern)) {
-          const stats = await fs.stat(fullPath);
-          results.push({
-            path: fullPath,
-            relativePath,
-            size: stats.size,
-            isDirectory: false,
-            extension: path.extname(entry.name),
-          });
+          try {
+            const stats = await fs.stat(fullPath);
+            results.push({
+              path: fullPath,
+              relativePath,
+              size: stats.size,
+              isDirectory: false,
+              extension: path.extname(entry.name),
+            });
+          } catch {
+            // Broken symlink or inaccessible file — skip
+          }
         }
       }
     }
@@ -140,28 +144,36 @@ export async function searchFiles(
  */
 export async function getDirectoryStructure(
   dir: string,
-  maxDepth: number = 3
+  maxDepth: number = 3,
+  maxFiles: number = 500
 ): Promise<FileInfo[]> {
   const results: FileInfo[] = [];
 
   async function scan(currentDir: string, depth: number) {
-    if (depth > maxDepth) return;
-    
+    if (depth > maxDepth || results.length >= maxFiles) return;
+
     const entries = await fs.readdir(currentDir, { withFileTypes: true });
-    
+
     for (const entry of entries) {
+      if (results.length >= maxFiles) return;
+
       const fullPath = path.join(currentDir, entry.name);
       const relativePath = path.relative(dir, fullPath);
-      
-      const stats = await fs.stat(fullPath);
-      results.push({
-        path: fullPath,
-        relativePath,
-        size: stats.size,
-        isDirectory: entry.isDirectory(),
-        extension: entry.isFile() ? path.extname(entry.name) : undefined,
-      });
-      
+
+      try {
+        const stats = await fs.stat(fullPath);
+        results.push({
+          path: fullPath,
+          relativePath,
+          size: stats.size,
+          isDirectory: entry.isDirectory(),
+          extension: entry.isFile() ? path.extname(entry.name) : undefined,
+        });
+      } catch {
+        // Broken symlink or inaccessible file — skip
+        continue;
+      }
+
       if (entry.isDirectory() && !['node_modules', '.git', 'build', '.dart_tool'].includes(entry.name)) {
         await scan(fullPath, depth + 1);
       }

@@ -7,7 +7,7 @@
 import { BaseAgent } from './base';
 import { AgentContext, AgentResult, TestResult } from '../types';
 import { TestRunResult } from '../tools/test-runner';
-import { initGit, createGitHubPR, addJiraComment, getModifiedFiles, GitHubError, GitHubAuthError, GitHubNotFoundError, GitPushError } from '../tools/git';
+import { initGit, createGitHubPR, addJiraComment, getModifiedFiles, parseGitHubRepoFromRemote, GitHubError, GitHubAuthError, GitHubNotFoundError, GitPushError } from '../tools/git';
 import { loadSkill } from '../skills';
 import { GaiaError, GaiaReviewError } from '../errors';
 import * as path from 'path';
@@ -60,10 +60,10 @@ export class ReviewerAgent extends BaseAgent {
         throw new GaiaReviewError('No spec found for traceability verification');
       }
 
-      // 5. GitHub PR
+      // 5. GitHub PR — derive owner/repo from the local origin remote so local
+      // clones and monorepos push back to their real upstream, not GITHUB_OWNER.
       this.logStep('Creating GitHub PR...');
-      const prOwner = job.repo.includes('/') ? job.repo.split('/')[0] : (process.env.GITHUB_OWNER || '');
-      const prRepo = job.repo.includes('/') ? job.repo.split('/')[1] : job.repo;
+      const { owner: prOwner, repo: prRepo } = await parseGitHubRepoFromRemote(git, job.repo);
       let pr: { url: string; id: string; number: number };
       try {
         pr = await createGitHubPR({

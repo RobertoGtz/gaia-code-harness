@@ -5,6 +5,7 @@
  */
 
 import * as path from 'path';
+import simpleGit from 'simple-git';
 import { cloneRepository } from './git';
 import { copyDirectory, fileExists } from './file';
 import { CodeGenerationJob } from '../types';
@@ -19,6 +20,27 @@ export interface RepoSetupResult {
   output: string;
   /** Error message if setup failed */
   error?: string;
+}
+
+/**
+ * Read the origin remote from a local git repo and return a normalized GitHub URL.
+ * Returns undefined if the remote is not a GitHub URL.
+ */
+async function getGitHubRemoteUrl(localRepoPath: string): Promise<string | undefined> {
+  try {
+    const git = simpleGit(localRepoPath);
+    const remotes = await git.getRemotes(true);
+    const origin = remotes.find(r => r.name === 'origin');
+    const url = origin?.refs.fetch || origin?.refs.push;
+    if (!url) return undefined;
+    const match = url.match(/github\.com[:/]([^/]+)\/([^/]+?)(?:\.git)?$/);
+    if (match) {
+      return `https://github.com/${match[1]}/${match[2]}.git`;
+    }
+  } catch {
+    // ignore
+  }
+  return undefined;
 }
 
 /**
@@ -56,6 +78,12 @@ export async function setupRepository(
         const isGitRepo = await fileExists(path.join(localRepo, '.git'));
         if (isGitRepo) {
           await cloneRepository(localRepo, repoPath, job.targetBranch || 'develop');
+          // Preserve the real GitHub upstream so pushes and PRs go to the right owner/repo.
+          const upstreamUrl = await getGitHubRemoteUrl(localRepo);
+          if (upstreamUrl) {
+            const git = simpleGit(repoPath);
+            await git.remote(['set-url', 'origin', upstreamUrl]);
+          }
           return { success: true, output: `Repository cloned from ${localRepo}` };
         }
         await copyDirectory(localRepo, repoPath);

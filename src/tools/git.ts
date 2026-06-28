@@ -170,6 +170,34 @@ export async function createBranch(
  *   'feature/PROJ-123-banner'
  * );
  */
+/**
+ * Parse owner/repo from the local git remote origin URL.
+ * Falls back to job.repo / GITHUB_OWNER if no origin remote exists.
+ */
+export async function parseGitHubRepoFromRemote(
+  git: SimpleGit,
+  jobRepo: string
+): Promise<{ owner: string; repo: string }> {
+  const fallbackOwner = jobRepo.includes('/') ? jobRepo.split('/')[0] : (process.env.GITHUB_OWNER || '');
+  const fallbackRepo = jobRepo.includes('/') ? jobRepo.split('/')[1] : jobRepo;
+
+  try {
+    const remotes = await git.getRemotes(true);
+    const origin = remotes.find(r => r.name === 'origin');
+    const url = origin?.refs.fetch || origin?.refs.push;
+    if (url) {
+      const match = url.match(/github\.com[:/]([^/]+)\/([^/]+?)(?:\.git)?$/);
+      if (match) {
+        return { owner: match[1], repo: match[2] };
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  return { owner: fallbackOwner, repo: fallbackRepo };
+}
+
 export async function commitAndPush(
   git: SimpleGit,
   message: string,
@@ -180,15 +208,20 @@ export async function commitAndPush(
   await git.add(files);
   await git.commit(message);
   if (branch) {
-    // If GITHUB_TOKEN + repo provided, point origin to GitHub before pushing
+    // If GITHUB_TOKEN is available, inject it into the existing origin URL so
+    // we push back to the same remote the repo came from (local or GitHub clone).
     const token = process.env.GITHUB_TOKEN;
-    if (token && repo) {
-      const fullRepo = repo.includes('/') ? repo : `${process.env.GITHUB_OWNER || ''}/${repo}`;
-      const githubUrl = `https://${token}@github.com/${fullRepo}.git`;
+    if (token) {
       try {
-        await git.remote(['set-url', 'origin', githubUrl]);
+        const remotes = await git.getRemotes(true);
+        const origin = remotes.find(r => r.name === 'origin');
+        const baseUrl = origin?.refs.fetch || origin?.refs.push || (repo ? `https://github.com/${repo.includes('/') ? repo : `${process.env.GITHUB_OWNER || ''}/${repo}`}.git` : undefined);
+        if (baseUrl) {
+          const authUrl = baseUrl.replace(/^https:\/\//, `https://${token}@`).replace(/^https:\/\/[^@]+@/, `https://${token}@`);
+          await git.remote(['set-url', 'origin', authUrl]);
+        }
       } catch {
-        await git.remote(['add', 'origin', githubUrl]);
+        // origin might not exist yet; push will fail cleanly below with details
       }
     }
     try {
