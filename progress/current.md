@@ -1,23 +1,22 @@
 # Sesión actual
 
-> Plantilla. Reemplaza este contenido al inicio de cada sesión activa.
-> Al cerrar la sesión, mueve el resumen al final de `progress/history.md`
-> y vuelve a dejar solo esta plantilla.
-
 ## Feature en curso
 
-_(ninguna — sesión limpia)_
+Enhance iOS Skill Implementation: tests, monorepo module analysis, and documentation.
 
 ## Estado
 
-- status en feature_list.json: —
-- Último paso completado: —
-- Próximo paso: leer AGENTS.md y feature_list.json
+- `src/tools/xcode-runner.ts`: tests added, module-aware lint helper, mutation score 84%
+- `src/skills/ios/index.ts`: tests added, `analyze()` accepts module, prompts refactored to string arrays, mutation score 92%
+- `src/skills/index.ts`: `PlatformSkill.analyze` signature now accepts optional `module`
+- `src/skills/android/index.ts`, `flutter/index.ts`, `flutter_web/index.ts`: `analyze` updated to accept module
+- `docs/engineering/architecture.md`: added iOS skill section and updated toolchain table
+- `docs/guides/testing.md`: added `xcode-runner.test.ts` and `ios-skill.test.ts` suites
+- `tools/mutate.py`: fixed multiline TS template-literal masking (`re.DOTALL`)
+- All tests: 152/152 passing
+- `init.sh --quick`: OK
+- No blockers.
 
 ## Notas de sesión
 
-_(vacío)_
-
-## Bloqueos
-
-_(ninguno)_
+The mutation-testing tool had a bug with multiline TS template literals that caused line shifts and false surviving mutants. Refactored `IosSkill.getPromptContext` to use string arrays joined with `\n`, which the tool masks correctly and gives a clean mutation score.

@@ -411,7 +411,7 @@ Define el contrato que cada skill debe cumplir (`src/skills/index.ts`):
 | `verifyEnvironment(repoPath)` | Verify toolchain is available                              |
 | `build(repoPath, module?)`    | Resolve dependencies (pub get, gradle sync, spm resolve…)  |
 | `test(repoPath, module?)`     | Run the full test suite                                    |
-| `analyze(repoPath)`           | Lint / static analysis                                     |
+| `analyze(repoPath, module?)`  | Lint / static analysis (module-aware for monorepos)        |
 | `getPromptContext(job)`       | Return system prompts + file patterns + forbidden packages |
 
 ---
@@ -481,8 +481,36 @@ Define el contrato que cada skill debe cumplir (`src/skills/index.ts`):
 | ------------- | ------------------------------------- | --------------------------- | ------------------------------------ | ------------------ |
 | `flutter`     | `flutter pub get` / `melos bootstrap` | `flutter test`              | `dart analyze`                       | `test-runner.ts`   |
 | `flutter_web` | `flutter pub get`                     | `flutter test`              | `dart analyze` + forbidden pkg check | `test-runner.ts`   |
-| `ios`         | `swift package resolve`               | `swift test`                | `swiftlint`                          | `xcode-runner.ts`  |
+| `ios`         | `xcodebuild build` (Tuist/SPM)        | `xcodebuild test`           | `swiftlint` (module-aware)           | `xcode-runner.ts`  |
 | `android`     | `gradlew dependencies`                | `gradlew testDebugUnitTest` | `lintDebug`                          | `gradle-runner.ts` |
+
+---
+
+### Skill iOS (`src/skills/ios/index.ts`)
+
+El skill de iOS está calibrado para un monorepo de gran escala basado en **Tuist + Swift Package Manager** (por ejemplo, el repositorio de Rappi iOS). Sus responsabilidades:
+
+1. **Detectar el tipo de proyecto**
+   - Si el directorio raíz contiene `.xcodeproj`, `.xcworkspace`, `Tuist.swift` o `Workspace.swift`, asume un monorepo Tuist y usa `xcodebuild`.
+   - Si no, cae a `swift package resolve` para un proyecto SPM plano.
+
+2. **Build**
+   - `skill.build(repoPath, module)` ejecuta `xcodebuild build` con el scheme `module` (o `App` si no se provee).
+   - `xcode-runner.ts` descubre el flag correcto (`-workspace` vs `-project`) y, en monorepo, busca el `.xcodeproj` específico del módulo: `{module}.xcodeproj` o `{module}Feature.xcodeproj` bajo `features/`, `feature_interfaces/`, etc.
+
+3. **Test**
+   - `skill.test(repoPath, module)` ejecuta `xcodebuild test` con el mismo descubrimiento de workspace/proyecto y scheme.
+   - Para SPM plano usa `swift build` como proxy de prueba (no hay un commando de test cross-plataforma sin Xcode).
+
+4. **Analyze (lint)**
+   - `skill.analyze(repoPath, module)` ejecuta `swiftlint lint`.
+   - Si `module` se provee y existe un `.swiftlint.yml` dentro de la carpeta del módulo (`features/{Module}/{Module}Feature/.swiftlint.yml`), el linter corre desde ese directorio para aplicar la configuración local del módulo. Si no, lintea desde raíz.
+
+5. **Prompt context (`getPromptContext`)**
+   - Incluye reglas arquitectónicas específicas del monorepo: MVVM + Coordinator, VIPER, SwiftUI Feature, `Feature`/ `FeatureInterface` modules, `@Inject` + `MainComponent.resolve`, Design System, y prohibiciones (no force unwrap, no UIKit en lógica de negocio, etc.).
+   - Los placeholders de paths usan la convención `{Module}Feature/Sources/...` y `{Module}FeatureInterface/Sources/...`.
+
+El runner de Xcode está testeado en `tests/xcode-runner.test.ts` y el skill en `tests/ios-skill.test.ts`, ambos con mocks de `child_process` y `fs/promises`.
 
 ---
 

@@ -19,25 +19,29 @@
 Tests unitarios internos que no requieren servidor ni Postgres ni LLM:
 
 ```bash
-npm test                  # corre toda la suite Jest (120 tests, 12 suites)
+npm test                  # corre toda la suite Jest (~148 tests, 14 suites)
 npm test -- --watch       # modo watch durante desarrollo
 npm test -- webhook       # filtra por nombre de suite
+npm test -- ios-skill     # solo el skill de iOS
+npm test -- xcode-runner  # solo el runner de Xcode
 ```
 
-| Suite                      | Qué cubre                                                         |
-| -------------------------- | ----------------------------------------------------------------- |
-| `webhook-parsers.test.ts`  | `parseGenericBody` + `parseJiraWebhook` (Modo C)                  |
-| `jira-errors.test.ts`      | Clases de error Jira (`JiraAuthError`, etc.)                      |
-| `jira-parsers.test.ts`     | `extractTextFromADF` + `parseACFromText`                          |
-| `disk-backend.test.ts`     | `DiskBackend` completo — CRUD, persistencia (Modo B)              |
-| `state-backend.test.ts`    | Singleton `StateBackend` + wrappers de conveniencia               |
-| `git-errors.test.ts`       | Clases de error Git/GitHub (`GitHubAuthError`, etc.)              |
-| `llm-utils.test.ts`        | `extractJSON` — parseo de JSON de respuestas LLM                  |
-| `repo-setup.test.ts`       | `setupRepository` — local clone, GitHub clone, errores            |
-| `agent-registry.test.ts`   | `getAgentsForPlatform` — plataformas soportadas, singleton, error |
-| `notifier-factory.test.ts`  | `buildNotifier` — NullNotifier, Slack, Webhook, Jira, composite   |
-| `generic-notifier.test.ts`  | `GenericWebhookNotifier` — POST, HMAC signing, error resilience   |
-| `plugin-loader.test.ts`     | `PluginLoader` — gaia.json, RULES.md, UNIT_TESTS.md, getRulesAsContext |
+| Suite                      | Qué cubre                                                                            |
+| -------------------------- | ------------------------------------------------------------------------------------ |
+| `webhook-parsers.test.ts`  | `parseGenericBody` + `parseJiraWebhook` (Modo C)                                     |
+| `jira-errors.test.ts`      | Clases de error Jira (`JiraAuthError`, etc.)                                         |
+| `jira-parsers.test.ts`     | `extractTextFromADF` + `parseACFromText`                                             |
+| `disk-backend.test.ts`     | `DiskBackend` completo — CRUD, persistencia (Modo B)                                 |
+| `state-backend.test.ts`    | Singleton `StateBackend` + wrappers de conveniencia                                  |
+| `git-errors.test.ts`       | Clases de error Git/GitHub (`GitHubAuthError`, etc.)                                 |
+| `llm-utils.test.ts`        | `extractJSON` — parseo de JSON de respuestas LLM                                     |
+| `repo-setup.test.ts`       | `setupRepository` — local clone, GitHub clone, errores                               |
+| `agent-registry.test.ts`   | `getAgentsForPlatform` — plataformas soportadas, singleton, error                    |
+| `notifier-factory.test.ts` | `buildNotifier` — NullNotifier, Slack, Webhook, Jira, composite                      |
+| `generic-notifier.test.ts` | `GenericWebhookNotifier` — POST, HMAC signing, error resilience                      |
+| `plugin-loader.test.ts`    | `PluginLoader` — gaia.json, RULES.md, UNIT_TESTS.md, getRulesAsContext               |
+| `xcode-runner.test.ts`     | `runSwiftTests`, `runXcodeBuild`, `runSwiftLint`, `verifyIosEnvironment` — mockeados |
+| `ios-skill.test.ts`        | `IosSkill` — `verifyEnvironment`, `build`, `test`, `analyze`, `getPromptContext`     |
 
 > Estos tests son los más rápidos de correr y deben pasar siempre. Si alguno falla, hay un bug en el harness mismo, no en el workspace del job.
 
