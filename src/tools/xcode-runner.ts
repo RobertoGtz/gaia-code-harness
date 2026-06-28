@@ -84,13 +84,25 @@ export async function runSwiftTests(workingDir: string, scheme?: string): Promis
 
 /**
  * Run SwiftLint for static analysis.
+ * In a monorepo, an optional `module` can be provided to lint from the
+ * feature/module directory where its own `.swiftlint.yml` lives.
  */
-export async function runSwiftLint(workingDir: string): Promise<TestRunResult> {
+export async function runSwiftLint(workingDir: string, module?: string): Promise<TestRunResult> {
   const startTime = Date.now();
+
+  // Determine the lint working directory. Prefer module-specific folder if it
+  // has its own .swiftlint.yml; otherwise lint from the repo root.
+  let lintDir = workingDir;
+  if (module) {
+    const moduleDir = await findModuleDir(workingDir, module);
+    if (moduleDir && await fileExists(path.join(moduleDir, '.swiftlint.yml'))) {
+      lintDir = moduleDir;
+    }
+  }
 
   try {
     const { stdout, stderr } = await execAsync('swiftlint lint --quiet', {
-      cwd: workingDir,
+      cwd: lintDir,
       timeout: 60000,
     });
 
@@ -112,6 +124,40 @@ export async function runSwiftLint(workingDir: string): Promise<TestRunResult> {
       duration: Date.now() - startTime,
     };
   }
+}
+
+/**
+ * Search for a module directory that matches the given module name.
+ * Tries exact name and name + 'Feature' suffix under common monorepo roots.
+ * Returns the absolute path, or undefined if not found.
+ */
+async function findModuleDir(workingDir: string, module: string): Promise<string | undefined> {
+  const candidates = [
+    `${module}`,
+    `${module}Feature`,
+  ];
+
+  const roots = ['features', 'feature_interfaces', 'ui', 'libraries', 'services', 'foundations'];
+  for (const root of roots) {
+    for (const candidate of candidates) {
+      const dir = path.join(workingDir, root, candidate);
+      try {
+        const stat = await fs.stat(dir);
+        if (stat.isDirectory()) return dir;
+      } catch {
+        // ignore
+      }
+      // also check nested one level (e.g. features/PayInsurance/PayInsuranceFeature)
+      const nestedDir = path.join(workingDir, root, module, candidate);
+      try {
+        const stat = await fs.stat(nestedDir);
+        if (stat.isDirectory()) return nestedDir;
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return undefined;
 }
 
 /**

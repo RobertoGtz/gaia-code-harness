@@ -51,11 +51,12 @@ export class AndroidSkill implements PlatformSkill {
     return result;
   }
 
-  async analyze(repoPath: string): Promise<AnalyzeResult> {
-    const result = await runAndroidLint(repoPath);
+  async analyze(repoPath: string, module?: string): Promise<AnalyzeResult> {
+    const target = module ? `module '${module}'` : path.basename(repoPath);
+    const result = await runAndroidLint(repoPath, module);
     if (!result.passed) {
       throw new GaiaTestError(
-        `[Android] \`./gradlew lintDebug\` found issues in ${path.basename(repoPath)}. Fix lint violations before review.`,
+        `[Android] \`./gradlew lintDebug\` found issues in ${target}. Fix lint violations before review.`,
         trim(result.stderr)
       );
     }

@@ -41,7 +41,7 @@ export interface PlatformSkill {
   test(repoPath: string, module?: string): Promise<TestRunResult>;
 
   /** Run static analysis / linter */
-  analyze(repoPath: string): Promise<TestRunResult>;
+  analyze(repoPath: string, module?: string): Promise<TestRunResult>;
 
   /**
    * Returns platform-specific context injected into every LLM prompt.

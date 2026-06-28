@@ -73,11 +73,13 @@ export class FlutterWebSkill implements PlatformSkill {
     return result;
   }
 
-  async analyze(repoPath: string): Promise<AnalyzeResult> {
-    const result = await runDartAnalyze(repoPath);
+  async analyze(repoPath: string, module?: string): Promise<AnalyzeResult> {
+    const target = module ? `module '${module}'` : path.basename(repoPath);
+    const analyzeDir = module ? path.join(repoPath, 'packages/features', module) : repoPath;
+    const result = await runDartAnalyze(analyzeDir);
     if (!result.passed) {
       throw new GaiaTestError(
-        `[Flutter Web] \`dart analyze\` found issues in ${path.basename(repoPath)}`,
+        `[Flutter Web] \`dart analyze\` found issues in ${target}`,
         trim(result.stderr)
       );
     }
