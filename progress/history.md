@@ -30,3 +30,11 @@
 - **Resumen**: Committed and pushed test additions. Improved `tools/mutate.py` to exclude TypeScript generics and to skip mutants inside strings/comments. Reran mutation testing on all touched files.
 - **Mutation score**: reviewer.ts 100%, git.ts 100%, repo.ts 85.7%, xcode-runner.ts 90%, file.ts 93.3%, ios/index.ts 96.7%
 - **Notas**: The mutator previously counted false positives from JSDoc (`<>` in generic types, `true`/`false` in docs, return examples). Added explicit excluded-region detection so only actual code logic is mutated.
+
+## 2026-06-28 — iOS build strategy feature closed
+
+- **Feature**: #2 ios-build-strategy
+- **Status final**: done
+- **Resumen**: Human approved the 12 Gherkin scenarios. Judge review passed C1–C7. Mutation scores for all touched files are ≥ 80%. Feature marked as done in feature_list.json.
+- **Mutation score**: reviewer.ts 100%, git.ts 100%, repo.ts 85.7%, xcode-runner.ts 90%, file.ts 93.3%, ios/index.ts 96.7%
+- **Notas**: The feature was documented retrospectively because the code had already been implemented and validated against real jobs. All pipeline artifacts (spec, Gherkin, TDD map, judge review, mutation report) are now in place.
