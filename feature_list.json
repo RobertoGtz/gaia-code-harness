@@ -31,7 +31,7 @@
       "repository setup preserves GitHub origin and Tuist cache",
       "mutation score for touched files is at least 80%"
     ],
-    "status": "spec_ready",
+    "status": "done",
     "tddMode": true,
     "sdd": true,
     "jobId": null
