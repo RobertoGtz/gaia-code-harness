@@ -15,5 +15,25 @@
     "tddMode": true,
     "sdd": true,
     "jobId": null
+  },
+  {
+    "id": 2,
+    "name": "ios-build-strategy",
+    "title": "iOS build strategy for large Tuist monorepos",
+    "platform": "ios",
+    "repo": "rappi-inc/ios-rappi-main",
+    "targetBranch": "develop",
+    "acceptanceCriteria": [
+      "resolve strategy validates dependencies without full compilation",
+      "tuist strategy runs tuist build for Tuist modules",
+      "auto strategy falls back from tuist to xcodebuild to resolve",
+      "xcodebuild strategy works for standalone non-Tuist modules",
+      "repository setup preserves GitHub origin and Tuist cache",
+      "mutation score for touched files is at least 80%"
+    ],
+    "status": "spec_ready",
+    "tddMode": true,
+    "sdd": true,
+    "jobId": null
   }
 ]
