@@ -84,6 +84,17 @@ export async function setupRepository(
             const git = simpleGit(repoPath);
             await git.remote(['set-url', 'origin', upstreamUrl]);
           }
+          // Preserve resolved Tuist plugin cache so tuist install/generate does not
+          // need to re-download private dependencies (e.g. Rappi plugin repos).
+          const tuistBuildSource = path.join(localRepo, 'Tuist', '.build');
+          const tuistBuildDest = path.join(repoPath, 'Tuist', '.build');
+          if (await fileExists(tuistBuildSource) && !await fileExists(tuistBuildDest)) {
+            try {
+              await copyDirectory(tuistBuildSource, tuistBuildDest);
+            } catch {
+              // best-effort — tuist install will attempt to resolve fresh
+            }
+          }
           return { success: true, output: `Repository cloned from ${localRepo}` };
         }
         await copyDirectory(localRepo, repoPath);

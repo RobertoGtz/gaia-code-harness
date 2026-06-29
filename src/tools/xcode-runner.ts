@@ -9,6 +9,7 @@ import { promisify } from 'util';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { TestRunResult, EnvironmentCheck } from './test-runner';
+import { searchFiles } from './file';
 
 const execAsync = promisify(exec);
 
@@ -17,22 +18,21 @@ const execAsync = promisify(exec);
  * erroneously generates for single-target SPM projects.
  */
 async function stripInternalImports(workingDir: string): Promise<void> {
-  // Use a shell script to reliably fix all Swift files in Sources/:
-  // 1. Remove any `import DemoApp*` lines (internal module imports that don't exist)
-  // 2. Prepend `import Foundation` to files that use Foundation types but lack the import
-  const script = `
-find "${workingDir}/Sources" -name "*.swift" | while read f; do
-  # Remove internal DemoApp imports
-  sed -i '' '/^import DemoApp/d' "$f" 2>/dev/null || sed -i '/^import DemoApp/d' "$f"
-  # Add import Foundation if needed
-  if grep -qE '\\b(Date|URL|UUID|Decimal|TimeInterval)\\b' "$f" && ! grep -q '^import Foundation' "$f"; then
-    tmpfile=$(mktemp)
-    echo 'import Foundation' | cat - "$f" > "$tmpfile" && mv "$tmpfile" "$f"
-  fi
-done
-`;
+  const sourcesDir = path.join(workingDir, 'Sources');
   try {
-    await execAsync(script, { cwd: workingDir });
+    const files = await searchFiles(sourcesDir, '*.swift');
+    for (const file of files) {
+      let content = await fs.readFile(file.path, 'utf-8');
+      // Remove internal DemoApp imports
+      content = content.replace(/^import DemoApp.*$/gm, '');
+      // Add import Foundation if needed
+      const needsFoundation = /\b(Date|URL|UUID|Decimal|TimeInterval)\b/.test(content);
+      const hasFoundation = /^import Foundation$/m.test(content);
+      if (needsFoundation && !hasFoundation) {
+        content = `import Foundation\n${content}`;
+      }
+      await fs.writeFile(file.path, content, 'utf-8');
+    }
   } catch {
     // best-effort — ignore failures
   }
@@ -50,9 +50,12 @@ export async function runSwiftTests(workingDir: string, scheme?: string): Promis
 
   if (!hasSPM) {
     // xcodeproj / xcworkspace — use xcodebuild with simulator
-    const tuistResult = await ensureTuistGenerated(workingDir);
-    if (!tuistResult.passed) return tuistResult;
     const projectFlag = await getXcodeProjectFlag(workingDir, scheme);
+    const isModuleProject = projectFlag.startsWith('-project ') && projectFlag.includes('/');
+    if (!isModuleProject) {
+      const tuistResult = await ensureTuistGenerated(workingDir);
+      if (!tuistResult.passed) return tuistResult;
+    }
     const destination = await getAvailableIosSimulator();
     const command = `xcodebuild test ${projectFlag} -scheme ${scheme || 'App'} -destination '${destination}' -quiet`;
     try {
@@ -168,9 +171,14 @@ async function findModuleDir(workingDir: string, module: string): Promise<string
  */
 export async function runXcodeBuild(workingDir: string, scheme?: string): Promise<TestRunResult> {
   const startTime = Date.now();
-  const tuistResult = await ensureTuistGenerated(workingDir);
-  if (!tuistResult.passed) return tuistResult;
   const projectFlag = await getXcodeProjectFlag(workingDir, scheme);
+  // If a module-specific .xcodeproj is found, do not run tuist generate — the
+  // project is a standalone non-Tuist target (e.g. apps/Partners/Partners.xcodeproj).
+  const isModuleProject = projectFlag.startsWith('-project ') && projectFlag.includes('/');
+  if (!isModuleProject) {
+    const tuistResult = await ensureTuistGenerated(workingDir);
+    if (!tuistResult.passed) return tuistResult;
+  }
   const destination = await getAvailableIosSimulator();
   const command = `xcodebuild build ${projectFlag} -scheme ${scheme || 'App'} -destination '${destination}' -quiet`;
 
@@ -211,18 +219,20 @@ export async function runXcodeBuild(workingDir: string, scheme?: string): Promis
  */
 async function getXcodeProjectFlag(workingDir: string, scheme?: string): Promise<string> {
   try {
+    // If a scheme/module is provided, look for its specific project first.
+    // This lets non-Tuist sub-projects (e.g. apps/Partners/Partners.xcodeproj)
+    // build without being shadowed by a root Tuist workspace.
+    if (scheme) {
+      const moduleProject = await findModuleXcodeproj(workingDir, scheme);
+      if (moduleProject) return `-project ${moduleProject}`;
+    }
+
     const entries = await fs.readdir(workingDir);
 
     // Monorepo: a root workspace (Tuist) is the only reliable way to build
     // modules with cross-dependencies. Use it whenever it exists.
     const workspace = entries.find(e => e.endsWith('.xcworkspace'));
     if (workspace) return `-workspace ${workspace}`;
-
-    // Fallback to a module-specific project only if there is no workspace.
-    if (scheme) {
-      const moduleProject = await findModuleXcodeproj(workingDir, scheme);
-      if (moduleProject) return `-project ${moduleProject}`;
-    }
 
     const xcodeproj = entries.find(e => e.endsWith('.xcodeproj'));
     if (xcodeproj) return `-project ${xcodeproj}`;
@@ -238,18 +248,36 @@ async function getXcodeProjectFlag(workingDir: string, scheme?: string): Promise
  * Returns a relative path from workingDir, or undefined if not found.
  */
 async function findModuleXcodeproj(workingDir: string, scheme: string): Promise<string | undefined> {
-  const candidates = [
-    `${scheme}.xcodeproj`,
-    `${scheme}Feature.xcodeproj`,
-  ];
+  const moduleDirs = [scheme, `${scheme}Feature`];
 
   try {
     const entries = await fs.readdir(workingDir, { withFileTypes: true, recursive: true });
+
+    // First try exact project-name matches.
+    const projectCandidates = [
+      `${scheme}.xcodeproj`,
+      `${scheme}Feature.xcodeproj`,
+    ];
     for (const entry of entries) {
-      if (entry.isDirectory() && candidates.includes(entry.name)) {
-        // parentPath (Node 20.12+) with path (Node 18) fallback
+      if (entry.isDirectory() && projectCandidates.includes(entry.name)) {
         const parent = (entry as any).parentPath || (entry as any).path || workingDir;
         return path.relative(workingDir, path.join(parent, entry.name));
+      }
+    }
+
+    // Otherwise, find any .xcodeproj inside a directory named after the module.
+    // This covers apps whose project name differs from the scheme (e.g. Olimpica.xcodeproj under apps/Grability).
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const parent = (entry as any).parentPath || (entry as any).path || workingDir;
+      const relativeParent = path.relative(workingDir, parent);
+      if (moduleDirs.includes(entry.name) || moduleDirs.some(m => relativeParent.endsWith(`/${m}`) || relativeParent === m)) {
+        const modulePath = moduleDirs.includes(entry.name) ? parent : path.join(parent, entry.name);
+        const children = await fs.readdir(modulePath, { withFileTypes: true });
+        const xcodeproj = children.find(c => c.isDirectory() && c.name.endsWith('.xcodeproj'));
+        if (xcodeproj) {
+          return path.relative(workingDir, path.join(modulePath, xcodeproj.name));
+        }
       }
     }
   } catch {
@@ -309,6 +337,33 @@ async function ensureTuistGenerated(workingDir: string): Promise<TestRunResult> 
     await findByExtension(workingDir, '.xcodeproj');
   if (hasGeneratedWorkspace) {
     return { passed: true, command: '', stdout: '', stderr: '', exitCode: 0, duration: 0 };
+  }
+
+  // Install external Tuist dependencies (plugins/Package.swift) before generating.
+  // If GITHUB_TOKEN is present, configure a local git URL rewrite so private
+  // plugin repositories can be cloned during tuist install.
+  const token = process.env.GITHUB_TOKEN;
+  if (token) {
+    try {
+      await execAsync(
+        `git config --local url."https://x-access-token:${token}@github.com/".insteadOf "https://github.com/"`,
+        { cwd: workingDir }
+      );
+    } catch {
+      // best-effort — tuist install will fail cleanly if auth is required
+    }
+  }
+  try {
+    await execAsync('tuist install', { cwd: workingDir, timeout: 300000 });
+  } catch (error: any) {
+    return {
+      passed: false,
+      command: 'tuist install',
+      stdout: error.stdout || '',
+      stderr: error.stderr || '',
+      exitCode: error.code || 1,
+      duration: Date.now() - startTime,
+    };
   }
 
   const command = 'tuist generate';

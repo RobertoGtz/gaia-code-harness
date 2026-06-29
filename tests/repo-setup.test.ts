@@ -5,6 +5,9 @@
 import { setupRepository } from '../src/tools/repo';
 import * as fileUtils from '../src/tools/file';
 import * as gitUtils from '../src/tools/git';
+import simpleGit from 'simple-git';
+
+jest.mock('simple-git');
 
 const baseJob = {
   repo:         'mi-org/mi-repo',
@@ -65,6 +68,49 @@ describe('setupRepository', () => {
     expect(cloneRepository).toHaveBeenCalledWith(
       expect.any(String), expect.any(String), 'main'
     );
+  });
+
+  it('preserves GitHub upstream URL when cloning from LOCAL_REPOS_PATH', async () => {
+    process.env.LOCAL_REPOS_PATH = '/local/repos';
+    fileExists
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false); // Tuist/.build not present
+    const remote = jest.fn();
+    const git = { getRemotes: jest.fn().mockResolvedValue([{ name: 'origin', refs: { fetch: 'https://github.com/rappi-inc/mi-repo.git' } }]), remote };
+    (simpleGit as jest.MockedFunction<typeof simpleGit>).mockReturnValue(git as any);
+    await setupRepository(baseJob, '/workspace/job');
+    expect(remote).toHaveBeenCalledWith(['set-url', 'origin', 'https://github.com/rappi-inc/mi-repo.git']);
+  });
+
+  it('copies Tuist/.build cache from local repo when present', async () => {
+    process.env.LOCAL_REPOS_PATH = '/local/repos';
+    const copyDir = jest.spyOn(fileUtils as any, 'copyDirectory').mockResolvedValue(undefined);
+    fileExists
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(true); // Tuist/.build present
+    const git = { getRemotes: jest.fn().mockResolvedValue([]), remote: jest.fn() };
+    (simpleGit as jest.MockedFunction<typeof simpleGit>).mockReturnValue(git as any);
+    await setupRepository(baseJob, '/workspace/job');
+    expect(copyDir).toHaveBeenCalledWith('/local/repos/mi-repo/Tuist/.build', '/workspace/job/Tuist/.build');
+  });
+
+  it('does not copy Tuist/.build cache when destination already exists', async () => {
+    process.env.LOCAL_REPOS_PATH = '/local/repos';
+    const copyDir = jest.spyOn(fileUtils as any, 'copyDirectory').mockResolvedValue(undefined);
+    fileExists
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(true)   // source exists
+      .mockResolvedValueOnce(true);  // dest already exists
+    const git = { getRemotes: jest.fn().mockResolvedValue([]), remote: jest.fn() };
+    (simpleGit as jest.MockedFunction<typeof simpleGit>).mockReturnValue(git as any);
+    await setupRepository(baseJob, '/workspace/job');
+    expect(copyDir).not.toHaveBeenCalled();
   });
 
   // ── LOCAL_REPOS_PATH — plain directory (no .git) ────────────────────────────

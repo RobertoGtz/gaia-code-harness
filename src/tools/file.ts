@@ -100,6 +100,8 @@ export async function searchFiles(
     const entries = await fs.readdir(currentDir, { withFileTypes: true });
     
     for (const entry of entries) {
+      if (results.length >= maxResults) return;
+
       const fullPath = path.join(currentDir, entry.name);
       const relativePath = path.relative(dir, fullPath);
       
@@ -110,11 +112,11 @@ export async function searchFiles(
       } else {
         if (minimatch(entry.name, pattern) || minimatch(relativePath, pattern)) {
           try {
-            const stats = await fs.stat(fullPath);
+            const stats = entry.isFile() ? undefined : await fs.stat(fullPath);
             results.push({
               path: fullPath,
               relativePath,
-              size: stats.size,
+              size: stats?.size ?? 0,
               isDirectory: false,
               extension: path.extname(entry.name),
             });

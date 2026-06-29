@@ -151,15 +151,18 @@ def generate_mutants_python(source: str) -> list[Mutant]:
 
 def _strip_strings_and_comments(source: str, lang: str) -> str:
     """Reemplaza strings y comentarios con espacios para evitar mutaciones en ellos."""
-    # Comentarios de línea (//, #)
-    result = re.sub(r'(//[^\n]*|#[^\n]*)', lambda m: ' ' * len(m.group()), source)
+    # Strings must be masked BEFORE comments so that // inside strings is not treated as a comment.
     # Strings simples y dobles (no multiline)
     result = re.sub(r'("(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\')',
-                    lambda m: ' ' * len(m.group()), result)
+                    lambda m: ' ' * len(m.group()), source)
     # Template literals TS (multiline support)
     if lang in ("ts", "js"):
         result = re.sub(r'`(?:[^`\\]|\\.)*`',
                         lambda m: ' ' * len(m.group()), result, flags=re.DOTALL)
+    # Comentarios de bloque (/* ... */) incluyendo JSDoc
+    result = re.sub(r'/\*[\s\S]*?\*/', lambda m: ' ' * len(m.group()), result)
+    # Comentarios de línea (//, #)
+    result = re.sub(r'(//[^\n]*|#[^\n]*)', lambda m: ' ' * len(m.group()), result)
     return result
 
 

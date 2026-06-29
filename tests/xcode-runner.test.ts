@@ -17,12 +17,16 @@ jest.mock('fs/promises', () => ({
   access: jest.fn(),
   readdir: jest.fn(),
   stat: jest.fn(),
+  readFile: jest.fn(),
+  writeFile: jest.fn(),
 }));
 
 const mockedExec = exec as unknown as jest.Mock<any, any>;
 const mockedAccess = fs.access as unknown as jest.Mock<any, any>;
 const mockedReaddir = fs.readdir as unknown as jest.Mock<any, any>;
 const mockedStat = fs.stat as unknown as jest.Mock<any, any>;
+const mockedReadFile = fs.readFile as unknown as jest.Mock<any, any>;
+const mockedWriteFile = fs.writeFile as unknown as jest.Mock<any, any>;
 
 function mockStat(dirs: string[]) {
   mockedStat.mockImplementation((p: any) => {
@@ -133,6 +137,7 @@ describe('xcode-runner', () => {
       expect(result.passed).toBe(false);
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toBe('error');
+      expect(result.duration).toBeGreaterThanOrEqual(0);
     });
   });
 
@@ -142,6 +147,7 @@ describe('xcode-runner', () => {
       const result = await runSwiftLint('/repo');
       expect(result.passed).toBe(true);
       expect(result.command).toBe('swiftlint lint');
+      expect(result.duration).toBeGreaterThanOrEqual(0);
     });
 
     it('returns passed false on violations', async () => {
@@ -183,6 +189,23 @@ describe('xcode-runner', () => {
         expect.any(Function)
       );
     });
+
+    it('returns failure details from module lint', async () => {
+      mockExecFailure(2, '', 'lint failed');
+      mockStat(['/repo/features/PayInsurance/PayInsuranceFeature']);
+      mockedAccess.mockImplementation((p: any) => {
+        if (p === '/repo/features/PayInsurance/PayInsuranceFeature/.swiftlint.yml') return Promise.resolve();
+        return Promise.reject(new Error('ENOENT'));
+      });
+      mockedReaddir.mockImplementation((dir: any) => {
+        if (dir === '/repo/features/PayInsurance') return Promise.resolve(['PayInsuranceFeature']);
+        return Promise.resolve([]);
+      });
+      const result = await runSwiftLint('/repo', 'PayInsurance');
+      expect(result.passed).toBe(false);
+      expect(result.exitCode).toBe(2);
+      expect(result.stderr).toBe('lint failed');
+    });
   });
 
   describe('runSwiftTests with SPM', () => {
@@ -193,6 +216,55 @@ describe('xcode-runner', () => {
       expect(result.passed).toBe(true);
       expect(result.command).toBe('swift build');
       expect(result.stdout).toContain('Build complete');
+    });
+
+    it('strips internal DemoApp imports and prepends Foundation when needed', async () => {
+      mockAccess(['/repo/Package.swift']);
+      mockExecSuccess('Build complete');
+      mockedReaddir.mockImplementation((dir: any, options?: any) => {
+        if (dir === '/repo/Sources' && options?.withFileTypes) {
+          return Promise.resolve([
+            { name: 'Demo.swift', isFile: () => true, isDirectory: () => false },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+      mockedReadFile.mockResolvedValue('import DemoAppModels\nimport DemoAppCore\nlet url = URL(string: "x")\n');
+      mockedWriteFile.mockResolvedValue(undefined);
+      await runSwiftTests('/repo');
+      expect(mockedReadFile).toHaveBeenCalledWith('/repo/Sources/Demo.swift', 'utf-8');
+      const written = mockedWriteFile.mock.calls[0][1] as string;
+      expect(written).not.toContain('import DemoApp');
+      expect(written).toContain('import Foundation');
+      expect(written).toContain('let url = URL(string: "x")');
+    });
+
+    it('returns failure details when swift build fails', async () => {
+      mockAccess(['/repo/Package.swift']);
+      mockedReaddir.mockResolvedValue([]);
+      mockExecFailure(1, 'partial', 'swift build error');
+      const result = await runSwiftTests('/repo');
+      expect(result.passed).toBe(false);
+      expect(result.exitCode).toBe(1);
+      expect(result.stdout).toBe('partial');
+      expect(result.stderr).toBe('swift build error');
+      expect(result.duration).toBeGreaterThanOrEqual(0);
+    });
+
+    it('does not prepend Foundation if it already exists', async () => {
+      mockAccess(['/repo/Package.swift']);
+      mockExecSuccess('Build complete');
+      mockedReaddir.mockImplementation((dir: any, options?: any) => {
+        if (dir === '/repo/Sources' && options?.withFileTypes) {
+          return Promise.resolve([{ name: 'Demo.swift', isFile: () => true, isDirectory: () => false }]);
+        }
+        return Promise.resolve([]);
+      });
+      mockedReadFile.mockResolvedValue('import Foundation\nlet url = URL(string: "x")\n');
+      mockedWriteFile.mockResolvedValue(undefined);
+      await runSwiftTests('/repo');
+      const written = mockedWriteFile.mock.calls[0][1] as string;
+      expect((written.match(/import Foundation/g) || []).length).toBe(1);
     });
   });
 
@@ -206,6 +278,7 @@ describe('xcode-runner', () => {
       expect(result.command).toContain('-workspace RappiMonorepo.xcworkspace');
       expect(result.command).toContain('-destination');
       expect(result.command).toContain('id=E29BECD0-53E2-4B5F-9BBA-0BDE473121D5');
+      expect(result.duration).toBeGreaterThanOrEqual(0);
     });
 
     it('falls back to module-specific xcodeproj when no workspace exists', async () => {
@@ -256,6 +329,7 @@ describe('xcode-runner', () => {
       expect(result.command).toContain('xcodebuild build');
       expect(result.command).toContain('-workspace RappiMonorepo.xcworkspace');
       expect(result.command).toContain('-scheme App');
+      expect(result.duration).toBeGreaterThanOrEqual(0);
     });
 
     it('uses {scheme}Feature.xcodeproj when module-specific project found', async () => {
