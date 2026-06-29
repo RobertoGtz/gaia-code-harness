@@ -166,12 +166,79 @@ def _strip_strings_and_comments(source: str, lang: str) -> str:
     return result
 
 
+def _offset_at(lines: list[str], row: int, col: int) -> int:
+    """Convert 1-based row and 0-based col to absolute offset in source."""
+    offset = sum(len(line) for line in lines[:row - 1])
+    return offset + col
+
+
+def _get_excluded_regions(source: str, lang: str) -> list[tuple[int, int]]:
+    """Return absolute (start, end) ranges for strings, comments, and TS generic types."""
+    regions: list[tuple[int, int]] = []
+    i = 0
+    n = len(source)
+    while i < n:
+        c = source[i]
+        if c == '"' or c == "'":
+            start = i
+            quote = c
+            i += 1
+            while i < n and source[i] != quote:
+                if source[i] == '\\' and i + 1 < n:
+                    i += 2
+                else:
+                    i += 1
+            if i < n:
+                i += 1
+            regions.append((start, i))
+        elif c == '`' and lang in ("ts", "js"):
+            start = i
+            i += 1
+            while i < n and source[i] != '`':
+                if source[i] == '\\' and i + 1 < n:
+                    i += 2
+                else:
+                    i += 1
+            if i < n:
+                i += 1
+            regions.append((start, i))
+        elif source.startswith("/*", i):
+            start = i
+            i += 2
+            while i < n and not source.startswith("*/", i):
+                i += 1
+            if i < n:
+                i += 2
+            regions.append((start, i))
+        elif source.startswith("//", i) or source.startswith("#", i):
+            start = i
+            while i < n and source[i] != '\n':
+                i += 1
+            regions.append((start, i))
+        else:
+            i += 1
+
+    # TypeScript generics: Identifier<T1, T2> are not comparison operators
+    if lang in ("ts", "js"):
+        for m in re.finditer(r'\b[A-Za-z_$][\w$]*\s*<[^<>]*>', source):
+            regions.append((m.start(), m.end()))
+
+    return regions
+
+
+def _mutant_in_regions(mutant: Mutant, lines: list[str], regions: list[tuple[int, int]]) -> bool:
+    start = _offset_at(lines, mutant.row, mutant.col_start)
+    end = _offset_at(lines, mutant.row, mutant.col_end)
+    return any(start >= r[0] and end <= r[1] for r in regions)
+
+
 def generate_mutants_text(source: str, lang: str) -> list[Mutant]:
     """Mutaciones via regex para TS/Swift/Kotlin — opera sobre copia sin strings/comments."""
     mutants: list[Mutant] = []
     masked = _strip_strings_and_comments(source, lang)
     lines_orig = source.splitlines(keepends=True)
     lines_mask = masked.splitlines(keepends=True)
+    excluded = _get_excluded_regions(source, lang)
 
     # Operadores
     op_pattern = re.compile(
@@ -182,8 +249,10 @@ def generate_mutants_text(source: str, lang: str) -> list[Mutant]:
             text = m.group()
             if text not in OP_MUTATIONS:
                 continue
-            mutants.append(Mutant(row, m.start(), m.end(), text,
-                                  OP_MUTATIONS[text], "operador"))
+            mutant = Mutant(row, m.start(), m.end(), text,
+                            OP_MUTATIONS[text], "operador")
+            if not _mutant_in_regions(mutant, lines_orig, excluded):
+                mutants.append(mutant)
 
     # true/false keywords
     bool_pattern = re.compile(r'\b(true|false)\b')
@@ -191,7 +260,9 @@ def generate_mutants_text(source: str, lang: str) -> list[Mutant]:
         for m in bool_pattern.finditer(mask_line):
             text = m.group()
             repl = "false" if text == "true" else "true"
-            mutants.append(Mutant(row, m.start(), m.end(), text, repl, "booleano"))
+            mutant = Mutant(row, m.start(), m.end(), text, repl, "booleano")
+            if not _mutant_in_regions(mutant, lines_orig, excluded):
+                mutants.append(mutant)
 
     # return <expr> → return null / return nil (Swift) / return undefined (TS)
     return_null = {"ts": "null", "js": "null", "swift": "nil",
@@ -203,9 +274,11 @@ def generate_mutants_text(source: str, lang: str) -> list[Mutant]:
         if m:
             indent = len(mask_line) - len(stripped)
             content = lines_orig[row - 1].rstrip("\n")
-            mutants.append(Mutant(row, indent, len(content),
-                                  content[indent:],
-                                  f"return {return_null}", "retorno"))
+            mutant = Mutant(row, indent, len(content),
+                            content[indent:],
+                            f"return {return_null}", "retorno")
+            if not _mutant_in_regions(mutant, lines_orig, excluded):
+                mutants.append(mutant)
 
     return mutants
 
