@@ -1,0 +1,45 @@
+{
+  "initiativeId": "cli",
+  "title": "Add copyWith tests for LimitsModel and Limits",
+  "platform": "flutter_web",
+  "repo": "rpp-co/rpp-account-basics-multiplatform-pyme",
+  "module": "limits",
+  "targetBranch": "develop",
+  "description": "Add missing copyWith unit tests for LimitsModel and Limits freezed classes in packages/features/limits/test/data/models/limits_model_test.dart",
+  "acceptanceCriteria": [
+    {
+      "id": "ac-1",
+      "text": "LimitsModel.copyWith updates fields correctly",
+      "testable": true
+    },
+    {
+      "id": "ac-2",
+      "text": "Limits.copyWith updates amount without changing other fields",
+      "testable": true
+    },
+    {
+      "id": "ac-3",
+      "text": "No production files are modified",
+      "testable": true
+    }
+  ],
+  "maxFilesToTouch": 1,
+  "requireTests": true,
+  "tddMode": false,
+  "status": "repo_error",
+  "progressLogs": [
+    "[2026-06-30T00:52:52.929Z] Starting job orchestration",
+    "[2026-06-30T00:52:52.931Z] Generating technical specification"
+  ],
+  "id": "b3176e4f-a644-462a-aca8-5c67912e9d87",
+  "createdAt": "2026-06-30T00:52:52.880Z",
+  "updatedAt": "2026-06-30T00:52:53.766Z",
+  "currentAgent": "SpecAuthor",
+  "errorContext": {
+    "code": "REPO_ERROR",
+    "stage": "spec_generating",
+    "message": "[flutter_web] Cannot clone repository 'rpp-co/rpp-account-basics-multiplatform-pyme' for spec generation. Check GITHUB_TOKEN and repo permissions.",
+    "timestamp": "2026-06-30T00:52:53.765Z",
+    "retryCount": 0
+  }
+}

@@ -35,5 +35,45 @@
     "tddMode": true,
     "sdd": true,
     "jobId": null
+  },
+  {
+    "id": 4,
+    "name": "fix-pyme-wall-movements-empty-page-state",
+    "title": "Fix emptyPage state logic in PymeWallMovementsListNotifier",
+    "platform": "flutter_web",
+    "repo": "rpp-co/rpp-account-basics-multiplatform-pyme",
+    "targetBranch": "master",
+    "acceptanceCriteria": [
+      "When loadFirstPage receives non-empty content, pageState is pageLoaded",
+      "When loadFirstPage receives empty content, pageState is emptyPage",
+      "When loadNextPage adds content to an existing list, pageState is pageLoaded",
+      "When loadNextPage returns empty and existing list is non-empty, pageState is pageLoaded",
+      "When repository throws, pageState is pageError",
+      "Mutation score for pyme_wall_movements_providers.dart is at least 80%"
+    ],
+    "status": "pending",
+    "tddMode": true,
+    "sdd": false,
+    "jobId": null
+  },
+  {
+    "id": 3,
+    "name": "flutter-web-skill",
+    "title": "Update Flutter Web skill for RPP multiplatform monorepos",
+    "platform": "flutter_web",
+    "repo": "rpp-co/rpp-account-basics-multiplatform-pyme",
+    "targetBranch": "master",
+    "acceptanceCriteria": [
+      "Skill recognizes Melos + FVM 3.35.7 monorepo structure",
+      "Skill uses melos bootstrap before flutter pub get",
+      "Skill detects fluro-based routing and package exports",
+      "Skill flags mobile-only packages and respects Flutter Web constraints",
+      "Skill prompts use correct package layout (core/data/presentation)",
+      "Skill documents separate GitHub/Bitbucket credentials for dependencies"
+    ],
+    "status": "done",
+    "tddMode": true,
+    "sdd": true,
+    "jobId": null
   }
 ]

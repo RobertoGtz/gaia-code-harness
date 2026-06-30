@@ -21,6 +21,10 @@ export interface TestOptions {
   module?: string;
   /** Optional specific test name to run */
   testName?: string;
+  /** Optional platform for flutter test (e.g. 'chrome' for web) */
+  platform?: string;
+  /** Optional specific test file path (relative to testDir) */
+  testFile?: string;
 }
 
 /**
@@ -73,16 +77,19 @@ export async function runFlutterTests(options: TestOptions): Promise<TestRunResu
   const testDir = module 
     ? path.join(workingDir, 'packages/features', module)
     : workingDir;
+  const platformFlag = options.platform ? ` --platform ${options.platform}` : '';
+  const fileArg = options.testFile ? ` ${options.testFile}` : '';
+  const cmd = `flutter test${platformFlag}${fileArg}`;
 
   try {
-    const { stdout, stderr } = await execAsync('flutter test', {
+    const { stdout, stderr } = await execAsync(cmd, {
       cwd: testDir,
       timeout: 120000, // 2 minute timeout
     });
 
     return {
       passed: true,
-      command: 'flutter test',
+      command: cmd,
       stdout,
       stderr,
       exitCode: 0,
@@ -91,7 +98,7 @@ export async function runFlutterTests(options: TestOptions): Promise<TestRunResu
   } catch (error: any) {
     return {
       passed: false,
-      command: 'flutter test',
+      command: cmd,
       stdout: error.stdout || '',
       stderr: error.stderr || '',
       exitCode: error.code || 1,
@@ -154,13 +161,14 @@ export async function runDartAnalyze(workingDir: string): Promise<TestRunResult>
  *   // Monorepo ready for development
  * }
  */
-export async function runMelosBootstrap(workingDir: string): Promise<TestRunResult> {
+export async function runMelosBootstrap(workingDir: string, extraEnv?: Record<string, string>): Promise<TestRunResult> {
   const startTime = Date.now();
 
   try {
     const { stdout, stderr } = await execAsync('melos bootstrap', {
       cwd: workingDir,
       timeout: 300000, // 5 minute timeout
+      env: extraEnv ? { ...process.env, ...extraEnv } : process.env,
     });
 
     return {

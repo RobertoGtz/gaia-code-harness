@@ -116,7 +116,11 @@ export async function setupRepository(
       ? job.repo
       : `${process.env.GITHUB_OWNER || ''}/${job.repo}`;
     const repoUrl = `https://github.com/${fullRepo}.git`;
-    const token = process.env.GITHUB_TOKEN;
+    const owner = fullRepo.split('/')[0];
+    const isRppCo = owner === 'rpp-co';
+    const token = isRppCo
+      ? (process.env.GITHUB_TOKEN_RPP || process.env.GITHUB_TOKEN)
+      : process.env.GITHUB_TOKEN;
     const auth = token ? { username: 'x-access-token', password: token } : undefined;
     await cloneRepository(repoUrl, repoPath, job.targetBranch, auth);
     return { success: true, output: `Repository cloned from ${repoUrl}` };

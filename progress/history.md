@@ -38,3 +38,11 @@
 - **Resumen**: Human approved the 12 Gherkin scenarios. Judge review passed C1–C7. Mutation scores for all touched files are ≥ 80%. Feature marked as done in feature_list.json.
 - **Mutation score**: reviewer.ts 100%, git.ts 100%, repo.ts 85.7%, xcode-runner.ts 90%, file.ts 93.3%, ios/index.ts 96.7%
 - **Notas**: The feature was documented retrospectively because the code had already been implemented and validated against real jobs. All pipeline artifacts (spec, Gherkin, TDD map, judge review, mutation report) are now in place.
+
+## 2026-07-09 — Flutter Web skill for RPP multiplatform monorepos
+
+- **Feature**: #3 flutter-web-skill
+- **Status final**: done
+- **Resumen**: Completed TDD cycle for all 10 Gherkin scenarios (s1–s10). Fixed `PromptContext` interface to include `conventions` field. Corrected test assertion for `NEVER go_router` in specSystem. Added test for @s10 (separate GitHub credentials per repo owner). Implemented `repoOwner` extraction from `job.repo` and `credentialNote` in `getPromptContext`. All 15 tests green.
+- **Mutation score**: src/skills/flutter_web/index.ts 100% (3/3 killed)
+- **Notas**: Dart lint errors from ios-rappi-main workspace are unrelated to this TypeScript task and were ignored. The `repoOwner` is parsed from the `org/repo` format in `job.repo`, defaulting to `rpp-co` when no slash is present.

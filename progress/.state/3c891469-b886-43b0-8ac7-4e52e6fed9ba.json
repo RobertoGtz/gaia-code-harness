@@ -1,0 +1,101 @@
+{
+  "initiativeId": "cli",
+  "title": "Add copyWith tests for LimitsModel and Limits",
+  "platform": "flutter_web",
+  "repo": "rpp-co/rpp-account-basics-multiplatform-pyme",
+  "module": "limits",
+  "targetBranch": "develop",
+  "description": "Add missing copyWith unit tests for LimitsModel and Limits freezed classes in packages/features/limits/test/data/models/limits_model_test.dart",
+  "acceptanceCriteria": [
+    {
+      "id": "ac-1",
+      "text": "LimitsModel.copyWith updates fields correctly",
+      "testable": true
+    },
+    {
+      "id": "ac-2",
+      "text": "Limits.copyWith updates amount without changing other fields",
+      "testable": true
+    },
+    {
+      "id": "ac-3",
+      "text": "No production files are modified",
+      "testable": true
+    }
+  ],
+  "maxFilesToTouch": 1,
+  "requireTests": true,
+  "tddMode": false,
+  "status": "build_error",
+  "progressLogs": [
+    "[2026-06-30T00:45:54.982Z] Starting job orchestration",
+    "[2026-06-30T00:45:54.983Z] Generating technical specification",
+    "[2026-06-30T00:46:01.602Z] Specification generated",
+    "[2026-06-30T00:46:01.602Z] Requirements: 3",
+    "[2026-06-30T00:46:01.603Z] Tasks: 2",
+    "[2026-06-30T00:46:01.604Z] Waiting for human approval of spec",
+    "[2026-06-30T00:46:01.606Z] Starting implementation",
+    "[2026-06-30T00:46:14.478Z] Failed [BUILD_ERROR]: [Flutter Web] `melos bootstrap` failed in repo"
+  ],
+  "id": "3c891469-b886-43b0-8ac7-4e52e6fed9ba",
+  "createdAt": "2026-06-30T00:45:54.929Z",
+  "updatedAt": "2026-06-30T00:46:14.479Z",
+  "currentAgent": "Implementer",
+  "spec": {
+    "requirements": [
+      {
+        "id": "R1",
+        "content": "LimitsModel.copyWith updates fields correctly",
+        "sourceAcId": "AC1"
+      },
+      {
+        "id": "R2",
+        "content": "Limits.copyWith updates amount without changing other fields",
+        "sourceAcId": "AC2"
+      },
+      {
+        "id": "R3",
+        "content": "No production files are modified",
+        "sourceAcId": "AC3"
+      }
+    ],
+    "design": {
+      "affectedFiles": [
+        "packages/features/limits/test/data/models/limits_model_test.dart"
+      ],
+      "newFiles": [],
+      "architectureDecisions": [
+        "Use freezed's copyWith method to ensure immutability and ease of testing.",
+        "Ensure tests are isolated and only test the copyWith functionality."
+      ],
+      "uiComponents": []
+    },
+    "tasks": [
+      {
+        "id": "T1",
+        "description": "Write unit test for LimitsModel.copyWith to ensure it updates fields correctly.",
+        "filePath": "packages/features/limits/test/data/models/limits_model_test.dart",
+        "type": "test",
+        "status": "pending"
+      },
+      {
+        "id": "T2",
+        "description": "Write unit test for Limits.copyWith to ensure it updates amount without changing other fields.",
+        "filePath": "packages/features/limits/test/data/models/limits_model_test.dart",
+        "type": "test",
+        "status": "pending"
+      }
+    ],
+    "risks": [
+      "Tests may not cover all edge cases if not carefully designed.",
+      "Potential misunderstanding of the copyWith functionality could lead to incorrect test implementations."
+    ]
+  },
+  "errorContext": {
+    "code": "BUILD_ERROR",
+    "stage": "implementing",
+    "message": "[Flutter Web] `melos bootstrap` failed in repo",
+    "timestamp": "2026-06-30T00:46:14.477Z",
+    "retryCount": 0
+  }
+}

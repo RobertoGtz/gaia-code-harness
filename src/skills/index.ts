@@ -73,6 +73,8 @@ export interface PromptContext {
   filePatterns: Record<string, string>;
   /** Packages / APIs that must never appear in generated code */
   forbidden: string[];
+  /** Platform-specific conventions (routing, versioning, paths, etc.) */
+  conventions?: Record<string, string>;
 }
 
 // ─── Loader ──────────────────────────────────────────────────────────────────
