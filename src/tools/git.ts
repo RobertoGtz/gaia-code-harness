@@ -198,6 +198,20 @@ export async function parseGitHubRepoFromRemote(
   return { owner: fallbackOwner, repo: fallbackRepo };
 }
 
+/**
+ * Files that must never be staged or committed by the harness.
+ * These are local-only artifacts (credentials, lock overrides, generated caches).
+ */
+const NEVER_COMMIT_PATTERNS = [
+  'pubspec_overrides.yaml',
+  '**/pubspec_overrides.yaml',
+  '.dart_tool/',
+  '.packages',
+  '.flutter-plugins',
+  '.flutter-plugins-dependencies',
+  'build/',
+];
+
 export async function commitAndPush(
   git: SimpleGit,
   message: string,
@@ -206,11 +220,27 @@ export async function commitAndPush(
   repo?: string
 ): Promise<void> {
   await git.add(files);
+  // Unstage files that must never be committed (credentials, overrides, caches)
+  try {
+    await git.reset(['HEAD', '--', ...NEVER_COMMIT_PATTERNS]);
+  } catch {
+    // Some patterns may not be staged — that's fine, reset is best-effort
+  }
+  // Also restore any modified pubspec_overrides.yaml to avoid dirty tree issues
+  try {
+    await git.checkout(['--', '**/pubspec_overrides.yaml', 'pubspec_overrides.yaml']);
+  } catch {
+    // File may not exist in index — ignore
+  }
   await git.commit(message);
   if (branch) {
     // If GITHUB_TOKEN is available, inject it into the existing origin URL so
     // we push back to the same remote the repo came from (local or GitHub clone).
-    const token = process.env.GITHUB_TOKEN;
+    const repoOwner = repo?.includes('/') ? repo.split('/')[0] : '';
+    const isRppCo = repoOwner === 'rpp-co';
+    const token = isRppCo
+      ? (process.env.GITHUB_TOKEN_RPP || process.env.GITHUB_TOKEN)
+      : process.env.GITHUB_TOKEN;
     if (token) {
       try {
         const remotes = await git.getRemotes(true);
@@ -308,7 +338,10 @@ export async function createGitHubPR(options: {
 }): Promise<{ url: string; id: string; number: number }> {
   const { owner, repo, title, body, head, base } = options;
   
-  const githubToken = process.env.GITHUB_TOKEN;
+  const isRppCo = owner === 'rpp-co';
+  const githubToken = isRppCo
+    ? (process.env.GITHUB_TOKEN_RPP || process.env.GITHUB_TOKEN)
+    : process.env.GITHUB_TOKEN;
   if (!githubToken) {
     console.log('[GitHub] GITHUB_TOKEN not set - running in dry-run mode, PR not actually created');
     return {

@@ -58,7 +58,12 @@ export class ImplementerAgent extends BaseAgent {
       if (!spec) return { success: false, output: '', error: 'No spec found in job' };
 
       const promptCtx = skill.getPromptContext(job);
-      const pubspecRaw = await fs.readFile(path.join(repoPath, 'pubspec.yaml'), 'utf-8').catch(() => '');
+      const modulePubspec = job.module
+        ? path.join(repoPath, 'packages/features', job.module, 'pubspec.yaml')
+        : path.join(repoPath, 'pubspec.yaml');
+      const pubspecRaw = await fs.readFile(modulePubspec, 'utf-8').catch(
+        () => fs.readFile(path.join(repoPath, 'pubspec.yaml'), 'utf-8').catch(() => '')
+      );
       const changes: FileChange[] = [];
 
       for (const task of spec.tasks) {
@@ -180,7 +185,12 @@ export class ImplementerAgent extends BaseAgent {
       if (!spec) return { success: false, output: '', error: 'No spec found' };
 
       const promptCtx = skill.getPromptContext(job);
-      const pubspecRaw = await fs.readFile(path.join(repoPath, 'pubspec.yaml'), 'utf-8').catch(() => '');
+      const modulePubspec = job.module
+        ? path.join(repoPath, 'packages/features', job.module, 'pubspec.yaml')
+        : path.join(repoPath, 'pubspec.yaml');
+      const pubspecRaw = await fs.readFile(modulePubspec, 'utf-8').catch(
+        () => fs.readFile(path.join(repoPath, 'pubspec.yaml'), 'utf-8').catch(() => '')
+      );
       const changes: FileChange[] = [];
 
       // Pair test tasks with their corresponding create/modify tasks
@@ -224,8 +234,50 @@ export class ImplementerAgent extends BaseAgent {
         this.logStep(`[RED] Writing test: ${testTask.description}`);
         if (!testTask.filePath) continue;
 
+        // Gather source file contents for context so the LLM generates correct imports/APIs
+        const sourceCtxParts: string[] = [];
+        const includedPaths = new Set<string>();
+        for (const impl of implTasks) {
+          if (impl.filePath) {
+            const content = await readFile(path.join(repoPath, impl.filePath)).catch(() => '');
+            if (content) {
+              sourceCtxParts.push(`=== ${impl.filePath} ===\n${content}`);
+              includedPaths.add(impl.filePath);
+              // Also include files imported by the impl (models, repos)
+              const importMatches = content.matchAll(/import\s+['"]([^'"]+)['"]/g);
+              for (const m of importMatches) {
+                const importPath = m[1];
+                if (importPath.startsWith('../') || importPath.startsWith('./')) {
+                  const resolved = path.normalize(path.join(path.dirname(impl.filePath), importPath));
+                  if (!includedPaths.has(resolved)) {
+                    const depContent = await readFile(path.join(repoPath, resolved)).catch(() => '');
+                    if (depContent) {
+                      sourceCtxParts.push(`=== ${resolved} ===\n${depContent}`);
+                      includedPaths.add(resolved);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        // Also include the test task's dependsOn files if any
+        if ((testTask as any).dependsOn) {
+          for (const depId of (testTask as any).dependsOn) {
+            const depTask = spec.tasks.find(t => t.id === depId);
+            if (depTask?.filePath && !includedPaths.has(depTask.filePath)) {
+              const content = await readFile(path.join(repoPath, depTask.filePath)).catch(() => '');
+              if (content) {
+                sourceCtxParts.push(`=== ${depTask.filePath} ===\n${content}`);
+                includedPaths.add(depTask.filePath);
+              }
+            }
+          }
+        }
+        const sourceContext = sourceCtxParts.join('\n\n');
+
         const testFilePath = path.join(repoPath, testTask.filePath);
-        const testContent  = await this.generateCode(testTask, promptCtx.implementerSystem, job.title, pubspecRaw);
+        const testContent  = await this.generateCode(testTask, promptCtx.implementerSystem, job.title, pubspecRaw, sourceContext);
         await writeFile(testFilePath, testContent);
         changes.push({ path: testTask.filePath, operation: 'create', newContent: testContent, diff: `+ ${testTask.filePath}` });
 
@@ -321,10 +373,12 @@ export class ImplementerAgent extends BaseAgent {
     task: { description: string; filePath?: string },
     systemPrompt: string,
     featureTitle: string,
-    pubspec = ''
+    pubspec = '',
+    sourceContext = ''
   ): Promise<string> {
     const pubspecCtx = pubspec ? `\n\npubspec.yaml (use ONLY packages already listed here, exact package name for imports):\n${pubspec}` : '';
-    const userPrompt = `Feature: ${featureTitle}\nTask: ${task.description}\nFile: ${task.filePath || 'output file'}${pubspecCtx}\nGenerate the complete file contents. Use exact package name from pubspec.yaml for all imports.`;
+    const srcCtx = sourceContext ? `\n\nSource files being tested (use these exact imports and APIs):\n${sourceContext}` : '';
+    const userPrompt = `Feature: ${featureTitle}\nTask: ${task.description}\nFile: ${task.filePath || 'output file'}${pubspecCtx}${srcCtx}\nGenerate the complete file contents. Use exact package name from pubspec.yaml for all imports.`;
     try {
       const response = await callLLM([
         { role: 'system', content: systemPrompt },
