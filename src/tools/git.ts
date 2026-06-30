@@ -6,6 +6,7 @@
 
 import simpleGit, { SimpleGit } from 'simple-git';
 import * as path from 'path';
+import * as fs from 'fs';
 import axios, { AxiosError } from 'axios';
 
 // ─── GitHub-specific errors ───────────────────────────────────────────────────
@@ -199,18 +200,39 @@ export async function parseGitHubRepoFromRemote(
 }
 
 /**
- * Files that must never be staged or committed by the harness.
- * These are local-only artifacts (credentials, lock overrides, generated caches).
+ * Find all pubspec_overrides.yaml files in the repo (excluding .dart_tool).
+ * Returns paths relative to repoRoot.
  */
-const NEVER_COMMIT_PATTERNS = [
-  'pubspec_overrides.yaml',
-  '**/pubspec_overrides.yaml',
-  '.dart_tool/',
-  '.packages',
-  '.flutter-plugins',
-  '.flutter-plugins-dependencies',
-  'build/',
-];
+function findPubspecOverrides(repoRoot: string): string[] {
+  const results: string[] = [];
+  const walk = (dir: string) => {
+    let entries: fs.Dirent[];
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      if (entry.name === '.dart_tool' || entry.name === 'build' || entry.name === '.git') continue;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+      } else if (entry.name === 'pubspec_overrides.yaml') {
+        results.push(path.relative(repoRoot, full));
+      }
+    }
+  };
+  walk(repoRoot);
+  return results;
+}
+
+/**
+ * Unstage and restore all pubspec_overrides.yaml files so they are never committed.
+ * Uses explicit relative paths (no shell glob expansion needed).
+ */
+async function unstageNeverCommitFiles(git: SimpleGit, repoRoot: string): Promise<void> {
+  const overrides = findPubspecOverrides(repoRoot);
+  for (const relPath of overrides) {
+    try { await git.reset(['HEAD', '--', relPath]); } catch { /* not staged — fine */ }
+    try { await git.checkout(['--', relPath]); } catch { /* not tracked — fine */ }
+  }
+}
 
 export async function commitAndPush(
   git: SimpleGit,
@@ -219,19 +241,11 @@ export async function commitAndPush(
   branch?: string,
   repo?: string
 ): Promise<void> {
+  // Resolve repoRoot from the git instance working directory
+  const repoRoot: string = (git as any)._baseDir ?? process.cwd();
   await git.add(files);
-  // Unstage files that must never be committed (credentials, overrides, caches)
-  try {
-    await git.reset(['HEAD', '--', ...NEVER_COMMIT_PATTERNS]);
-  } catch {
-    // Some patterns may not be staged — that's fine, reset is best-effort
-  }
-  // Also restore any modified pubspec_overrides.yaml to avoid dirty tree issues
-  try {
-    await git.checkout(['--', '**/pubspec_overrides.yaml', 'pubspec_overrides.yaml']);
-  } catch {
-    // File may not exist in index — ignore
-  }
+  // Unstage pubspec_overrides.yaml everywhere in the repo (credentials must never ship)
+  await unstageNeverCommitFiles(git, repoRoot);
   await git.commit(message);
   if (branch) {
     // If GITHUB_TOKEN is available, inject it into the existing origin URL so
