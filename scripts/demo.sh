@@ -52,7 +52,7 @@ case "$PLATFORM" in
     PLATFORM_LABEL="Flutter/Dart"
     ;;
   ios)
-    REPO="mi-org/demo-repo-ios"
+    REPO="rappi-inc/ios-rappi-main"
     TICKET="DEMO-IOS-001"
     PLATFORM_LABEL="iOS/Swift"
     ;;
@@ -69,7 +69,10 @@ case "$PLATFORM" in
 esac
 
 # ── Shared job payload ────────────────────────────────────────────────────────
-JOB_TITLE="Add promotional banner to home screen"
+case "$PLATFORM" in
+  ios) JOB_TITLE="Fix empty state handling in TransactionsPresenter after last page load" ;;
+  *)   JOB_TITLE="Add promotional banner to home screen" ;;
+esac
 
 if [ "$JIRA_ONLY" = "true" ]; then
   JOB_PAYLOAD=$(cat <<EOF
@@ -81,19 +84,43 @@ if [ "$JIRA_ONLY" = "true" ]; then
 EOF
 )
 else
+  if [ "$PLATFORM" = "ios" ]; then
+    AC=$(cat <<'EOAC'
+    { "id": "ac-1", "text": "WHEN queryTransactionHistoryList returns empty list THEN presenter exposes empty state via historySubject", "testable": true },
+    { "id": "ac-2", "text": "WHEN queryTransactionHistoryList returns transactions THEN hasPendingTransactions is false after last page", "testable": true },
+    { "id": "ac-3", "text": "WHEN queryTransactionHistoryList fails THEN requestErrorSubject emits non-nil error message", "testable": true },
+    { "id": "ac-4", "text": "WHEN refresh is called THEN currentPage resets to 1 and historySubject emits updated list", "testable": true }
+EOAC
+)
+  else
+    AC=$(cat <<'EOAC'
+    { "id": "ac-1", "text": "WHEN user opens home screen THEN display promotional banner carousel", "testable": true },
+    { "id": "ac-2", "text": "WHEN there are more than 3 promotions THEN show pagination dots",     "testable": true },
+    { "id": "ac-3", "text": "WHEN user taps a banner THEN navigate to promotion details",          "testable": true }
+EOAC
+)
+  fi
+
+  if [ "$PLATFORM" = "ios" ]; then
+    MODULE_FIELD='"module": "features/PayAccountBasics/PayABDebitMovementsWallFeature",'
+    TARGET_BRANCH='"targetBranch": "develop",'
+  else
+    MODULE_FIELD=''
+    TARGET_BRANCH='"targetBranch": "develop",'
+  fi
+
   JOB_PAYLOAD=$(cat <<EOF
 {
   "title": "$JOB_TITLE",
   "platform": "$PLATFORM",
   "repo": "$REPO",
-  "targetBranch": "develop",
+  $TARGET_BRANCH
+  $MODULE_FIELD
   "jiraTicketId": "$TICKET",
   "requireTests": false,
-  "maxFilesToTouch": 6,
+  "maxFilesToTouch": 5,
   "acceptanceCriteria": [
-    { "id": "ac-1", "text": "WHEN user opens home screen THEN display promotional banner carousel", "testable": true },
-    { "id": "ac-2", "text": "WHEN there are more than 3 promotions THEN show pagination dots",     "testable": true },
-    { "id": "ac-3", "text": "WHEN user taps a banner THEN navigate to promotion details",          "testable": true }
+$AC
   ]
 }
 EOF
@@ -185,8 +212,8 @@ approve_and_monitor() {
   echo -e "${GREEN}✓ Spec approved${NC}"
 
   echo ""
-  echo -e "${YELLOW}[5] Monitoring implementation...${NC}"
-  wait_for_status "$JOB_ID" "done" 30 || true
+  echo -e "${YELLOW}[5] Monitoring implementation (this may take several minutes for iOS builds)...${NC}"
+  wait_for_status "$JOB_ID" "done" 120 || true
 
   echo ""
   echo -e "${YELLOW}[6] Final result:${NC}"
@@ -227,8 +254,8 @@ run_mode_a() {
   echo -e "${GREEN}✓ Job created: $JOB_ID${NC}"
 
   echo ""
-  echo -e "${YELLOW}[3] Waiting for spec generation...${NC}"
-  wait_for_status "$JOB_ID" "spec_ready" 15
+  echo -e "${YELLOW}[3] Waiting for spec generation (iOS monorepo can take several minutes)...${NC}"
+  wait_for_status "$JOB_ID" "spec_ready" 60
   echo -e "${GREEN}✓ Spec ready${NC}"
   show_spec_summary "$JOB_ID"
 

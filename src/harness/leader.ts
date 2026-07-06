@@ -568,7 +568,8 @@ async function handlePRCreated(job: CodeGenerationJob, notifier?: JobNotifier): 
   }
 
   // ── Box summary ───────────────────────────────────────────────────
-  const W   = 66;                                   // inner width
+  // Use terminal width when available, but keep the box within sane bounds.
+  const W   = Math.min(110, Math.max(70, process.stdout.columns - 4)); // inner width
   const B   = R.green;                              // box color
   const RST = R.reset;
 
@@ -677,7 +678,7 @@ function stripAnsi(s: string): string {
  * Print a color-coded error summary box when a job enters a granular error state.
  */
 function printErrorBox(job: CodeGenerationJob, ctx: ErrorContext): void {
-  const W   = 66;
+  const W   = Math.min(110, Math.max(70, process.stdout.columns - 4));
   const B   = R.red;
   const RST = R.reset;
 
