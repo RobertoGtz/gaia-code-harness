@@ -46,13 +46,13 @@
 │  (generic)     execute()/executeTDD() (generic)  (auto, post-review)  │
 │            │                  │                  │           │
 │            └──────────────────┴──────────────────┘           │
-│                        loadSkill(platform)                    │
+│                  loadSkill(platform, repoPath)               │
 └──────────────────────────────────────────────────────────────┘
                            │
                            ▼
 ┌──────────────────────────────────────────────────────────────┐
-│                    PLATFORM SKILLS                           │
-│                   src/skills/{platform}/                     │
+│                    PLATFORM PLUGINS                          │
+│                   src/plugins/{platform}/                    │
 ├──────────────┬──────────────────┬────────────────────────────┤
 │  flutter     │      ios         │     android / flutter_web  │
 ├──────────────┼──────────────────┼────────────────────────────┤
@@ -346,11 +346,11 @@ Cuando un job entra en estado de error, se imprime:
 
 ---
 
-## Agentes y Skills
+## Agentes y Plugins
 
-### Arquitectura Genérica + Skills
+### Arquitectura Genérica + Plugins
 
-Todos los jobs comparten **tres agentes genéricos**. La lógica específica de plataforma vive en `src/skills/{platform}/`. Los agentes cargan el skill correcto en runtime con `loadSkill(job.platform)`:
+Todos los jobs comparten **tres agentes genéricos**. La lógica específica de plataforma vive en `src/plugins/{platform}/`. Los agentes cargan el plugin correcto en runtime con `loadSkill(job.platform, repoPath)`:
 
 ```
 src/
@@ -366,8 +366,9 @@ src/
 │   └── disk-backend.ts     ← Adapter — Mode B (CLI + disk)
 ├── cli/
 │   └── run.ts              ← CLI entry point: --list, --job, --id
-└── skills/
-    ├── flutter/index.ts    ← PlatformSkill impl
+└── plugins/
+    ├── index.ts            ← loadSkill() con override logic
+    ├── flutter/index.ts    ← PlatformSkill built-in
     ├── flutter_web/index.ts
     ├── ios/index.ts
     └── android/index.ts
@@ -396,15 +397,15 @@ await agents.mutationTester.execute(context);
 
 **To add a new platform:**
 
-1. Create `src/skills/{new_platform}/index.ts` implementing `PlatformSkill`
-2. Add the `case` in `loadSkill()` inside `src/skills/index.ts`
+1. Create `src/plugins/{new_platform}/index.ts` implementing `PlatformSkill`
+2. Add the `case` in `loadSkill()` inside `src/plugins/index.ts`
 3. All three generic agents use it automatically — no agent changes needed
 
 ---
 
 ### PlatformSkill Interface
 
-Define el contrato que cada skill debe cumplir (`src/skills/index.ts`):
+Define el contrato que cada plugin debe cumplir (`src/plugins/index.ts`):
 
 | Método                        | Responsabilidad                                            |
 | ----------------------------- | ---------------------------------------------------------- |
@@ -420,25 +421,26 @@ Define el contrato que cada skill debe cumplir (`src/skills/index.ts`):
 
 **Process:**
 
-1. `loadSkill(platform)` → get `promptCtx`
+1. `loadSkill(platform, repoPath)` → get `promptCtx` (con override si existe `<repo>/.gaia/plugins/<platform>/index.js`)
 2. Setup repo via `setupRepository`
 3. Explore repo structure
 4. Identify relevant files
-5. Call LLM with `promptCtx.specSystem` + acceptance criteria
-6. Save `TechnicalSpec` to disk (requirements.json, design.json, tasks.json)
+5. `createPluginLoader(repoPath)` → lee `docs/RULES.md` + `docs/UNIT_TESTS.md` + `docs/gaia.json` del repo clonado
+6. Call LLM with `[repoRules +] promptCtx.specSystem` + acceptance criteria
+7. Save `TechnicalSpec` to disk (requirements.json, design.json, tasks.json)
 
 ### ImplementerAgent (generic)
 
 **`execute()` — bulk mode:**
 
-1. `loadSkill(platform)` → `verifyEnvironment`, `build`, `getPromptContext`
+1. `loadSkill(platform, repoPath)` → `verifyEnvironment`, `build`, `getPromptContext`
 2. Setup repo + create branch
 3. `skill.build()` → resolve deps
 4. For each task: generate/modify code with LLM (bulk)
 5. `skill.test()` → up to 3 LLM fix loops if tests fail
 6. Commit & push
 
-**`executeTDD()` — Red-Green-Refactor mode:**
+**`executeTDD()` — Red-Green-Refactor mode (mismo PluginLoader aplicado):**
 
 1–3. Same setup as `execute()`. 4. Write all impl files (non-test) to establish compile baseline. 5. For each test task, in order:
 
@@ -463,7 +465,7 @@ Define el contrato que cada skill debe cumplir (`src/skills/index.ts`):
 
 **Process:**
 
-1. `loadSkill(platform)` → `verifyEnvironment`, `analyze`, `test`
+1. `loadSkill(platform, repoPath)` → `verifyEnvironment`, `analyze`, `test`
 2. `skill.analyze()` → lint (non-blocking, warnings only)
 3. `skill.test()` → tests must pass (blocking)
 4. Verify `modifiedFiles ≤ maxFilesToTouch`
@@ -486,7 +488,7 @@ Define el contrato que cada skill debe cumplir (`src/skills/index.ts`):
 
 ---
 
-### Skill iOS (`src/skills/ios/index.ts`)
+### Plugin iOS (`src/plugins/ios/index.ts`)
 
 El skill de iOS está calibrado para un monorepo de gran escala basado en **Tuist + Swift Package Manager** (por ejemplo, el repositorio de Rappi iOS). Sus responsabilidades:
 
@@ -513,7 +515,7 @@ El skill de iOS está calibrado para un monorepo de gran escala basado en **Tuis
    - Incluye reglas arquitectónicas específicas del monorepo: MVVM + Coordinator, VIPER, SwiftUI Feature, `Feature`/ `FeatureInterface` modules, `@Inject` + `MainComponent.resolve`, Design System, y prohibiciones (no force unwrap, no UIKit en lógica de negocio, etc.).
    - Los placeholders de paths usan la convención `{Module}Feature/Sources/...` y `{Module}FeatureInterface/Sources/...`.
 
-El runner de Xcode está testeado en `tests/xcode-runner.test.ts` y el skill en `tests/ios-skill.test.ts`, ambos con mocks de `child_process` y `fs/promises`.
+El runner de Xcode está testeado en `tests/xcode-runner.test.ts` y el plugin en `tests/ios-skill.test.ts`, ambos con mocks de `child_process` y `fs/promises`.
 
 ---
 
@@ -521,31 +523,49 @@ El runner de Xcode está testeado en `tests/xcode-runner.test.ts` y el skill en 
 
 ### ¿Cómo funciona?
 
+Cada agente llama a `loadSkill(platform, repoPath)` **después** de clonar el repo. La función sigue esta precedencia:
+
 ```
-Repo del proyecto
+1. <repo>/.gaia/plugins/<platform>/index.js   ← override completo del skill (build, test, analyze, prompts)
+2. src/plugins/<platform>                      ← built-in del harness (fallback)
+```
+
+Además, si el repo contiene archivos en `docs/`, el `PluginLoader` los inyecta como contexto adicional en los prompts LLM:
+
+```
+3. <repo>/docs/RULES.md        ← reglas de código en markdown libre
+4. <repo>/docs/UNIT_TESTS.md   ← convenciones de tests
+5. <repo>/docs/gaia.json       ← config estructurada (patrones, naming, reglas)
+```
+
+### Estructura en el repo del proyecto
+
+```
+mi-repo/
+├── .gaia/
+│   └── plugins/
+│       └── ios/
+│           └── index.js     ← override completo (opcional)
 └── docs/
-    ├── gaia.json          ← Manifest
-    └── agents/
-        ├── flutter-spec-author.ts
-        ├── flutter-implementer.ts
-        └── flutter-reviewer.ts
+    ├── gaia.json            ← manifest + config (opcional)
+    ├── RULES.md             ← reglas de código (opcional)
+    └── UNIT_TESTS.md        ← convenciones de tests (opcional)
 ```
-
-### Orden de búsqueda
-
-1. **Platform-specific:** `docs/agents/{platform}-{agentType}.ts`
-2. **Generic:** `docs/agents/{agentType}.ts`
-3. **Manifest-specified:** `gaia.json → agents.{agentType}`
-4. **Default:** Usar agente del harness
 
 ### Archivos que lee el harness en el repo del proyecto
 
-| Archivo                                 | Requerido | Para qué                                                              |
-| --------------------------------------- | --------- | --------------------------------------------------------------------- |
-| `docs/gaia.json`                        | No        | Manifest: nombre, versión, agentes custom, config                     |
-| `docs/RULES.md`                         | No        | Reglas de código/tests en texto libre — se inyectan como contexto LLM |
-| `docs/UNIT_TESTS.md`                    | No        | Reglas de testing específicas — se inyectan como contexto LLM         |
-| `docs/agents/{platform}-{agentType}.ts` | No        | Agente custom por plataforma                                          |
+| Archivo                             | Requerido | Para qué                                                              |
+| ----------------------------------- | --------- | --------------------------------------------------------------------- |
+| `.gaia/plugins/<platform>/index.js` | No        | Override completo del skill: build, test, analyze, getPromptContext   |
+| `docs/gaia.json`                    | No        | Manifest: nombre, versión, config (patrones, naming, codeRules...)    |
+| `docs/RULES.md`                     | No        | Reglas de código/tests en texto libre — se inyectan como contexto LLM |
+| `docs/UNIT_TESTS.md`                | No        | Reglas de testing específicas — se inyectan como contexto LLM         |
+
+> Si existe `docs/RULES.md`, los campos `codeRules`, `testRules` y `forbidden` de `gaia.json` se omiten para evitar duplicación. `RULES.md` tiene prioridad.
+
+### Sin archivos en el repo
+
+Si el repo no tiene ninguno de estos archivos, el harness usa el built-in `src/plugins/<platform>` con su contexto de prompts por defecto. **El comportamiento es idéntico al de antes**.
 
 ### Ejemplo gaia.json completo
 
@@ -585,8 +605,6 @@ Repo del proyecto
   }
 }
 ```
-
-> Si existe `docs/RULES.md`, los campos `codeRules`, `testRules` y `forbidden` de `gaia.json` se omiten para evitar duplicación. `RULES.md` tiene prioridad.
 
 ---
 

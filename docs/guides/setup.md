@@ -290,11 +290,12 @@ gaia-code-harness/
 │   │   ├── implementer.ts    # ImplementerAgent (+ executeTDD)
 │   │   ├── reviewer.ts       # ReviewerAgent
 │   │   └── mutation-tester.ts# MutationTesterAgent
-│   ├── skills/               # Lógica específica por plataforma
-│   │   ├── flutter/          # FlutterSkill
-│   │   ├── flutter_web/      # FlutterWebSkill
-│   │   ├── ios/              # IosSkill
-│   │   └── android/          # AndroidSkill
+│   ├── plugins/              # Platform plugins (intercambiables, con override por repo)
+│   │   ├── index.ts          # loadSkill() con repo-local override logic
+│   │   ├── flutter/          # FlutterSkill (built-in)
+│   │   ├── flutter_web/      # FlutterWebSkill (built-in)
+│   │   ├── ios/              # IosSkill (built-in)
+│   │   └── android/          # AndroidSkill (built-in)
 │   ├── harness/              # Orchestrator (Leader)
 │   ├── cli/run.ts            # CLI entry point (Modo B)
 │   └── tools/                # Utilidades compartidas
