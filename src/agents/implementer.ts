@@ -62,6 +62,7 @@ export class ImplementerAgent extends BaseAgent {
       const repoRules = pluginLoader.getRulesAsContext();
       const promptCtx = skill.getPromptContext(job);
       if (repoRules) promptCtx.implementerSystem = `# Project-specific rules\n\n${repoRules}\n\n---\n\n${promptCtx.implementerSystem}`;
+      if (spec.gherkinScenarios) promptCtx.implementerSystem = `# Acceptance scenarios (Gherkin)\n\n${spec.gherkinScenarios}\n\n---\n\n${promptCtx.implementerSystem}`;
       const modulePubspec = job.module
         ? path.join(repoPath, 'packages/features', job.module, 'pubspec.yaml')
         : path.join(repoPath, 'pubspec.yaml');
@@ -192,6 +193,7 @@ export class ImplementerAgent extends BaseAgent {
       const repoRules = pluginLoader.getRulesAsContext();
       const promptCtx = skill.getPromptContext(job);
       if (repoRules) promptCtx.implementerSystem = `# Project-specific rules\n\n${repoRules}\n\n---\n\n${promptCtx.implementerSystem}`;
+      if (spec.gherkinScenarios) promptCtx.implementerSystem = `# Acceptance scenarios (Gherkin)\n\n${spec.gherkinScenarios}\n\n---\n\n${promptCtx.implementerSystem}`;
       const modulePubspec = job.module
         ? path.join(repoPath, 'packages/features', job.module, 'pubspec.yaml')
         : path.join(repoPath, 'pubspec.yaml');

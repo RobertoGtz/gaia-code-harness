@@ -45,6 +45,7 @@ export class SpecAuthorAgent extends BaseAgent {
       const repoRules = pluginLoader.getRulesAsContext();
       const promptCtx = skill.getPromptContext(job);
       const spec = await this.generateSpec(job, relevantFiles, structure, promptCtx, repoRules);
+      spec.gherkinScenarios = await this.generateGherkinScenarios(job, spec);
       await this.saveSpec(workspacePath, spec, job.id);
 
       return { success: true, output: 'Specification generated successfully', spec, nextStatus: 'spec_ready' };
@@ -116,11 +117,57 @@ Respond with ONLY a JSON object matching this TypeScript type:
     }
   }
 
+  private async generateGherkinScenarios(
+    job: AgentContext['job'],
+    spec: TechnicalSpec
+  ): Promise<string> {
+    const criteria = job.acceptanceCriteria.map(ac => `- ${ac.text}`).join('\n');
+    const tasks = spec.tasks.map(t => `- [${t.type}] ${t.description}`).join('\n');
+
+    const systemPrompt = `You are a Gherkin author. Your only job is to convert acceptance criteria and implementation tasks into a .feature file.
+
+Rules:
+- One Scenario per observable behaviour, including edge cases and errors
+- Tag every scenario with @s1, @s2, ... (stable identifiers)
+- Every Then must assert something measurable (UI state, stdout, exit code, PR created)
+- One When per scenario
+- No implementation details (no class or function names)
+- Use Given / When / Then / And steps
+- Return ONLY the raw .feature file content — no markdown fences, no explanation`;
+
+    const userPrompt = `Feature: ${job.title}
+Platform: ${job.platform}
+
+Acceptance Criteria:
+${criteria}
+
+Implementation tasks:
+${tasks}
+
+Write the complete .feature file.`;
+
+    try {
+      const response = await callLLM([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ]);
+      this.logSuccess(`Gherkin scenarios generated (${response.provider})`);
+      return response.text.trim();
+    } catch (err) {
+      this.log(`[warn] Gherkin generation failed (non-blocking): ${err}`);
+      return '';
+    }
+  }
+
   private async saveSpec(workspacePath: string, spec: TechnicalSpec, jobId: string): Promise<void> {
     const specDir = path.join(workspacePath, 'specs', jobId);
     await writeFile(path.join(specDir, 'requirements.json'), JSON.stringify(spec.requirements, null, 2));
     await writeFile(path.join(specDir, 'design.json'), JSON.stringify(spec.design, null, 2));
     await writeFile(path.join(specDir, 'tasks.json'), JSON.stringify(spec.tasks, null, 2));
+    if (spec.gherkinScenarios) {
+      await writeFile(path.join(specDir, 'scenarios.feature'), spec.gherkinScenarios);
+      this.logSuccess(`Gherkin saved to ${specDir}/scenarios.feature`);
+    }
     this.logSuccess(`Spec saved to ${specDir}`);
   }
 }

@@ -189,6 +189,7 @@ export interface TechnicalSpec {
   };
   tasks: ImplementationTask[];
   risks: string[];
+  gherkinScenarios?: string;
 }
 
 export interface ImplementationTask {

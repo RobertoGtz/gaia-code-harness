@@ -645,6 +645,14 @@ async function handlePRCreated(job: CodeGenerationJob, notifier?: JobNotifier): 
     console.log(blank);
   }
 
+  // ── Gherkin scenarios ──
+  if (job.spec?.gherkinScenarios) {
+    const scenarioCount = (job.spec.gherkinScenarios.match(/^\s*Scenario:/gm) || []).length;
+    section(`GHERKIN SCENARIOS  (${scenarioCount})`);
+    ln(`${R.cyan}scenarios.feature${RST}  ${R.gray}— ${scenarioCount} scenario${scenarioCount !== 1 ? 's' : ''} generated${RST}`);
+    console.log(blank);
+  }
+
   // ── Implemented tasks ──
   if (job.spec?.tasks?.length) {
     section(`IMPLEMENTED TASKS  (${job.spec.tasks.length})`);
