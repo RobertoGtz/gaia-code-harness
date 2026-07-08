@@ -30,13 +30,13 @@
 
 ### Arquitectura e ingeniería
 
-| Documento                                                                    | Descripción                                               |
-| ---------------------------------------------------------------------------- | --------------------------------------------------------- |
-| [`docs/engineering/architecture.md`](../engineering/architecture.md)         | Arquitectura interna, máquina de estados, agentes, skills |
-| [`docs/engineering/workflow.md`](../engineering/workflow.md)                 | Pipeline completo: las 5 fases del ciclo de vida          |
-| [`docs/engineering/tdd.md`](../engineering/tdd.md)                           | Las Tres Leyes del TDD + ciclo Rojo-Verde-Refactor        |
-| [`docs/engineering/gherkin.md`](../engineering/gherkin.md)                   | Formato Gherkin, reglas, ejemplos de ACs                  |
-| [`docs/engineering/mutation-testing.md`](../engineering/mutation-testing.md) | Cómo funciona mutate.py, umbrales, plataformas            |
+| Documento                                                                    | Descripción                                                |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| [`docs/engineering/architecture.md`](../engineering/architecture.md)         | Arquitectura interna, máquina de estados, agentes, plugins |
+| [`docs/engineering/workflow.md`](../engineering/workflow.md)                 | Pipeline completo: las 5 fases del ciclo de vida           |
+| [`docs/engineering/tdd.md`](../engineering/tdd.md)                           | Las Tres Leyes del TDD + ciclo Rojo-Verde-Refactor         |
+| [`docs/engineering/gherkin.md`](../engineering/gherkin.md)                   | Formato Gherkin, reglas, ejemplos de ACs                   |
+| [`docs/engineering/mutation-testing.md`](../engineering/mutation-testing.md) | Cómo funciona mutate.py, umbrales, plataformas             |
 
 ### Para agentes IA (Claude Code mode)
 
@@ -83,7 +83,7 @@ gaia-code-harness/
 │
 ├── src/
 │   ├── agents/        ← SpecAuthor, Implementer, Reviewer, MutationTester
-│   ├── skills/        ← flutter/, ios/, android/, flutter_web/
+│   ├── plugins/       ← flutter/, ios/, android/, flutter_web/ (con repo-local override)
 │   ├── harness/       ← leader.ts (máquina de estados)
 │   ├── api/routes/    ← jobs.ts + webhook.ts
 │   ├── notifiers/     ← Slack, GitHub Checks, Generic, Jira
