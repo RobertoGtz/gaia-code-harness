@@ -22,15 +22,15 @@ La diferencia es en cómo entra el job, dónde persiste el estado y si la aproba
 > El diagrama describe el flujo completo. La columna "Agente" muestra el agente Claude Code;
 > la columna "Equivalente TypeScript" muestra el módulo que ejecuta lo mismo en los Modos A, B y C.
 
-| Fase                | Agente (Claude Code)           | Equivalente TypeScript          | Artefacto                     |
-| ------------------- | ------------------------------ | ------------------------------- | ----------------------------- |
-| Spec                | `spec_partner`                 | `SpecAuthorAgent`               | `project-spec.md`             |
-| Gherkin             | `gherkin_author`               | _(parte de SpecAuthorAgent)_    | `features/<name>.feature`     |
-| ⏸ **PUERTA HUMANA** | `craftsman_lead` para          | `POST /jobs/:id/approve`        | —                             |
-| Implementación      | `tdd_craftsman` (si `tddMode`) | `ImplementerAgent.executeTDD()` | `src/` + `tests/`             |
-| _(bulk)_            | _(bulk implementer)_           | `ImplementerAgent.execute()`    | `src/` + `tests/`             |
-| Review              | `judge`                        | `ReviewerAgent`                 | `progress/judge_<name>.md`    |
-| Mutación            | `mutation_tester`              | `MutationTesterAgent`           | `progress/mutation_<name>.md` |
+| Fase                | Agente (Claude Code)           | Equivalente TypeScript          | Artefacto                                       |
+| ------------------- | ------------------------------ | ------------------------------- | ----------------------------------------------- |
+| Spec                | `spec_partner`                 | `SpecAuthorAgent`               | `project-spec.md` / `TechnicalSpec` JSON        |
+| Gherkin             | `gherkin_author`               | `SpecAuthorAgent` (2ª LLM call) | `features/<name>.feature` / `scenarios.feature` |
+| ⏸ **PUERTA HUMANA** | `craftsman_lead` para          | `POST /jobs/:id/approve`        | —                                               |
+| Implementación      | `tdd_craftsman` (si `tddMode`) | `ImplementerAgent.executeTDD()` | `src/` + `tests/`                               |
+| _(bulk)_            | _(bulk implementer)_           | `ImplementerAgent.execute()`    | `src/` + `tests/`                               |
+| Review              | `judge`                        | `ReviewerAgent`                 | `progress/judge_<name>.md`                      |
+| Mutación            | `mutation_tester`              | `MutationTesterAgent`           | `progress/mutation_<name>.md`                   |
 
 Una sola feature a la vez. Una sola puerta de aprobación humana: sobre los
 escenarios Gherkin, **antes** de escribir producción.
@@ -85,15 +85,16 @@ medida real de si la red atrapa peces. Ver `docs/engineering/mutation-testing.md
 
 ## Mapa de artefactos
 
-| Archivo                       | Lo escribe                         | Contiene                                            |
-| ----------------------------- | ---------------------------------- | --------------------------------------------------- |
-| `project-spec.md`             | `spec_partner`                     | Spec conversada: propósito, contrato, decisiones    |
-| `features/<name>.feature`     | `gherkin_author`                   | Escenarios Gherkin `@s1..@sn` (el contrato firmado) |
-| `src/` (workspace job)        | `tdd_craftsman`                    | Código tallado por TDD                              |
-| `progress/tdd_<name>.md`      | `tdd_craftsman`                    | Bitácora de ciclos + mapa `@s → test`               |
-| `progress/judge_<name>.md`    | `judge`                            | Veredicto + checkpoints                             |
-| `progress/mutation_<name>.md` | `mutation_tester`                  | Score + mutantes sobrevivientes                     |
-| `feature_list.json`           | `craftsman_lead` / `tdd_craftsman` | `pending → spec_ready → in_progress → done`         |
+| Archivo                           | Lo escribe                                    | Contiene                                                   |
+| --------------------------------- | --------------------------------------------- | ---------------------------------------------------------- |
+| `project-spec.md`                 | `spec_partner`                                | Spec conversada: propósito, contrato, decisiones           |
+| `features/<name>.feature`         | `gherkin_author` (Claude Code)                | Escenarios Gherkin `@s1..@sn` (el contrato firmado)        |
+| `specs/{jobId}/scenarios.feature` | `SpecAuthorAgent` (Modos A/B/C — 2ª LLM call) | Escenarios Gherkin generados automáticamente, non-blocking |
+| `src/` (workspace job)            | `tdd_craftsman` / `ImplementerAgent`          | Código tallado por TDD o generado en bulk                  |
+| `progress/tdd_<name>.md`          | `tdd_craftsman`                               | Bitácora de ciclos + mapa `@s → test`                      |
+| `progress/judge_<name>.md`        | `judge`                                       | Veredicto + checkpoints                                    |
+| `progress/mutation_<name>.md`     | `mutation_tester`                             | Score + mutantes sobrevivientes                            |
+| `feature_list.json`               | `craftsman_lead` / `tdd_craftsman`            | `pending → spec_ready → in_progress → done`                |
 
 **Regla anti-teléfono-descompuesto:** los subagentes escriben en disco y
 devuelven una línea de referencia. El contenido no circula por chat.

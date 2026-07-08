@@ -112,7 +112,8 @@ Leader → SpecAuthorAgent.execute()
            ↓
     1. Explore repo structure
     2. Identify relevant files
-    3. Generate TechnicalSpec
+    3. LLM → TechnicalSpec JSON
+    4. LLM → scenarios.feature (Gherkin, non-blocking)
            ↓
     DB: status='spec_ready'
     Waits: POST /approve
@@ -426,8 +427,9 @@ Define el contrato que cada plugin debe cumplir (`src/plugins/index.ts`):
 3. Explore repo structure
 4. Identify relevant files
 5. `createPluginLoader(repoPath)` → lee `docs/RULES.md` + `docs/UNIT_TESTS.md` + `docs/gaia.json` del repo clonado
-6. Call LLM with `[repoRules +] promptCtx.specSystem` + acceptance criteria
-7. Save `TechnicalSpec` to disk (requirements.json, design.json, tasks.json)
+6. LLM call → `TechnicalSpec` JSON (requirements, design, tasks)
+7. LLM call → `scenarios.feature` (Gherkin) — **non-blocking**: si falla se loggea como warning y el pipeline continúa
+8. Save to disk: `requirements.json`, `design.json`, `tasks.json`, `scenarios.feature`
 
 ### ImplementerAgent (generic)
 
@@ -436,9 +438,10 @@ Define el contrato que cada plugin debe cumplir (`src/plugins/index.ts`):
 1. `loadSkill(platform, repoPath)` → `verifyEnvironment`, `build`, `getPromptContext`
 2. Setup repo + create branch
 3. `skill.build()` → resolve deps
-4. For each task: generate/modify code with LLM (bulk)
-5. `skill.test()` → up to 3 LLM fix loops if tests fail
-6. Commit & push
+4. Inject into `implementerSystem`: `[gherkinScenarios +] [repoRules +] promptCtx.implementerSystem`
+5. For each task: generate/modify code with LLM (bulk)
+6. `skill.test()` → up to 3 LLM fix loops if tests fail
+7. Commit & push
 
 **`executeTDD()` — Red-Green-Refactor mode (mismo PluginLoader aplicado):**
 
