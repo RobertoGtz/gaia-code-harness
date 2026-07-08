@@ -5,6 +5,8 @@
  *   Generic agents call skill methods instead of hardcoding platform logic.
  */
 
+import * as path from 'path';
+import * as fs from 'fs';
 import { Platform, TestResult } from '../types';
 import { TestRunResult } from '../tools/test-runner';
 
@@ -79,44 +81,68 @@ export interface PromptContext {
 
 // ─── Loader ──────────────────────────────────────────────────────────────────
 
-const skillCache = new Map<Platform, PlatformSkill>();
+const skillCache = new Map<string, PlatformSkill>();
 
 /**
  * Load and return the PlatformSkill for the given platform.
- * Skills are cached after first load.
+ *
+ * Resolution order:
+ *   1. If `repoPath` is provided and `<repoPath>/.gaia/plugins/<platform>/index.js` exists,
+ *      load that plugin dynamically (repo-local override).
+ *   2. Otherwise fall back to the built-in plugin in `src/plugins/<platform>`.
+ *
+ * Skills are cached per (platform, repoPath) pair after first load.
  */
-export async function loadSkill(platform: Platform): Promise<PlatformSkill> {
-  if (skillCache.has(platform)) {
-    return skillCache.get(platform)!;
+export async function loadSkill(platform: Platform, repoPath?: string): Promise<PlatformSkill> {
+  const cacheKey = repoPath ? `${platform}:${repoPath}` : platform;
+
+  if (skillCache.has(cacheKey)) {
+    return skillCache.get(cacheKey)!;
   }
 
-  let skill: PlatformSkill;
+  let skill: PlatformSkill | undefined;
 
-  switch (platform) {
-    case 'flutter': {
-      const { FlutterSkill } = await import('./flutter');
-      skill = new FlutterSkill();
-      break;
+  // ── 1. Repo-local override ──────────────────────────────────────────────────
+  if (repoPath) {
+    const localPlugin = path.join(repoPath, '.gaia', 'plugins', platform, 'index.js');
+    if (fs.existsSync(localPlugin)) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const mod = require(localPlugin);
+      const Ctor = mod.default ?? mod[Object.keys(mod)[0]];
+      if (typeof Ctor === 'function') {
+        skill = new Ctor() as PlatformSkill;
+      }
     }
-    case 'flutter_web': {
-      const { FlutterWebSkill } = await import('./flutter_web');
-      skill = new FlutterWebSkill();
-      break;
-    }
-    case 'ios': {
-      const { IosSkill } = await import('./ios');
-      skill = new IosSkill();
-      break;
-    }
-    case 'android': {
-      const { AndroidSkill } = await import('./android');
-      skill = new AndroidSkill();
-      break;
-    }
-    default:
-      throw new Error(`No skill registered for platform: "${platform}"`);
   }
 
-  skillCache.set(platform, skill);
+  // ── 2. Built-in fallback ────────────────────────────────────────────────────
+  if (!skill) {
+    switch (platform) {
+      case 'flutter': {
+        const { FlutterSkill } = await import('./flutter');
+        skill = new FlutterSkill();
+        break;
+      }
+      case 'flutter_web': {
+        const { FlutterWebSkill } = await import('./flutter_web');
+        skill = new FlutterWebSkill();
+        break;
+      }
+      case 'ios': {
+        const { IosSkill } = await import('./ios');
+        skill = new IosSkill();
+        break;
+      }
+      case 'android': {
+        const { AndroidSkill } = await import('./android');
+        skill = new AndroidSkill();
+        break;
+      }
+      default:
+        throw new Error(`No skill registered for platform: "${platform}"`);
+    }
+  }
+
+  skillCache.set(cacheKey, skill);
   return skill;
 }

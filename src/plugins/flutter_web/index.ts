@@ -242,7 +242,7 @@ export class FlutterWebSkill implements PlatformSkill {
     const target = module ? `module '${module}'` : path.basename(repoPath);
 
     // Try running tests normally first
-    let result = await runFlutterTests({ workingDir: repoPath, module });
+    let result = await runFlutterTests({ workingDir: repoPath, module, platform: 'chrome' });
 
     // If tests fail due to web-only dart:js_interop compilation errors,
     // retry with only model/data tests that don't pull web-specific deps
@@ -255,6 +255,7 @@ export class FlutterWebSkill implements PlatformSkill {
       result = await runFlutterTests({
         workingDir: repoPath,
         module,
+        platform: 'chrome',
         testFile: "test/data/",
       });
     }

@@ -2,7 +2,7 @@
  * Unit tests for FlutterWebSkill (src/skills/flutter_web/index.ts).
  * Mocks the test-runner toolchain and file utilities — no shell or filesystem access.
  */
-import { FlutterWebSkill } from '../src/skills/flutter_web';
+import { FlutterWebSkill } from '../src/plugins/flutter_web';
 import * as testRunner from '../src/tools/test-runner';
 import * as file from '../src/tools/file';
 

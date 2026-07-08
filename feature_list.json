@@ -37,6 +37,25 @@
     "jobId": null
   },
   {
+    "id": 5,
+    "name": "test-download-movements-providers",
+    "title": "Add unit tests for movementsDataProvider and fileDataProvider",
+    "platform": "flutter_web",
+    "repo": "rpp-co/rpp-account-basics-multiplatform-pyme",
+    "targetBranch": "master",
+    "module": "account_summary",
+    "acceptanceCriteria": [
+      "When getMovementsData succeeds, movementsDataProvider returns DownloadMovements data",
+      "When getMovementsData throws, movementsDataProvider returns null",
+      "When downloadMovements succeeds, fileDataProvider returns DownloadMovementsFileResponse",
+      "When downloadMovements throws, fileDataProvider propagates the error"
+    ],
+    "status": "pending",
+    "tddMode": true,
+    "sdd": false,
+    "jobId": null
+  },
+  {
     "id": 4,
     "name": "fix-pyme-wall-movements-empty-page-state",
     "title": "Fix emptyPage state logic in PymeWallMovementsListNotifier",

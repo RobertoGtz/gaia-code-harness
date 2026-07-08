@@ -12,7 +12,8 @@ import * as fs from 'fs/promises';
 import { setupRepository } from '../tools/repo';
 import { initGit, createBranch, generateBranchName, commitAndPush } from '../tools/git';
 import { callLLM } from '../tools/llm';
-import { loadSkill } from '../skills';
+import { loadSkill } from '../plugins';
+import { createPluginLoader } from '../harness/plugin-loader';
 import { GaiaError, GaiaRepoError, GaiaTestError } from '../errors';
 import * as path from 'path';
 
@@ -25,7 +26,7 @@ export class ImplementerAgent extends BaseAgent {
     this.logStep(`Implementing: ${job.title} [${job.platform}]`);
 
     try {
-      const skill = await loadSkill(job.platform);
+      const skill = await loadSkill(job.platform, repoPath);
       this.log(`Loaded skill: ${skill.displayName}`);
 
       const repoSetup = await setupRepository(job, repoPath);
@@ -57,7 +58,10 @@ export class ImplementerAgent extends BaseAgent {
       const spec = job.spec;
       if (!spec) return { success: false, output: '', error: 'No spec found in job' };
 
+      const pluginLoader = await createPluginLoader(repoPath);
+      const repoRules = pluginLoader.getRulesAsContext();
       const promptCtx = skill.getPromptContext(job);
+      if (repoRules) promptCtx.implementerSystem = `# Project-specific rules\n\n${repoRules}\n\n---\n\n${promptCtx.implementerSystem}`;
       const modulePubspec = job.module
         ? path.join(repoPath, 'packages/features', job.module, 'pubspec.yaml')
         : path.join(repoPath, 'pubspec.yaml');
@@ -163,7 +167,7 @@ export class ImplementerAgent extends BaseAgent {
     this.logStep(`[TDD] Implementing: ${job.title} [${job.platform}]`);
 
     try {
-      const skill = await loadSkill(job.platform);
+      const skill = await loadSkill(job.platform, repoPath);
       this.log(`Loaded skill: ${skill.displayName}`);
 
       const repoSetup = await setupRepository(job, repoPath);
@@ -184,7 +188,10 @@ export class ImplementerAgent extends BaseAgent {
       const spec = job.spec;
       if (!spec) return { success: false, output: '', error: 'No spec found' };
 
+      const pluginLoader = await createPluginLoader(repoPath);
+      const repoRules = pluginLoader.getRulesAsContext();
       const promptCtx = skill.getPromptContext(job);
+      if (repoRules) promptCtx.implementerSystem = `# Project-specific rules\n\n${repoRules}\n\n---\n\n${promptCtx.implementerSystem}`;
       const modulePubspec = job.module
         ? path.join(repoPath, 'packages/features', job.module, 'pubspec.yaml')
         : path.join(repoPath, 'pubspec.yaml');

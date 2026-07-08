@@ -13,7 +13,7 @@
 
 import { BaseAgent } from './base';
 import { AgentContext, AgentResult } from '../types';
-import { loadSkill } from '../skills';
+import { loadSkill } from '../plugins';
 import { callLLM } from '../tools/llm';
 import { readFile, writeFile } from '../tools/file';
 import * as path from 'path';
@@ -44,7 +44,7 @@ export class MutationTesterAgent extends BaseAgent {
     this.logStep(`Mutation testing: ${job.title} [${job.platform}]`);
 
     try {
-      const skill = await loadSkill(job.platform);
+      const skill = await loadSkill(job.platform, repoPath);
 
       // 1. Collect all production source files (non-test)
       const sourceFiles = await this.collectSourceFiles(repoPath, skill);

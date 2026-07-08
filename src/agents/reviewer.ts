@@ -8,7 +8,7 @@ import { BaseAgent } from './base';
 import { AgentContext, AgentResult, TestResult } from '../types';
 import { TestRunResult } from '../tools/test-runner';
 import { initGit, createGitHubPR, addJiraComment, getModifiedFiles, parseGitHubRepoFromRemote, GitHubError, GitHubAuthError, GitHubNotFoundError, GitPushError } from '../tools/git';
-import { loadSkill } from '../skills';
+import { loadSkill } from '../plugins';
 import { GaiaError, GaiaReviewError } from '../errors';
 import * as path from 'path';
 
@@ -21,7 +21,7 @@ export class ReviewerAgent extends BaseAgent {
     this.logStep(`Reviewing: ${job.title} [${job.platform}]`);
 
     try {
-      const skill = await loadSkill(job.platform);
+      const skill = await loadSkill(job.platform, repoPath);
       this.log(`Loaded skill: ${skill.displayName}`);
 
       let testResult: import('../tools/test-runner').TestRunResult | undefined;

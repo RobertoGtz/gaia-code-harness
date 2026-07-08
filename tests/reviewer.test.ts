@@ -1,9 +1,9 @@
 import { ReviewerAgent } from '../src/agents/reviewer';
 import * as gitTools from '../src/tools/git';
-import * as skills from '../src/skills';
+import * as skills from '../src/plugins';
 import { GitHubAuthError, GitHubNotFoundError, GitPushError } from '../src/tools/git';
 
-jest.mock('../src/skills');
+jest.mock('../src/plugins');
 
 const mockedSkills = skills as jest.Mocked<typeof skills>;
 

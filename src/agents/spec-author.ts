@@ -9,7 +9,8 @@ import { AgentContext, AgentResult, TechnicalSpec } from '../types';
 import { getDirectoryStructure, getRelevantFiles, writeFile } from '../tools/file';
 import { setupRepository } from '../tools/repo';
 import { callLLM, extractJSON } from '../tools/llm';
-import { loadSkill } from '../skills';
+import { loadSkill } from '../plugins';
+import { createPluginLoader } from '../harness/plugin-loader';
 import { GaiaError, GaiaRepoError, GaiaSpecError } from '../errors';
 import * as path from 'path';
 
@@ -21,10 +22,9 @@ export class SpecAuthorAgent extends BaseAgent {
     this.logStep(`Generating spec for: ${job.title} [${job.platform}]`);
 
     try {
-      const skill = await loadSkill(job.platform);
-      this.log(`Loaded skill: ${skill.displayName}`);
-
       const repoPath = path.join(workspacePath, 'repo');
+      const skill = await loadSkill(job.platform, repoPath);
+      this.log(`Loaded skill: ${skill.displayName}`);
       const setup = await setupRepository(job, repoPath);
       if (!setup.success) {
         throw new GaiaRepoError(
@@ -41,8 +41,10 @@ export class SpecAuthorAgent extends BaseAgent {
       const relevantFiles = await getRelevantFiles(repoPath, job.module, skill.srcDirs, skill.sourceExtension);
       this.log(`Found ${relevantFiles.lib.length} source files, ${relevantFiles.test.length} test files`);
 
+      const pluginLoader = await createPluginLoader(repoPath);
+      const repoRules = pluginLoader.getRulesAsContext();
       const promptCtx = skill.getPromptContext(job);
-      const spec = await this.generateSpec(job, relevantFiles, structure, promptCtx);
+      const spec = await this.generateSpec(job, relevantFiles, structure, promptCtx, repoRules);
       await this.saveSpec(workspacePath, spec, job.id);
 
       return { success: true, output: 'Specification generated successfully', spec, nextStatus: 'spec_ready' };
@@ -58,7 +60,8 @@ export class SpecAuthorAgent extends BaseAgent {
     job: AgentContext['job'],
     relevantFiles: { lib: string[]; test: string[]; pubspec: boolean },
     repoStructure: string,
-    promptCtx: import('../skills').PromptContext
+    promptCtx: import('../plugins').PromptContext,
+    repoRules?: string
   ): Promise<TechnicalSpec> {
     const criteria = job.acceptanceCriteria.map(ac => `- ${ac.text}`).join('\n');
     const srcFiles = relevantFiles.lib.slice(0, 20).join('\n');
@@ -95,8 +98,11 @@ Respond with ONLY a JSON object matching this TypeScript type:
 }`;
 
     try {
+      const systemContent = repoRules
+        ? `# Project-specific rules\n\n${repoRules}\n\n---\n\n${promptCtx.specSystem}`
+        : promptCtx.specSystem;
       const response = await callLLM([
-        { role: 'system', content: promptCtx.specSystem },
+        { role: 'system', content: systemContent },
         { role: 'user', content: userPrompt },
       ]);
       this.logSuccess(`Spec generated via ${response.provider} (${response.model})`);
