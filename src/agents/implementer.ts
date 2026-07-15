@@ -75,22 +75,55 @@ export class ImplementerAgent extends BaseAgent {
         () => fs.readFile(path.join(repoPath, 'pubspec.yaml'), 'utf-8').catch(() => '')
       );
       const changes: FileChange[] = [];
+      const implTasks = spec.tasks.filter(t => t.type === 'create' || t.type === 'modify');
+      const testTasks = spec.tasks.filter(t => t.type === 'test');
+      const sourceContents = new Map<string, string>();
 
-      for (const task of spec.tasks) {
+      // First pass: create/modify implementation files so tests can import real APIs
+      for (const task of implTasks) {
         this.logStep(`Task [${task.type}]: ${task.description}`);
 
-        if ((task.type === 'create' || task.type === 'test') && task.filePath) {
+        if (task.filePath) {
           const filePath = path.join(repoPath, task.filePath);
-          const content = await this.generateCode(task, promptCtx.implementerSystem, job.title, pubspecRaw);
+          if (task.type === 'create') {
+            const content = await this.generateCode(task, promptCtx.implementerSystem, job.title, pubspecRaw);
+            await writeFile(filePath, content);
+            sourceContents.set(task.filePath, content);
+            changes.push({ path: task.filePath, operation: 'create', newContent: content, diff: `+ ${task.filePath}` });
+          } else {
+            const original = await readFile(filePath).catch(() => '');
+            const modified = await this.modifyCode(task, original, promptCtx.implementerSystem, job.title, pubspecRaw);
+            await writeFile(filePath, modified);
+            sourceContents.set(task.filePath, modified);
+            changes.push({ path: task.filePath, operation: 'modify', originalContent: original, newContent: modified, diff: `~ ${task.filePath}` });
+          }
+        }
+
+        task.status = 'done';
+      }
+
+      // Second pass: generate tests with the actual source files as context
+      for (const task of testTasks) {
+        this.logStep(`Task [${task.type}]: ${task.description}`);
+
+        if (task.filePath) {
+          const ctxParts: string[] = [];
+          const included = new Set<string>();
+          const deps = (task.dependsOn?.length ? task.dependsOn : implTasks.map(t => t.id))
+            .map(id => spec.tasks.find(t => t.id === id))
+            .filter((t): t is NonNullable<typeof t> => Boolean(t));
+          for (const dep of deps) {
+            if (dep.filePath && sourceContents.has(dep.filePath) && !included.has(dep.filePath)) {
+              ctxParts.push(`=== ${dep.filePath} ===\n${sourceContents.get(dep.filePath)}`);
+              included.add(dep.filePath);
+            }
+          }
+          const sourceContext = ctxParts.join('\n\n');
+
+          const filePath = path.join(repoPath, task.filePath);
+          const content = await this.generateCode(task, promptCtx.implementerSystem, job.title, pubspecRaw, sourceContext);
           await writeFile(filePath, content);
           changes.push({ path: task.filePath, operation: 'create', newContent: content, diff: `+ ${task.filePath}` });
-
-        } else if (task.type === 'modify' && task.filePath) {
-          const filePath = path.join(repoPath, task.filePath);
-          const original = await readFile(filePath).catch(() => '');
-          const modified = await this.modifyCode(task, original, promptCtx.implementerSystem, job.title, pubspecRaw);
-          await writeFile(filePath, modified);
-          changes.push({ path: task.filePath, operation: 'modify', originalContent: original, newContent: modified, diff: `~ ${task.filePath}` });
         }
 
         task.status = 'done';
