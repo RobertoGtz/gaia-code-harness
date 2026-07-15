@@ -82,7 +82,12 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
 - El CLI logró: crear job, generar spec, auto-aprobar, clonar repo, ejecutar `setup.sh`, resolver dependencias, generar código y tests.
 - Los tests fallaron por errores de implementación del LLM (rutas de import, nombres de clases) y por un error transversal de `dart:js_in...` en `pay_multiplatform_common_web` al correr `flutter test`.
 - El job entró en loop de reintentos del `ImplementerAgent`; se detuvo manualmente para evitar consumo innecesario.
-- Conclusión: el CLI (Modo B) funciona end-to-end. Los fallos restantes son de calidad de generación de código y de configuración de plataforma del repo, no del CLI.
+- Conclusión: el CLI (Modo B) funciona end-to-end. Los fallos restantes son de calidad de generación de código, no del CLI.
+
+### Correcciones posteriores
+
+1. **Loop infinito en CLI**: Se añadió `requestSource` (`api` | `cli` | `webhook`) a `CodeGenerationJob` y a los creadores de jobs. En `leader.ts`, los errores `test_error`/`review_error`/`failed` solo se reintentan automáticamente si `requestSource !== 'cli'`, evitando loops en Modo B.
+2. **Tests generados inconsistentes**: En `ImplementerAgent.execute()` (bulk) ahora se ejecutan primero los tasks de implementación (`create`/`modify`) y luego los de test, pasando el contenido real de los archivos fuente como `sourceContext` para que el LLM genere imports y APIs correctos. Se mantiene el orden original vía `dependsOn`.
 
 ### Test count
 
