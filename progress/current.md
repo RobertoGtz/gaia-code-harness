@@ -217,3 +217,8 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
   - `CleanMyMac` (com.macpaw.CleanMyMac5) está activo en segundo plano; es el principal sospechoso de borrar directorios `build/` dentro de `node_modules` (desaparecen `jest-util/build`, `jest-cli/build`, etc.).
   - `npm test` pasa 20/21 suites y 269/270 tests; falla solo cuando `jest-util/build/index.js` ya no está disponible.
   - Pendiente: pausar/ignorar `CleanMyMac` para confirmar y lograr `npm test` estable.
+- Nuevo slash command `.claude/commands/run.md`:
+  - Permite lanzar el Modo B (CLI) desde Claude Code con `/run`.
+  - Usa los mismos agentes TypeScript de `src/agents/` que el CLI tradicional (`src/cli/run.ts`).
+  - Se actualizó `AGENTS.md` con la referencia.
+  - Commit pendiente (trabajo en curso).
