@@ -239,38 +239,6 @@ export async function fetchJiraTicket(issueKey: string): Promise<JiraTicketData>
   };
 }
 
-/**
- * Fetch all tickets in a Jira epic.
- */
-export async function fetchJiraEpicTickets(epicKey: string): Promise<JiraTicketData[]> {
-  const config = getConfig();
-  const jql = encodeURIComponent(`"Epic Link" = "${epicKey}" OR parent = "${epicKey}" ORDER BY rank ASC`);
-  const url = `${config.baseUrl}/rest/api/3/search?jql=${jql}&maxResults=50`;
-
-  const res = await fetchWithRetry(url, config, epicKey);
-  const data = await res.json() as any;
-  const issues = data.issues ?? [];
-
-  return issues.map((issue: any) => {
-    const fields = issue.fields;
-    const description = extractTextFromADF(fields.description);
-    const labels: string[] = fields.labels ?? [];
-
-    return {
-      key: issue.key,
-      title: fields.summary ?? '',
-      description,
-      acceptanceCriteria: extractAcceptanceCriteria(fields, description),
-      figmaUrl: extractFigmaUrl(fields, description),
-      platform: inferPlatform(labels, fields.summary ?? ''),
-      repo: fields.customfield_repo ?? inferRepo(labels),
-      priority: fields.priority?.name ?? '',
-      labels,
-      epicKey,
-    } as JiraTicketData;
-  });
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
