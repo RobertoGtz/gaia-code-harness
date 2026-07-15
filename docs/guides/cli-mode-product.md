@@ -21,15 +21,34 @@ Si no se usa `--approve`, GAIA se detiene después de generar la spec para que u
 
 GAIA tiene tres formas de uso:
 
-| Modo | Forma de lanzar | Para quién |
-|------|-----------------|------------|
-| **HTTP Mode** | Peticiones a un servidor (`POST /jobs`) | Producción, CI/CD, integraciones |
-| **CLI Mode** | Un comando en la terminal | Desarrollo local, trabajo artesanal con un dev |
-| **Webhook Mode** | Disparadores automáticos desde Jira/Slack/GitHub | Automatización de tickets |
+| Modo             | Forma de lanzar                                  | Para quién                                     |
+| ---------------- | ------------------------------------------------ | ---------------------------------------------- |
+| **HTTP Mode**    | Peticiones a un servidor (`POST /jobs`)          | Producción, CI/CD, integraciones               |
+| **CLI Mode**     | Un comando en la terminal                        | Desarrollo local, trabajo artesanal con un dev |
+| **Webhook Mode** | Disparadores automáticos desde Jira/Slack/GitHub | Automatización de tickets                      |
 
 El **CLI Mode** es el más directo: no hay servidor, no hay base de datos externa, no hay polling. GAIA guarda todo en archivos locales dentro de la carpeta `progress/` del proyecto.
 
 **Analogía:** HTTP Mode es como pedir comida por app y esperar notificaciones. CLI Mode es como cocinar en casa con una receta escrita.
+
+---
+
+## ¿Qué tecnología usa?
+
+No es necesario entender todos los detalles técnicos, pero aquí va un resumen de lo que hay debajo del capó:
+
+| Tecnología                 | ¿Qué es?                                                                               | ¿Para qué sirve en GAIA CLI Mode?                                                                    |
+| -------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Node.js**                | El entorno que ejecuta programas escritos en JavaScript/TypeScript.                    | Es el motor que corre GAIA en tu computadora.                                                        |
+| **TypeScript**             | Una versión de JavaScript con tipos; ayuda a evitar errores.                           | Todo GAIA está escrito en TypeScript.                                                                |
+| **ts-node**                | Una herramienta que ejecuta TypeScript directamente sin compilar a JavaScript primero. | Permite lanzar GAIA con `npx ts-node src/cli/run.ts ...` en un solo paso.                            |
+| **Git**                    | Sistema de control de versiones.                                                       | GAIA usa Git para crear ramas, commitear cambios y subirlos a GitHub.                                |
+| **GitHub API**             | La interfaz de programación de GitHub.                                                 | GAIA crea el Pull Request automáticamente.                                                           |
+| **OpenAI / Anthropic LLM** | Modelos de lenguaje grande (inteligencia artificial generativa).                       | Son los que “piensan” y escriben la spec, el código, los tests y las revisiones.                     |
+| **Archivos JSON locales**  | Archivos de texto estructurados que guardan datos.                                     | GAIA guarda el estado del job en `progress/.state/{id}.json` y un log legible en `progress/{id}.md`. |
+| **Tests de la plataforma** | `flutter test`, `xcodebuild test`, etc.                                                | GAIA ejecuta los tests del proyecto para verificar que el cambio funciona.                           |
+
+**Analogía:** GAIA CLI Mode es como un asistente personal que lee tu ficha de trabajo (`job.json`), investiga el proyecto, escribe el borrador, lo revisa, lo entrega en GitHub y guarda copia de todo en una carpeta local (`progress/`).
 
 ---
 
@@ -87,20 +106,20 @@ Es un archivo de texto con la siguiente estructura:
 
 ### Campo por campo
 
-| Campo | ¿Requerido? | ¿Qué significa? | Ejemplo |
-|-------|-------------|-----------------|---------|
-| `platform` | Sí | Tecnología del proyecto. Puede ser `flutter_web`, `ios`, `android`. | `flutter_web` |
-| `repo` | Sí | Repositorio de GitHub donde GAIA hará el cambio, en formato `dueño/repo`. | `rpp-co/rpp-cashflow-multiplatform-pyme` |
-| `targetBranch` | No | Rama base sobre la que se creará el PR. Si no se pone, usa `develop`. | `docs/gaia-conventions` |
-| `title` | Sí | Título corto y claro de lo que se pide. | `Handle SummaryFormSuccess in Bre-B presummary` |
-| `module` | No | Módulo o área funcional del producto que se toca. Ayuda a GAIA a enfocarse. | `presummary_form` |
-| `acceptanceCriteria` | Sí | Lista de frases que describen qué debe pasar para considerar el trabajo correcto. Deben ser comprobables. | Ver ejemplo arriba |
-| `tddMode` | No | Si es `true`, GAIA escribe primero el test y luego el código (Red-Green-Refactor). Si es `false`, escribe todo junto. | `true` |
-| `requireTests` | No | Si es `true`, GAIA debe crear o actualizar tests. Casi siempre `true`. | `true` |
-| `maxFilesToTouch` | No | Límite de archivos que GAIA puede modificar. Evita cambios gigantes. Por defecto `5`. | `3` |
-| `description` | No | Contexto adicional, notas de producto, enlaces, etc. | `"Ver Figma: ..."` |
-| `figmaUrl` | No | Enlace al diseño en Figma. | `https://www.figma.com/...` |
-| `jiraTicketId` | No | Si el trabajo viene de un ticket de Jira, se puede poner aquí. | `RPP-1234` |
+| Campo                | ¿Requerido? | ¿Qué significa?                                                                                                       | Ejemplo                                         |
+| -------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `platform`           | Sí          | Tecnología del proyecto. Puede ser `flutter_web`, `ios`, `android`.                                                   | `flutter_web`                                   |
+| `repo`               | Sí          | Repositorio de GitHub donde GAIA hará el cambio, en formato `dueño/repo`.                                             | `rpp-co/rpp-cashflow-multiplatform-pyme`        |
+| `targetBranch`       | No          | Rama base sobre la que se creará el PR. Si no se pone, usa `develop`.                                                 | `docs/gaia-conventions`                         |
+| `title`              | Sí          | Título corto y claro de lo que se pide.                                                                               | `Handle SummaryFormSuccess in Bre-B presummary` |
+| `module`             | No          | Módulo o área funcional del producto que se toca. Ayuda a GAIA a enfocarse.                                           | `presummary_form`                               |
+| `acceptanceCriteria` | Sí          | Lista de frases que describen qué debe pasar para considerar el trabajo correcto. Deben ser comprobables.             | Ver ejemplo arriba                              |
+| `tddMode`            | No          | Si es `true`, GAIA escribe primero el test y luego el código (Red-Green-Refactor). Si es `false`, escribe todo junto. | `true`                                          |
+| `requireTests`       | No          | Si es `true`, GAIA debe crear o actualizar tests. Casi siempre `true`.                                                | `true`                                          |
+| `maxFilesToTouch`    | No          | Límite de archivos que GAIA puede modificar. Evita cambios gigantes. Por defecto `5`.                                 | `3`                                             |
+| `description`        | No          | Contexto adicional, notas de producto, enlaces, etc.                                                                  | `"Ver Figma: ..."`                              |
+| `figmaUrl`           | No          | Enlace al diseño en Figma.                                                                                            | `https://www.figma.com/...`                     |
+| `jiraTicketId`       | No          | Si el trabajo viene de un ticket de Jira, se puede poner aquí.                                                        | `RPP-1234`                                      |
 
 ### Criterios de aceptación bien escritos
 
@@ -111,11 +130,13 @@ Son la parte más importante del `job.json`. Un buen criterio:
 - Es pequeño: un criterio = una sola cosa.
 
 **Ejemplos buenos:**
+
 - `When the user taps “Retry”, the presummary reloads.`
 - `When the presummary service fails, the error screen shows “Retry” and “Back” buttons.`
 - `When the presummary succeeds, the success screen shows a button to navigate to Summary.`
 
 **Ejemplo malo:**
+
 - `Fix the bug.` (No se puede comprobar.)
 
 ---
@@ -155,33 +176,33 @@ flowchart TD
 
 1. **Escribir `job.json`**: Producto o dev describe qué se quiere y cómo se sabrá que está listo.
 2. **Lanzar comando**: GAIA lee el archivo y crea un job local. Guarda el estado en `progress/.state/{id}.json` y un log legible en `progress/{id}.md`.
-3. **SpecAuthorAgent**: GAIA investiga el repo, identifica archivos relevantes y escribe una propuesta técnica (la *spec*). Es como el blueprint de una obra.
+3. **SpecAuthorAgent**: GAIA investiga el repo, identifica archivos relevantes y escribe una propuesta técnica (la _spec_). Es como el blueprint de una obra.
 4. **Aprobación**: Si no se usó `--approve`, GAIA se detiene aquí. Un humano revisa la spec y aprueba.
 5. **ImplementerAgent**: GAIA escribe el código y los tests.
    - En modo TDD: primero un test que falla, luego el código, luego limpieza.
    - En modo bulk: escribe todo junto.
 6. **Ejecutar tests**: GAIA corre los tests del proyecto. Si fallan, trata de corregir automáticamente hasta 3 veces.
 7. **ReviewerAgent**: GAIA revisa calidad, estilo, arquitectura y crea el Pull Request en GitHub.
-8. **MutationTesterAgent**: GAIA introduce pequeños errores artificiales en el código para ver si los tests los detectan. Si el *kill rate* es menor al 80 %, puede pedir más tests.
+8. **MutationTesterAgent**: GAIA introduce pequeños errores artificiales en el código para ver si los tests los detectan. Si el _kill rate_ es menor al 80 %, puede pedir más tests.
 9. **PR listo**: Dev recibe el enlace del PR para revisión humana final.
 
 ---
 
 ## Estados del job
 
-| Estado | ¿Qué significa en lenguaje humano? | ¿Quién actúa? |
-|--------|--------------------------------------|---------------|
-| `pending` | El job acaba de nacer y está en cola. | Sistema |
-| `spec_generating` | GAIA está escribiendo la propuesta técnica. | SpecAuthorAgent |
-| `spec_ready` | La spec está lista y **GAIA espera aprobación humana**. | Humano |
-| `spec_approved` | Un humano (o `--approve`) aprobó la spec. | Sistema |
-| `implementing` | GAIA está escribiendo código y tests. | ImplementerAgent |
-| `reviewing` | GAIA revisa el código y crea el PR. | ReviewerAgent |
-| `pr_created` | El PR ya existe en GitHub; GAIA valida tests con mutación. | MutationTesterAgent |
-| `done` | Todo listo. Se entrega el URL del PR. | — |
-| `test_error` | Los tests fallaron después de 3 intentos. Se puede reintentar. | Humano (`--retry`) |
-| `review_error` | El reviewer encontró problemas serios. Se puede reintentar. | Humano (`--retry`) |
-| `failed` | Error irrecuperable (por ejemplo, el repo no responde o la spec fue rechazada). | Humano |
+| Estado            | ¿Qué significa en lenguaje humano?                                              | ¿Quién actúa?       |
+| ----------------- | ------------------------------------------------------------------------------- | ------------------- |
+| `pending`         | El job acaba de nacer y está en cola.                                           | Sistema             |
+| `spec_generating` | GAIA está escribiendo la propuesta técnica.                                     | SpecAuthorAgent     |
+| `spec_ready`      | La spec está lista y **GAIA espera aprobación humana**.                         | Humano              |
+| `spec_approved`   | Un humano (o `--approve`) aprobó la spec.                                       | Sistema             |
+| `implementing`    | GAIA está escribiendo código y tests.                                           | ImplementerAgent    |
+| `reviewing`       | GAIA revisa el código y crea el PR.                                             | ReviewerAgent       |
+| `pr_created`      | El PR ya existe en GitHub; GAIA valida tests con mutación.                      | MutationTesterAgent |
+| `done`            | Todo listo. Se entrega el URL del PR.                                           | —                   |
+| `test_error`      | Los tests fallaron después de 3 intentos. Se puede reintentar.                  | Humano (`--retry`)  |
+| `review_error`    | El reviewer encontró problemas serios. Se puede reintentar.                     | Humano (`--retry`)  |
+| `failed`          | Error irrecuperable (por ejemplo, el repo no responde o la spec fue rechazada). | Humano              |
 
 ---
 
@@ -227,13 +248,13 @@ npx ts-node src/cli/run.ts --list
 
 ## Diferencias clave con HTTP Mode
 
-| Tema | HTTP Mode | CLI Mode |
-|------|-----------|----------|
-| Cómo se lanza | Petición HTTP (`POST /jobs`) | Comando en terminal |
-| Persistencia | Base de datos Postgres | Archivos JSON locales en `progress/.state/` |
-| Aprobación | Endpoint `POST /jobs/:id/approve` | Flag `--approve` o `--id <id> --approve` |
-| Retry | Endpoint `POST /jobs/:id/retry` | Flag `--id <id> --retry` |
-| Ideal para | Producción, CI/CD, muchos usuarios | Trabajo local, debugging, iteración rápida |
+| Tema          | HTTP Mode                          | CLI Mode                                    |
+| ------------- | ---------------------------------- | ------------------------------------------- |
+| Cómo se lanza | Petición HTTP (`POST /jobs`)       | Comando en terminal                         |
+| Persistencia  | Base de datos Postgres             | Archivos JSON locales en `progress/.state/` |
+| Aprobación    | Endpoint `POST /jobs/:id/approve`  | Flag `--approve` o `--id <id> --approve`    |
+| Retry         | Endpoint `POST /jobs/:id/retry`    | Flag `--id <id> --retry`                    |
+| Ideal para    | Producción, CI/CD, muchos usuarios | Trabajo local, debugging, iteración rápida  |
 
 ---
 
@@ -261,6 +282,7 @@ Para no detenerse a revisar la spec. Útil en iteraciones rápidas o cuando la s
 
 **¿Dónde veo el progreso?**
 En dos lugares:
+
 - `progress/.state/{id}.json`: estado técnico en JSON.
 - `progress/{id}.md`: log legible para humanos.
 
