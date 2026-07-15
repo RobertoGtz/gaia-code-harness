@@ -1,0 +1,23 @@
+{
+  "version": "1.0",
+  "generatedBy": "gaia-maintainer",
+  "profile": "full",
+  "sharedSkills": [
+    ".claude/skills/gaia/SKILL.md"
+  ],
+  "commandFiles": [
+    ".claude/commands/run.md"
+  ],
+  "rulesFiles": [
+    ".claude/rules/security-and-conventions.md"
+  ],
+  "agentFiles": [
+    ".claude/agents/craftsman_lead.md",
+    ".claude/agents/spec_partner.md",
+    ".claude/agents/gherkin_author.md",
+    ".claude/agents/tdd_craftsman.md",
+    ".claude/agents/judge.md",
+    ".claude/agents/mutation_tester.md"
+  ],
+  "updatedAt": "2026-07-15T00:00:00.000Z"
+}

@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "technicalLevel": "technical",
+  "preferredStyle": {
+    "verbosity": "minimal",
+    "codeComments": false,
+    "explanations": true
+  },
+  "domains": [
+    "typescript",
+    "nodejs",
+    "postgresql",
+    "jest",
+    "gherkin",
+    "tdd",
+    "mutation-testing",
+    "llm-agents",
+    "git"
+  ],
+  "suggestedBy": "gaia-maintainer",
+  "createdAt": "2026-07-15T00:00:00.000Z"
+}

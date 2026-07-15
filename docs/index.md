@@ -43,13 +43,21 @@
 
 ### Para agentes IA (Claude Code mode)
 
-| Documento                                   | Descripción                             |
-| ------------------------------------------- | --------------------------------------- |
-| [`AGENTS.md`](../AGENTS.md)                 | Mapa de navegación — leer primero       |
-| [`CLAUDE.md`](../CLAUDE.md)                 | Entry point para craftsman_lead         |
-| [`CHECKPOINTS.md`](../CHECKPOINTS.md)       | Criterios objetivos de "done" (C1–C7)   |
-| [`feature_list.json`](../feature_list.json) | Backlog de features con estados         |
-| [`.claude/agents/`](../.claude/agents/)     | Definiciones de los 6 subagentes Claude |
+| Documento                                                                                     | Descripción                                                 |
+| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| [`AGENTS.md`](../AGENTS.md)                                                                   | Mapa de navegación — leer primero                           |
+| [`CLAUDE.md`](../CLAUDE.md)                                                                   | Entry point para craftsman_lead                             |
+| [`CHECKPOINTS.md`](../CHECKPOINTS.md)                                                         | Criterios objetivos de "done" (C1–C7)                       |
+| [`feature_list.json`](../feature_list.json)                                                   | Backlog de features con estados                             |
+| [`.claude/identity.json`](../.claude/identity.json)                                           | Preferencias de estilo y dominios técnicos para Claude Code |
+| [`.claude/package-manager.json`](../.claude/package-manager.json)                             | Gestor de paquetes del proyecto (`npm`)                     |
+| [`.claude/agents/`](../.claude/agents/)                                                       | Definiciones de los 6 subagentes Claude                     |
+| [`.claude/commands/run.md`](../.claude/commands/run.md)                                       | Slash command `/run` para lanzar CLI Mode                   |
+| [`.claude/rules/security-and-conventions.md`](../.claude/rules/security-and-conventions.md)   | Guardrails de seguridad y convenciones                      |
+| [`.claude/skills/gaia/SKILL.md`](../.claude/skills/gaia/SKILL.md)                             | Knowledge base del proyecto GAIA para Claude Code           |
+| [`.claude/team/gaia-team-config.json`](../.claude/team/gaia-team-config.json)                 | Config compartida de skills, commands, rules y agentes      |
+| [`.claude/workflows/`](../.claude/workflows/)                                                 | Procedimientos multi-paso (security, release, add platform) |
+| [`.claude/research/gaia-research-playbook.md`](../.claude/research/gaia-research-playbook.md) | Guía de investigación antes de escribir specs               |
 
 ---
 
@@ -98,7 +106,16 @@ gaia-code-harness/
 │
 ├── tests/             ← Unit tests
 ├── tools/mutate.py    ← Mutation tester Python
-└── .claude/agents/    ← Subagentes Claude Code
+└── .claude/           ← Configuración de Claude Code
+    ├── identity.json              ← Estilo y dominios técnicos
+    ├── package-manager.json       ← npm
+    ├── agents/                    ← Subagentes (craftsman_lead, spec_partner, ...)
+    ├── commands/                  ← Slash commands (/run)
+    ├── rules/                     ← Guardrails de seguridad y convenciones
+    ├── skills/gaia/SKILL.md       ← Knowledge base del proyecto
+    ├── team/gaia-team-config.json ← Config compartida de recursos
+    ├── workflows/                 ← Procedimientos multi-paso
+    └── research/                  ← Playbook de investigación
 ```
 
 ---

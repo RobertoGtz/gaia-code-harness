@@ -28,23 +28,30 @@
 
 ### Archivos de orquestación (Claude Code mode)
 
-| Archivo / carpeta                      | Qué contiene                                                                                    | Cuándo leerlo                           |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------- |
-| `feature_list.json`                    | Lista de tareas con estado (`pending / spec_ready / in_progress / done / blocked`)              | Siempre, al empezar                     |
-| `progress/current.md`                  | Estado de la sesión actual                                                                      | Siempre, al empezar                     |
-| `progress/history.md`                  | Bitácora append-only de sesiones anteriores                                                     | Si necesitas contexto histórico         |
-| `project-spec.md`                      | Spec conversada: propósito, contrato y decisiones por feature                                   | Antes de destilar Gherkin o implementar |
-| `features/<name>.feature`              | Escenarios Gherkin (el contrato ejecutable que el humano aprueba)                               | Antes de empezar el ciclo TDD           |
-| `docs/engineering/workflow.md`         | El pipeline completo y los insights de cada fase                                                | Antes de coordinar                      |
-| `docs/engineering/tdd.md`              | Las Tres Leyes del TDD; el ciclo Rojo-Verde-Refactor                                            | Antes de escribir código                |
-| `docs/engineering/gherkin.md`          | Cómo escribir `.feature`; de Gherkin a test                                                     | Antes de redactar/leer escenarios       |
-| `docs/engineering/mutation-testing.md` | Por qué y cómo; umbral; uso de `tools/mutate.py`                                                | Antes de validar la suite               |
-| `CHECKPOINTS.md`                       | Criterios objetivos de "estado final correcto"                                                  | Para auto-evaluarte                     |
-| `tools/mutate.py`                      | Mutador determinístico sin dependencias (Python, TS, Swift, Kotlin)                             | Fase de mutación                        |
-| `.claude/agents/`                      | `craftsman_lead`, `spec_partner`, `gherkin_author`, `tdd_craftsman`, `judge`, `mutation_tester` | Si orquestas trabajo                    |
-| `.claude/commands/run.md`              | Slash command `/run` para lanzar el Modo B (CLI) desde Claude Code con los mismos agentes       | Si quieres correr GAIA sin teclear CLI  |
-| `docs/guides/claude-mode.md`           | Cómo usar GAIA en modo `.claude` (Claude Code)                                                  | Para aprender el modo manual/chat       |
-| `docs/guides/claude-vs-gaia-agents.md` | Cuándo usar GAIA agents vs `.claude/agents`                                                     | Para decidir modo de ejecución          |
+| Archivo / carpeta                            | Qué contiene                                                                                    | Cuándo leerlo                           |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `feature_list.json`                          | Lista de tareas con estado (`pending / spec_ready / in_progress / done / blocked`)              | Siempre, al empezar                     |
+| `progress/current.md`                        | Estado de la sesión actual                                                                      | Siempre, al empezar                     |
+| `progress/history.md`                        | Bitácora append-only de sesiones anteriores                                                     | Si necesitas contexto histórico         |
+| `project-spec.md`                            | Spec conversada: propósito, contrato y decisiones por feature                                   | Antes de destilar Gherkin o implementar |
+| `features/<name>.feature`                    | Escenarios Gherkin (el contrato ejecutable que el humano aprueba)                               | Antes de empezar el ciclo TDD           |
+| `docs/engineering/workflow.md`               | El pipeline completo y los insights de cada fase                                                | Antes de coordinar                      |
+| `docs/engineering/tdd.md`                    | Las Tres Leyes del TDD; el ciclo Rojo-Verde-Refactor                                            | Antes de escribir código                |
+| `docs/engineering/gherkin.md`                | Cómo escribir `.feature`; de Gherkin a test                                                     | Antes de redactar/leer escenarios       |
+| `docs/engineering/mutation-testing.md`       | Por qué y cómo; umbral; uso de `tools/mutate.py`                                                | Antes de validar la suite               |
+| `CHECKPOINTS.md`                             | Criterios objetivos de "estado final correcto"                                                  | Para auto-evaluarte                     |
+| `tools/mutate.py`                            | Mutador determinístico sin dependencias (Python, TS, Swift, Kotlin)                             | Fase de mutación                        |
+| `.claude/identity.json`                      | Preferencias de estilo y dominios técnicos para Claude Code                                     | Al arrancar Claude Code                 |
+| `.claude/package-manager.json`               | Gestor de paquetes del proyecto (`npm`)                                                         | Al instalar/actualizar dependencias     |
+| `.claude/agents/`                            | `craftsman_lead`, `spec_partner`, `gherkin_author`, `tdd_craftsman`, `judge`, `mutation_tester` | Si orquestas trabajo                    |
+| `.claude/commands/run.md`                    | Slash command `/run` para lanzar el Modo B (CLI) desde Claude Code con los mismos agentes       | Si quieres correr GAIA sin teclear CLI  |
+| `.claude/rules/security-and-conventions.md`  | Guardrails de seguridad y convenciones del proyecto                                             | Siempre, antes de actuar                |
+| `.claude/skills/gaia/SKILL.md`               | Knowledge base del proyecto GAIA para Claude Code                                               | Cuando necesites contexto profundo      |
+| `.claude/team/gaia-team-config.json`         | Config compartida: skills, commands, rules y agentes activos                                    | Al configurar el equipo                 |
+| `.claude/workflows/`                         | Procedimientos multi-paso (security review, release, add platform)                              | Cuando aplique el workflow              |
+| `.claude/research/gaia-research-playbook.md` | Guía de investigación estructurada antes de escribir specs                                      | Antes de specs ambiguas                 |
+| `docs/guides/claude-mode.md`                 | Cómo usar GAIA en modo `.claude` (Claude Code)                                                  | Para aprender el modo manual/chat       |
+| `docs/guides/claude-vs-gaia-agents.md`       | Cuándo usar GAIA agents vs `.claude/agents`                                                     | Para decidir modo de ejecución          |
 
 ### Archivos del harness TypeScript (HTTP mode)
 
