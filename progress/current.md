@@ -117,3 +117,14 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
   - Referencias concretas del feature `bre_b` para `rpp-cashflow-multiplatform-pyme`.
 - Se parametrizó `baseHref` por repo (`/banking-accounts/pyme/cashflow/` para cashflow).
 - Se actualizaron y ampliaron tests en `tests/flutter-web-skill.test.ts`.
+
+### Fix: SpecAuthorAgent no leía código existente
+
+- Problema: `SpecAuthorAgent.generateSpec()` solo recibía paths de archivos, no contenido. Para `bre_b` generó tareas sobre `presummary_form_screen.dart` y `presummary_form_controller.dart` en vez de `presummary_form_module.dart`, porque no sabía dónde estaban los `TODO`.
+- Solución:
+  - Nueva función `getRelevantSourceContext()` en `src/tools/file.ts` que lee el contenido de `lib/src/` (excluye generated files, prioriza controllers/modules/notifiers/models, limita a 100k chars).
+  - `SpecAuthorAgent` ahora carga y pasa `sourceContext` al prompt.
+  - Instrucciones críticas añadidas al user prompt: usar el código existente, no modificar flow/router salvo que sea necesario, atender `TODO`/`UnimplementedError`, preferir modificar antes que crear.
+  - `specSystem` de `flutter_web` reforzado con las mismas instrucciones.
+- Tests: 3 nuevos tests en `tests/file.test.ts` para `getRelevantSourceContext`.
+- Test count actualizado a 267.

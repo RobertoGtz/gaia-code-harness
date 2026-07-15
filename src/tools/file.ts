@@ -235,6 +235,68 @@ export async function getRelevantFiles(
 }
 
 /**
+ * Read the contents of the most relevant source files for a feature module.
+ *
+ * This is used by the SpecAuthorAgent to understand the existing code before
+ * proposing changes. It excludes generated files and test files, prioritizes
+ * files near the module root, and caps total output so it fits in an LLM prompt.
+ *
+ * @param repoPath - Repository root
+ * @param module - Feature module name (e.g. 'bre_b')
+ * @param sourceExtension - File extension (default: 'dart')
+ * @param maxChars - Maximum characters to return (default: 100000)
+ * @returns Concatenated file contents with path headers
+ */
+export async function getRelevantSourceContext(
+  repoPath: string,
+  module?: string,
+  sourceExtension = 'dart',
+  maxChars = 100000,
+): Promise<string> {
+  const basePath = module
+    ? path.join(repoPath, 'packages/features', module)
+    : repoPath;
+  const srcDir = path.join(basePath, 'lib', 'src');
+
+  let files: string[] = [];
+  try {
+    const found = await searchFiles(srcDir, `**/*.${sourceExtension}`, { maxResults: 200 });
+    files = found.map((f) => f.path);
+  } catch {
+    return '';
+  }
+
+  const generated = /\.(g|freezed|config)\.[^.]+$/;
+  files = files.filter((f) => !generated.test(path.basename(f)));
+
+  // Prioritize likely architecture files: states, controllers, modules, models, providers, repositories
+  const priority = /\/(modules|flow)\/[a-z_]+\/(states_notifier|module_controller|module_provider|module|controller|screen)\.dart$|\/(data|models|repositories)\/[a-z_/]+\.(dart)$/;
+  files.sort((a, b) => {
+    const scoreA = priority.test(a) ? 1 : 0;
+    const scoreB = priority.test(b) ? 1 : 0;
+    return scoreB - scoreA;
+  });
+
+  const parts: string[] = [];
+  let used = 0;
+  for (const file of files) {
+    try {
+      const content = await fs.readFile(file, 'utf-8');
+      const header = `=== ${path.relative(repoPath, file)} ===\n`;
+      const available = maxChars - used - header.length - 1;
+      if (available <= 0) break;
+      const chunk = content.length > available ? content.slice(0, available) + '\n...[truncated]' : content;
+      parts.push(`${header}${chunk}`);
+      used += header.length + chunk.length + 1;
+    } catch {
+      // skip unreadable files
+    }
+  }
+
+  return parts.join('\n\n');
+}
+
+/**
  * Apply a patch/diff to a file.
  * Currently uses simple replacement - future: use proper diff algorithm.
  * 

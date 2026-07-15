@@ -6,7 +6,7 @@
 
 import { BaseAgent } from './base';
 import { AgentContext, AgentResult, TechnicalSpec } from '../types';
-import { getDirectoryStructure, getRelevantFiles, writeFile } from '../tools/file';
+import { getDirectoryStructure, getRelevantFiles, getRelevantSourceContext, writeFile } from '../tools/file';
 import { setupRepository } from '../tools/repo';
 import { callLLM, extractJSON } from '../tools/llm';
 import { loadSkill } from '../plugins';
@@ -41,10 +41,17 @@ export class SpecAuthorAgent extends BaseAgent {
       const relevantFiles = await getRelevantFiles(repoPath, job.module, skill.srcDirs, skill.sourceExtension);
       this.log(`Found ${relevantFiles.lib.length} source files, ${relevantFiles.test.length} test files`);
 
+      const sourceContext = await getRelevantSourceContext(
+        repoPath,
+        job.module,
+        skill.sourceExtension,
+      );
+      this.log(`Loaded source context (${sourceContext.length} chars)`);
+
       const pluginLoader = await createPluginLoader(repoPath);
       const repoRules = pluginLoader.getRulesAsContext();
       const promptCtx = skill.getPromptContext(job);
-      const spec = await this.generateSpec(job, relevantFiles, structure, promptCtx, repoRules);
+      const spec = await this.generateSpec(job, relevantFiles, structure, sourceContext, promptCtx, repoRules);
       spec.gherkinScenarios = await this.generateGherkinScenarios(job, spec);
       await this.saveSpec(workspacePath, spec, job.id);
 
@@ -78,6 +85,7 @@ Wait for human approval, then ImplementerAgent should execute the tasks in spec.
     job: AgentContext['job'],
     relevantFiles: { lib: string[]; test: string[]; pubspec: boolean },
     repoStructure: string,
+    sourceContext: string,
     promptCtx: import('../plugins').PromptContext,
     repoRules?: string
   ): Promise<TechnicalSpec> {
@@ -98,6 +106,15 @@ ${job.module ? `\nTarget module: ${job.module}` : ''}
 
 File path conventions for this platform:
 ${Object.entries(promptCtx.filePatterns).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
+
+${sourceContext ? `\nExisting source code for the target module/feature (use this to understand current classes, states, routes and TODOs):\n${sourceContext}` : ''}
+
+CRITICAL INSTRUCTIONS FOR TASK SELECTION:
+- Use the Existing source code above to identify where the change really belongs. Do NOT propose changes to screens, routers or routes unless navigation itself is part of the acceptance criteria.
+- If the acceptance criteria describe how a view state is rendered (loading/error/success), the modification target is almost always the module widget (modules/<module>/<module>_module.dart), not the flow screen or router.
+- Pay attention to TODO comments, throw UnimplementedError, and empty switch/default branches in the existing code — these indicate the exact files that need work.
+- Prefer modifying existing files over creating new ones. Only create new files when the feature truly requires new models, repositories or providers.
+- Every task must have a concrete filePath relative to the repository root.
 
 Respond with ONLY a JSON object matching this TypeScript type:
 {

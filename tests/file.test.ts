@@ -9,6 +9,7 @@ import {
   searchFiles,
   getDirectoryStructure,
   getRelevantFiles,
+  getRelevantSourceContext,
   applyPatch,
   copyDirectory,
   fileExists,
@@ -237,6 +238,65 @@ describe('file tools', () => {
       mockedAccess.mockRejectedValue(new Error('ENOENT'));
       const result = await fileExists('/file.txt');
       expect(result).toBe(false);
+    });
+  });
+
+  describe('getRelevantSourceContext', () => {
+    it('returns concatenated source contents excluding generated files', async () => {
+      mockedReaddir.mockImplementation(async (dir: string) => {
+        if (dir === '/repo/packages/features/bre_b/lib/src') {
+          return [dirent('data', true), dirent('presentation', true)];
+        }
+        if (dir === '/repo/packages/features/bre_b/lib/src/data') {
+          return [dirent('models', true)];
+        }
+        if (dir === '/repo/packages/features/bre_b/lib/src/data/models') {
+          return [dirent('summary_form_view_states.dart')];
+        }
+        if (dir === '/repo/packages/features/bre_b/lib/src/presentation') {
+          return [dirent('modules', true)];
+        }
+        if (dir === '/repo/packages/features/bre_b/lib/src/presentation/modules') {
+          return [dirent('presummary_form', true)];
+        }
+        if (dir === '/repo/packages/features/bre_b/lib/src/presentation/modules/presummary_form') {
+          return [
+            dirent('presummary_form_module.dart'),
+            dirent('presummary_form_module.freezed.dart'),
+            dirent('presummary_form_module.g.dart'),
+          ];
+        }
+        return [];
+      });
+      mockedReadFile.mockImplementation(async (file: string) => {
+        if (file.includes('.freezed.dart') || file.includes('.g.dart')) return 'generated';
+        return 'class Example {}';
+      });
+
+      const result = await getRelevantSourceContext('/repo', 'bre_b', 'dart');
+
+      expect(result).toContain('packages/features/bre_b/lib/src/presentation/modules/presummary_form/presummary_form_module.dart');
+      expect(result).toContain('packages/features/bre_b/lib/src/data/models/summary_form_view_states.dart');
+      expect(result).toContain('class Example {}');
+      expect(result).not.toContain('.freezed.dart');
+      expect(result).not.toContain('.g.dart');
+      expect(result).not.toContain('generated');
+    });
+
+    it('returns empty string when src directory does not exist', async () => {
+      mockedReaddir.mockRejectedValue(new Error('ENOENT'));
+      const result = await getRelevantSourceContext('/repo', 'unknown', 'dart');
+      expect(result).toBe('');
+    });
+
+    it('truncates content when maxChars is exceeded', async () => {
+      mockedReaddir.mockImplementation(async () => [dirent('a.dart')]);
+      mockedReadFile.mockResolvedValue('x'.repeat(2000));
+
+      const result = await getRelevantSourceContext('/repo', undefined, 'dart', 500);
+
+      expect(result.length).toBeLessThanOrEqual(520);
+      expect(result).toContain('...[truncated]');
     });
   });
 });

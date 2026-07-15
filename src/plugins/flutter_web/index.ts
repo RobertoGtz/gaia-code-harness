@@ -313,7 +313,7 @@ Tooling: melos, FVM flutter 3.35.7, Dart 3.9.2, very_good_analysis.
 Routing: use fluro (Handler + Map<String, Handler> configuration). NEVER go_router, Navigator.push or MaterialPageRoute.
 Public exports: every feature package has TWO entry points:
   - lib/${feature}.dart  -> exports src/core/{feature}_router.dart, src/core/{feature}_routes.dart and src/core/{feature}_provider_overrides.dart (may transitively pull web deps)
-  - lib/${feature}_core.dart -> exports ONLY src/core/{feature}_routes.dart and data models (safe for VM tests and controllers)
+  - lib/${feature}_core.dart -> exports src/core/{feature}_routes.dart, data models and controllers that do NOT import web-only packages (safe for VM tests and controllers)
 Package layout per feature:
   - lib/src/core/{feature}_routes.dart (static route strings)
   - lib/src/core/{feature}_router.dart (fluro Handler map)
@@ -322,6 +322,12 @@ Package layout per feature:
   - lib/src/data/repositories/ (abstract contract, provider tokens, impl, repository provider)
   - lib/src/presentation/flow/<module>/<module>_screen.dart + <module>_controller.dart (Screen wraps module in ModuleContainer; concrete controller extends abstract module controller)
   - lib/src/presentation/modules/<module>/<module>_module.dart + <module>_module_controller.dart (abstract) + <module>_states_notifier.dart + provider files
+CRITICAL SPEC AUTHOR INSTRUCTIONS:
+- The prompt below includes the EXISTING SOURCE CODE of the target feature. Read it carefully before proposing tasks.
+- If the acceptance criteria describe rendering a view state (loading, error, success, empty, etc.), the file to modify is almost always the MODULE widget at lib/src/presentation/modules/<module>/<module>_module.dart, NOT the screen, router or routes.
+- Only modify lib/src/core/{feature}_routes.dart or {feature}_router.dart when the acceptance criteria explicitly require a NEW route or a navigation change.
+- TODO comments, throw UnimplementedError, and empty/default switch branches in the existing code are signals of where work is needed.
+- Prefer modifying existing files. Create new files only when new models, repositories, services or providers are genuinely required.
 State management: hooks_riverpod + flutter_hooks. Notifiers extend StateNotifier with SafeStateNotifier and use freezed sealed classes for states.
 Serialization: freezed + json_serializable.
 NEVER suggest these mobile-only packages: ${forbiddenList}.
