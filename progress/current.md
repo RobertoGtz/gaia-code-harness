@@ -2,27 +2,53 @@
 
 ## Feature en curso
 
-Revisión profunda de consistencia entre código, documentación y configuración del repositorio tras la integración de Gherkin en SpecAuthorAgent.
+Aplicación de insights del artículo de Anthropic "Harness design for long-running application development": cerrar el loop de feedback entre evaluador e implementador, introducir handoff artifacts entre agentes, y hacer al Reviewer más escéptico con few-shot examples.
 
 ## Estado
 
 - `init.sh`: verde
-- `npm test`: 238/238 tests pasan, 18 suites
+- `npm test`: 242/242 tests pasan, 19 suites
 - `npx tsc --noEmit`: sin errores
-- Git working tree: limpio
+- Git working tree: limpio (commit f621a2b pushed)
 
 ## Notas de sesión
 
-- Se ejecutó `./init.sh` y todo el entorno está OK.
-- Se identificaron referencias obsoletas a `src/skills/` en `project-spec.md`, `CHECKPOINTS.md`, `src/agents/registry.ts` y comentarios de tests. Se actualizaron a `src/plugins/`.
-- Se corrigió el conteo de tests en `CHECKPOINTS.md` (120/12 → 238/18).
-- Se actualizó `.gitignore` para ignorar `progress/.state/` y logs individuales de jobs (`progress/*.md`), manteniendo `progress/current.md` y `progress/history.md`.
-- Se limpiaron archivos temporales de progreso no trackeados de una corrida anterior.
-- Se verificó que `docs/engineering/architecture.md` y `docs/engineering/workflow.md` ya reflejan correctamente la integración de Gherkin del commit anterior.
-- Se confirmó que `scripts/present.sh` ya incluye el slide de CLI deep-dive y el workflow con Gherkin.
-- Se creó/actualizó `docs/guides/cli-demo-script.md` con guión paso a paso para demo del Modo B.
-- **En progreso**: aplicar insights del artículo de Anthropic sobre harness design para tareas largas:
-  1. Cerrar el loop: feedback de Reviewer/MutationTester → ImplementerAgent (hasta N intentos).
-  2. Handoff artifact: cada agente escribe `handoff.md` con estado y próximos pasos.
-  3. Prompt tuning del Reviewer: añadir evaluación LLM con few-shot examples para hacerlo más escéptico.
-- **Nota**: ReviewerAgent actual es determinista (tests/lint/file count). El "prompt tuning" requiere añadir un paso de juicio con LLM.
+### Revisión de consistencia previa (commit 647088b)
+
+- Se identificaron y corrigieron referencias obsoletas a `src/skills/` → `src/plugins/` en `project-spec.md`, `CHECKPOINTS.md`, `src/agents/registry.ts` y comentarios de tests.
+- Se actualizó el conteo de tests en `CHECKPOINTS.md` (120/12 → 242/19) aunque el archivo aún podría necesitar ajuste si el número cambia.
+- Se actualizó `.gitignore` para ignorar `progress/.state/` y logs individuales de jobs.
+- Se limpiaron archivos temporales no trackeados.
+- Se creó `docs/guides/cli-demo-script.md` y se actualizó `scripts/present.sh` con slide de CLI deep-dive.
+
+### Cambios implementados (commit f621a2b)
+
+1. **Handoff artifacts** (`BaseAgent`, `SpecAuthorAgent`, `ImplementerAgent`, `ReviewerAgent`, `MutationTesterAgent`)
+   - Cada agente lee `handoff.md` del agente anterior y escribe uno nuevo al terminar.
+   - Resumen: estado actual, archivos tocados, próximo paso.
+   - Escritura best-effort para no fallar en entornos de test.
+
+2. **Prompt tuning del Reviewer** (`ReviewerAgent.runLLMReview`)
+   - Nuevo paso LLM con few-shot examples de buenas y malas reviews.
+   - Devuelve score 0-100 y lista de issues concretas.
+   - Si `passed === false`, retorna `REVIEW_ERROR` con el feedback.
+
+3. **Closed-loop review** (`Leader`)
+   - Si `ReviewerAgent` devuelve `REVIEW_ERROR` o `TEST_ERROR`, se guarda `reviewFeedback` en el job y se re-ejecuta `ImplementerAgent` (hasta 2 retries).
+   - Si `MutationTesterAgent` devuelve `TEST_ERROR` por mutaciones sobrevivientes, se hace lo mismo.
+   - `ImplementerAgent` inyecta `job.reviewFeedback` en el system prompt.
+
+4. **Persistencia**
+   - Añadido `reviewFeedback` a `CodeGenerationJob` y columna `review_feedback` en Postgres.
+
+### Tests
+
+- `tests/reviewer.test.ts`: casos de LLM review pasando/fallando.
+- `tests/handoff.test.ts`: lectura/escritura de `handoff.md`.
+- Todos los tests existentes siguen verdes.
+
+### Próximos pasos sugeridos
+
+- Validar el closed-loop del Leader con un test de integración real (mockear agentes + `orchestrateJob`).
+- Ajustar `CHECKPOINTS.md` con el conteo final de tests/suites si es necesario.
+- Evaluar si se prefiere que `ReviewerAgent` no cree el PR hasta que `MutationTesterAgent` pase, para evitar PRs duplicados en el loop de mutación.
