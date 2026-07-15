@@ -103,4 +103,17 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
 
 ### Test count
 
-- `CHECKPOINTS.md` actualizado a 263 tests en 21 suites.
+- `CHECKPOINTS.md` actualizado a 264 tests en 21 suites.
+
+### Plugin `flutter_web` actualizado para RPP cashflow
+
+- Se añadió `rpp-cashflow-multiplatform-pyme` al comentario de soporte.
+- Se corrigió `breb` → `bre_b` en `KNOWN_FEATURE_PACKAGES` y se añadieron `common`, `create_payment`, `link_pse`, `register_account`.
+- Se amplió el prompt context (`getPromptContext`) con:
+  - Arquitectura dual `lib/<feature>.dart` (web) vs `lib/<feature>_core.dart` (VM/tests/controllers).
+  - Distinción `presentation/flow/` (Screen + Controller concreto) vs `presentation/modules/` (Module widget + Controller abstracto + Notifier).
+  - Patrón de provider tokens + overrides para inyección de dependencias.
+  - Convenciones de tests `MockRef`, `mocktail`, y no importar web deps en tests VM.
+  - Referencias concretas del feature `bre_b` para `rpp-cashflow-multiplatform-pyme`.
+- Se parametrizó `baseHref` por repo (`/banking-accounts/pyme/cashflow/` para cashflow).
+- Se actualizaron y ampliaron tests en `tests/flutter-web-skill.test.ts`.

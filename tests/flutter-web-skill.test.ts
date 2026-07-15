@@ -179,11 +179,11 @@ describe('FlutterWebSkill', () => {
       expect(ctx.specSystem).toContain('fluro');
       expect(ctx.specSystem).toContain('NEVER go_router');
       expect(ctx.implementerSystem).toContain('packages/features/account_summary');
-      expect(ctx.implementerSystem).toContain('lib/account_summary.dart');
-      expect(ctx.implementerSystem).toContain('lib/src/core/account_summary_router.dart');
+      expect(ctx.implementerSystem).toContain('package:account_summary/account_summary.dart');
       expect(ctx.implementerSystem).toContain('lib/src/core/account_summary_routes.dart');
       expect(ctx.implementerSystem).toContain('lib/src/data/models/');
-      expect(ctx.implementerSystem).toContain('lib/src/presentation/');
+      expect(ctx.implementerSystem).toContain('lib/src/presentation/flow/');
+      expect(ctx.implementerSystem).toContain('lib/src/presentation/modules/');
       expect(ctx.reviewerSystem).toContain('fluro');
       expect(ctx.conventions).toMatchObject({
         routing: 'fluro',
@@ -197,7 +197,18 @@ describe('FlutterWebSkill', () => {
     it('falls back to placeholder feature when module is omitted', () => {
       const ctx = skill.getPromptContext({ title: 'Add feature', repo: 'rpp-account-basics-multiplatform-pyme' });
       expect(ctx.implementerSystem).toContain('packages/features/account_summary');
-      expect(ctx.implementerSystem).toContain('lib/account_summary.dart');
+      expect(ctx.implementerSystem).toContain('package:account_summary/account_summary.dart');
+    });
+
+    it('uses cashflow baseHref and references bre_b module paths for cashflow repos', () => {
+      const ctx = skill.getPromptContext({ title: 'Add feature', module: 'bre_b', repo: 'rpp-co/rpp-cashflow-multiplatform-pyme' });
+      expect(ctx.implementerSystem).toContain('packages/features/bre_b');
+      expect(ctx.implementerSystem).toContain('presummary_form_states_notifier.dart');
+      expect(ctx.implementerSystem).toContain('presummary_form_module.dart');
+      expect(ctx.conventions).toMatchObject({
+        featurePackage: 'bre_b',
+        baseHref: '/banking-accounts/pyme/cashflow/',
+      });
     });
 
     it('documents separate GitHub credentials for RPP repo — not rappi-inc token', () => {

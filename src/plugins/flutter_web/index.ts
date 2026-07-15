@@ -1,14 +1,15 @@
 /**
  * @fileoverview Flutter Web Platform Skill for RPP multiplatform monorepos
  *
- * Supports the structure found in rpp-co/rpp-account-basics-multiplatform-pyme:
+ * Supports the structure found in rpp-co repositories such as
+ * rpp-account-basics-multiplatform-pyme and rpp-cashflow-multiplatform-pyme:
  * - Melos monorepo with FVM 3.35.7 and Dart 3.9.2
  * - Apps under apps/app (rpp_pyme_app)
  * - Feature packages under packages/features/<feature>
- * - Shared base package under packages/base/pay_multiplatform_account_basics_common
+ * - Shared base packages under packages/base/pay_multiplatform_* (git overrides)
  * - fluro-based routing (NOT go_router)
  * - Dependencies resolved via melos bootstrap + pubspec_overrides.yaml
- * - Private dependencies come from Bitbucket git URLs; GitHub is used only for PRs
+ * - Private dependencies come from GitHub git URLs injected via setup.sh
  */
 
 import {
@@ -51,9 +52,13 @@ const FORBIDDEN_PACKAGES = [
 
 const KNOWN_FEATURE_PACKAGES = [
   "account_summary",
-  "breb",
+  "bre_b",
   "certificates",
+  "common",
+  "create_payment",
   "limits",
+  "link_pse",
+  "register_account",
   "vaults",
 ];
 
@@ -295,86 +300,95 @@ export class FlutterWebSkill implements PlatformSkill {
     const forbiddenList = FORBIDDEN_PACKAGES.join(", ");
     const featureExports = `lib/${feature}.dart`;
 
+    const isCashflow = job.repo.includes("cashflow");
+    const isAccountBasics = job.repo.includes("account-basics");
+    const baseHref = isCashflow
+      ? "/banking-accounts/pyme/cashflow/"
+      : "/banking-accounts/pyme/account-basics/";
+
     return {
       specSystem: `You are an expert Flutter Web architect for RPP multiplatform monorepos.
-Repo structure: apps/app + packages/features/<feature> + packages/base/pay_multiplatform_account_basics_common.
+Repo structure: apps/app + packages/features/<feature> + shared packages/base/pay_multiplatform_* (git overrides).
 Tooling: melos, FVM flutter 3.35.7, Dart 3.9.2, very_good_analysis.
 Routing: use fluro (Handler + Map<String, Handler> configuration). NEVER go_router, Navigator.push or MaterialPageRoute.
-Package layout: lib/${feature}.dart exports src/core/{feature}_router.dart and src/core/{feature}_routes.dart; src/data/models/, src/data/repositories/, src/presentation/.
-State management: hooks_riverpod + flutter_hooks.
+Public exports: every feature package has TWO entry points:
+  - lib/${feature}.dart  -> exports src/core/{feature}_router.dart, src/core/{feature}_routes.dart and src/core/{feature}_provider_overrides.dart (may transitively pull web deps)
+  - lib/${feature}_core.dart -> exports ONLY src/core/{feature}_routes.dart and data models (safe for VM tests and controllers)
+Package layout per feature:
+  - lib/src/core/{feature}_routes.dart (static route strings)
+  - lib/src/core/{feature}_router.dart (fluro Handler map)
+  - lib/src/core/{feature}_provider_overrides.dart (concrete repository/service overrides for production)
+  - lib/src/data/models/ (freezed models)
+  - lib/src/data/repositories/ (abstract contract, provider tokens, impl, repository provider)
+  - lib/src/presentation/flow/<module>/<module>_screen.dart + <module>_controller.dart (Screen wraps module in ModuleContainer; concrete controller extends abstract module controller)
+  - lib/src/presentation/modules/<module>/<module>_module.dart + <module>_module_controller.dart (abstract) + <module>_states_notifier.dart + provider files
+State management: hooks_riverpod + flutter_hooks. Notifiers extend StateNotifier with SafeStateNotifier and use freezed sealed classes for states.
 Serialization: freezed + json_serializable.
 NEVER suggest these mobile-only packages: ${forbiddenList}.
-Private dependencies are resolved via pubspec_overrides.yaml from Bitbucket; this is separate from GitHub PR credentials.`,
-      implementerSystem: `You are an expert Flutter Web developer for RPP.
+Private dependencies are resolved via pubspec_overrides.yaml with credentials injected by scripts/setup.sh; this is separate from GitHub PR credentials.`,
+      implementerSystem: `You are an expert Flutter Web developer for RPP multiplatform monorepos.
 - Feature package: ${base}
-- Dart package name for imports: "${feature}" (i.e. use "package:${feature}/src/..." for ALL imports of files in this feature package)
-- CRITICAL IMPORT RULE: In test files, NEVER use "package:pay_multiplatform/..." — always use "package:${feature}/..." (the feature package name from pubspec.yaml)
-- Public API: ${base}/${featureExports} (export router and routes only)
-- Router: ${base}/lib/src/core/${feature}_router.dart using fluro Handler + static configuration map
-- Routes: ${base}/lib/src/core/${feature}_routes.dart with static const route strings
-- Data: ${base}/lib/src/data/models/ (freezed models) and ${base}/lib/src/data/repositories/ (abstract contract + impl)
-- Presentation: ${base}/lib/src/presentation/ (widgets, providers, hooks)
-- Navigation: fluro only; routes are configured by the root app at apps/app from exported configuration maps
-- State: hooks_riverpod StateNotifier + StateNotifierProvider.autoDispose, flutter_hooks inside HookConsumerWidget
-- Tests: ${base}/test/ using mocktail + flutter_test
-  - Import models with: package:${feature}/src/data/models/...
-  - Import repositories with: package:${feature}/src/data/repositories/...
-  - CRITICAL TEST PATTERN: Do NOT import provider files or files that import controllers/modules. This avoids web-only transitive deps (dart:js_interop) that crash on the VM test platform.
-  - For StateNotifier tests: instantiate the notifier class DIRECTLY (not via ProviderContainer). Import only the notifier class file, mock the repository, and pass it to the constructor. Example:
-    \`\`\`
-    final notifier = MyNotifier(repository: mockRepository, state: initialState);
-    \`\`\`
-  - CRITICAL: some notifiers call async methods (e.g. loadFirstPage()) in their constructor via super(state). To test post-constructor state, ALWAYS await the relevant method again after construction:
-    \`\`\`
-    final notifier = MyNotifier(state: initialState, repository: mockRepo);
-    await notifier.loadFirstPage(); // re-await even though constructor called it
-    expect(notifier.state.pageState, WallPageState.pageLoaded);
-    \`\`\`
-  - KNOWN REPO LAYOUT for rpp-co/rpp-account-basics-multiplatform-pyme (account_summary feature):
-    * Notifier:   packages/features/account_summary/lib/src/presentation/modules/pyme_wall_movements/pyme_wall_movements_providers.dart
-    * Model:      packages/features/account_summary/lib/src/data/models/pyme_wall_movements/pyme_wall_movements_model.dart
-    * Repository: packages/features/account_summary/lib/src/data/repositories/pyme/pyme_repository.dart
-    * Test file:  packages/features/account_summary/test/presentation/modules/pyme_wall_movements/pyme_wall_movements_list_notifier_test.dart
-  - KNOWN CLASSES for account_summary:
-    * Notifier class:    PymeWallMovementsListNotifier(state: PymeWallMovementsResponse(), repository: repo)
-    * Repository class:  PymeRepository (abstract, method: Future<PymeWallMovementsResponse> fetchData(int page))
-    * Response model:    PymeWallMovementsResponse(content: [], last: true, totalElements: 0)
-    * Content model:     PymeMovementsContent(id: int)
-    * PageState enum:    WallPageState { firstPageLoading, pageLoading, pageLoaded, emptyPage, pageError }
-    * Mock pattern:      class MockPymeRepository extends Mock implements PymeRepository {}
-  - KNOWN IMPORT PATHS for account_summary tests (USE THESE EXACTLY, DO NOT INVENT PATHS):
-    * import 'package:account_summary/src/data/models/pyme_wall_movements/pyme_wall_movements_model.dart';
-    * import 'package:account_summary/src/data/repositories/pyme/pyme_repository.dart';
-    * import 'package:account_summary/src/presentation/modules/pyme_wall_movements/pyme_wall_movements_providers.dart';
-  - CRITICAL: the notifier is defined in pyme_wall_movements_providers.dart NOT in any file named pyme_wall_movements_list_notifier.dart
-  - CRITICAL: loadFirstPage calls repository.fetchData(1) (page 1), loadNextPage calls fetchData(state.page). Use when(() => mockRepo.fetchData(any())) in tests.
-  - Mock abstract repositories with mocktail; register fallback values if needed
-  - freezed models require ALL named fields (no positional constructors)
+- Dart package name for imports: "${feature}" (i.e. use "package:${feature}/src/..." for files inside this package)
+- CRITICAL PUBLIC IMPORT RULE:
+    * For screens, modules and production wiring (anything that may use web deps): import "package:${feature}/${feature}.dart"
+    * For controllers, tests, notifier unit tests and ANY file that must run on the Dart VM: import "package:${feature}/${feature}_core.dart"
+    * For the common feature package: use "package:common/common_core.dart" in controllers/tests; use "package:common/common.dart" only in widgets/modules
+    * NEVER import web-only packages such as pay_multiplatform_common_web or pay_multiplatform_security_web directly in test/controller files.
+- File layout for a module named <module>:
+    * Flow (concrete, web-safe): ${base}/lib/src/presentation/flow/<module>/<module>_screen.dart
+    * Flow controller: ${base}/lib/src/presentation/flow/<module>/<module>_controller.dart extends the abstract module controller below
+    * Module widget: ${base}/lib/src/presentation/modules/<module>/<module>_module.dart (HookConsumerWidget, switches on view states)
+    * Module controller abstract: ${base}/lib/src/presentation/modules/<module>/<module>_module_controller.dart (extends PayModuleController with PayMultiplatformBackNavigation)
+    * Notifier: ${base}/lib/src/presentation/modules/<module>/<module>_states_notifier.dart or <module>_module_provider.dart
+    * Provider tokens: ${base}/lib/src/data/repositories/repository_provider_tokens.dart
+    * Repository overrides: ${base}/lib/src/core/${feature}_provider_overrides.dart
+- When the task is about a MODULE widget (e.g. changing how a view state is rendered), modify the MODULE file (${base}/lib/src/presentation/modules/<module>/<module>_module.dart), NOT the screen/controller/router unless explicitly required.
+- Routing: fluro only. Concrete controllers use appManager.router.navigateTo(route, transition: TransitionType.fadeIn, clearStack: true/false) and appManager.router.navigateBack(). Routes are defined in ${base}/lib/src/core/${feature}_routes.dart.
+- State: freezed sealed classes with pattern matching. Notifiers extend StateNotifier<SealedClass> with SafeStateNotifier and set safeState = ...
+- Provider style: StateNotifierProvider.autoDispose for notifiers; Provider.autoDispose or plain Provider for controllers; repository/service tokens are overridden in ${feature}_provider_overrides.dart.
+- Dependency injection: define abstract Provider<T> tokens in repository_provider_tokens.dart that throw UnimplementedError; concrete repository implementations go in src/data/repositories/; production overrides in src/core/${feature}_provider_overrides.dart.
+- Tests: ${base}/test/src/ using mocktail + flutter_test
+    * Location: mirror the lib structure under test/src/ (e.g. test/src/presentation/modules/<module>/...)
+    * Notifier tests: import the NOTIFIER class file DIRECTLY, instantiate it with a mocked repository, and call async methods explicitly. Do NOT import module/widget/controller files.
+    * Controller tests: import the concrete controller from "package:${feature}/${feature}_core.dart", stub via MockRef pattern (mock appManager, router, repository tokens). If the feature has no test/src/mocks/mocks.dart, define local MockRef, MockAppManager, MockAppRouter and MockAppLogger classes using mocktail.
+    * NEVER import files that transitively import pay_multiplatform_common_web or pay_multiplatform_security_web in VM tests.
+    * Mock abstract repositories with mocktail: class MockXxxRepository extends Mock implements XxxRepository {}
+    * freezed models require ALL named fields (no positional constructors)
+- KNOWN CASHFLOW REPOS (rpp-co/rpp-cashflow-multiplatform-pyme):
+    * bre_b feature: notifier+module at packages/features/bre_b/lib/src/presentation/modules/presummary_form/presummary_form_states_notifier.dart and presummary_form_module.dart
+    * bre_b view states: packages/features/bre_b/lib/src/data/models/presummary_form/summary_form_view_states.dart (SummaryFormViewStates sealed class with PresummaryFormLoading/Error/Success, SummaryFormLoading/Error/Success)
+    * bre_b controller abstract: packages/features/bre_b/lib/src/presentation/modules/presummary_form/presummary_form_module_controller.dart
+    * bre_b concrete flow controller: packages/features/bre_b/lib/src/presentation/flow/presummary_form/presummary_form_controller.dart
+    * common package exports: common/common_core.dart (for tests/controllers) and common/common.dart (for widgets)
 - Linter: very_good_analysis; exclude generated files *.g.dart, *.freezed.dart, *.config.dart
 - Forbidden packages: ${forbiddenList}
 - Respond with ONLY file contents, no markdown fences.`,
       reviewerSystem: `You are a Flutter Web code reviewer for RPP.
 Check for:
 - fluro-based routing: router exposes Map<String, Handler>, no go_router, no Navigator.push, no MaterialPageRoute
-- package exports: lib/${feature}.dart exports only src/core/{feature}_router.dart and src/core/{feature}_routes.dart
-- architecture: data/models, data/repositories, presentation separation
-- state: hooks_riverpod + flutter_hooks, no StatefulWidget where a hook is enough
+- dual public exports: lib/${feature}.dart and lib/${feature}_core.dart exist; controllers/tests import the _core entry point, not the web entry point
+- architecture: data/models, data/repositories (tokens + impl + overrides), presentation/modules (abstract controller + notifier + module), presentation/flow (screen + concrete controller)
+- state: hooks_riverpod StateNotifier + StateNotifierProvider.autoDispose, freezed sealed classes, flutter_hooks inside HookConsumerWidget
+- module changes target the module file, not unnecessary flow/router files
 - generated files: exclude *.g.dart, *.freezed.dart, *.config.dart from analyze
 - mobile-only packages: ${forbiddenList} must be absent
-- tests: mocktail repository tests and flutter_test widget tests for loading/success/error states`,
+- tests: mocktail repository tests and flutter_test widget tests; tests do not import web-only transitive deps`,
       filePatterns: {
-        router: `${base}/lib/src/core/`,
-        route: `${base}/lib/src/core/`,
+        routes: `${base}/lib/src/core/${feature}_routes.dart`,
+        router: `${base}/lib/src/core/${feature}_router.dart`,
+        providerOverrides: `${base}/lib/src/core/${feature}_provider_overrides.dart`,
+        repositoryTokens: `${base}/lib/src/data/repositories/repository_provider_tokens.dart`,
         model: `${base}/lib/src/data/models/`,
         repository: `${base}/lib/src/data/repositories/`,
-        presentation: `${base}/lib/src/presentation/`,
-        test: `${base}/test/`,
+        flow: `${base}/lib/src/presentation/flow/`,
+        module: `${base}/lib/src/presentation/modules/`,
+        test: `${base}/test/src/`,
       },
       forbidden: FORBIDDEN_PACKAGES,
       conventions: {
         routing: "fluro",
         featurePackage: isKnown ? feature : "<feature>",
-        baseHref: "/banking-accounts/pyme/account-basics/",
+        baseHref,
         fvmVersion: "3.35.7",
         dartSdk: "3.9.2",
         repoOwner: job.repo.includes("/") ? job.repo.split("/")[0] : "rpp-co",
