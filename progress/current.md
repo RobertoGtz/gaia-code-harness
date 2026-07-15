@@ -206,3 +206,6 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
 - Se reinstaló `node_modules` varias veces (`npm cache clean --force`, `npm install --prefer-online`).
   - Al ejecutar `npm test`, 20/21 suites y 269/270 tests pasan; falla al final porque desaparece `jest-util/build/index.js` (problema externo/entorno, no del código).
 - Se hizo commit `8c60b2c` con la limpieza.
+- Se buscó código muerto en `src/`: se eliminó la función exportada sin usar `fetchJiraEpicTickets` en `src/tools/jira.ts`.
+  - `npx tsc --noEmit` sigue sin errores.
+  - Commit `ee4113f`.
