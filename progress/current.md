@@ -172,7 +172,14 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
   - `ReviewerAgent` aprobó con 85/100.
   - PR creado: https://github.com/rpp-co/rpp-cashflow-multiplatform-pyme/pull/15
   - Mutation testing skipped (no source files to mutate según el agente).
-- Limpieza del PR #15: se eliminaron del commit `a36c66d` los cambios no deseados en `pubspec_overrides.yaml` de varios packages y los archivos de build/fonts/assets. Se reescribió la branch `feature/28ee8542-handle-summaryformsuccess-and-summaryfor` con un commit limpio (`b0bc558`) que solo toca el module widget y el controller test.
+- Re-ejecución del mismo job (`06e334d5-bb74-4315-8151-728ea81866eb`) para validar las nuevas reglas:
+  - El job pasó tests y review (85/100) y creó el PR #16.
+  - Sin embargo, el commit del implementer volvió a incluir `pubspec_overrides.yaml` de varios packages y la carpeta `packages/features/bre_b/build/` con fonts/assets/cache.
+  - Se limpió el PR #16 reescribiendo la branch `feature/06e334d5-handle-summaryformsuccess-and-summaryfor` para que solo incluya el cambio real del module widget.
+- Fix en `gaia-code-harness/src/tools/git.ts`:
+  - Se extendió `unstageNeverCommitFiles` para deshacer y eliminar: `pubspec_overrides.yaml`, `.dart_tool/`, `build/`, `.flutter-plugins`, `.flutter-plugins-dependencies` y `*.cache.dill.track.dill`.
+  - De esta forma futuros jobs no empujarán esos archivos aunque `flutter test` los genere.
 - Prevención futura:
   - Se añadió a `docs/RULES.md` sección "Archivos y carpetas que NO se deben tocar" (pubspec_overrides.yaml, pubspec.yaml, build/, assets/, fonts/, etc.).
   - Se añadió regla equivalente en `flutter_web/index.ts` para que el skill lo recuerde.
+- Nota: el entorno local de tests de `gaia-code-harness` tiene problemas con paquetes de Jest incompletos (npm descarga tarballs sin `build/`); `npx tsc --noEmit` sí pasa. Pendiente reparar `node_modules`.
