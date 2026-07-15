@@ -176,6 +176,10 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
   - El job pasó tests y review (85/100) y creó el PR #16.
   - Sin embargo, el commit del implementer volvió a incluir `pubspec_overrides.yaml` de varios packages y la carpeta `packages/features/bre_b/build/` con fonts/assets/cache.
   - Se limpió el PR #16 reescribiendo la branch `feature/06e334d5-handle-summaryformsuccess-and-summaryfor` para que solo incluya el cambio real del module widget.
+  - Se corrigieron en el module widget:
+    - `SummaryFormError(message: final error)` → `SummaryFormError()` (la clase sellada no tiene campo `message`; se usa `CommonConstants.genericErrorMessage`).
+    - Parámetro `label:` del `PayButton` → `text:`.
+    - Se eliminó el `ref.listen` que navegaba automáticamente al emitirse `SummaryFormSuccess`, porque el criterio de aceptación dice que la navegación debe ser por la acción primaria del usuario.
 - Fix en `gaia-code-harness/src/tools/git.ts`:
   - Se extendió `unstageNeverCommitFiles` para deshacer y eliminar: `pubspec_overrides.yaml`, `.dart_tool/`, `build/`, `.flutter-plugins`, `.flutter-plugins-dependencies` y `*.cache.dill.track.dill`.
   - De esta forma futuros jobs no empujarán esos archivos aunque `flutter test` los genere.
