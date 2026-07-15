@@ -5,6 +5,8 @@
  */
 
 import { AgentContext, AgentResult } from '../types';
+import { readFile, writeFile } from '../tools/file';
+import * as path from 'path';
 
 // ─── ANSI color helpers ────────────────────────────────────────────────────
 const C = {
@@ -78,5 +80,28 @@ export abstract class BaseAgent {
       .map((l, i) => i === 0 ? l : `       ${l}`)
       .join('\n');
     console.log(`${timestamp()} ${this.tag} ${C.gray}${label}:${C.reset}\n       ${pretty}`);
+  }
+
+  /**
+   * Read the handoff artifact written by the previous agent.
+   * Returns an empty string if no handoff exists.
+   */
+  protected async readHandoff(workspacePath: string): Promise<string> {
+    const handoffPath = path.join(workspacePath, 'handoff.md');
+    return readFile(handoffPath).catch(() => '');
+  }
+
+  /**
+   * Write a handoff artifact for the next agent.
+   * The content should summarize what was done, the current state, and the next steps.
+   * Best-effort: the agent pipeline continues even if the handoff cannot be written.
+   */
+  protected async writeHandoff(workspacePath: string, content: string): Promise<void> {
+    const handoffPath = path.join(workspacePath, 'handoff.md');
+    try {
+      await writeFile(handoffPath, content);
+    } catch (err) {
+      this.logWarn(`Could not write handoff ${handoffPath}: ${err}`);
+    }
   }
 }

@@ -48,6 +48,23 @@ export class SpecAuthorAgent extends BaseAgent {
       spec.gherkinScenarios = await this.generateGherkinScenarios(job, spec);
       await this.saveSpec(workspacePath, spec, job.id);
 
+      await this.writeHandoff(workspacePath, `# Handoff: SpecAuthor → Implementer
+
+## Job
+- **Title**: ${job.title}
+- **Platform**: ${job.platform}
+- **Repository**: ${job.repo}
+- **Target branch**: ${job.targetBranch}
+- **Module**: ${job.module || 'N/A'}
+
+## Completed
+- Generated TechnicalSpec with ${spec.requirements.length} requirements, ${spec.tasks.length} tasks, ${spec.design.affectedFiles.length} affected files.
+- Generated Gherkin scenarios (${spec.gherkinScenarios ? (spec.gherkinScenarios.match(/^\\s*Scenario:/gm) || []).length : 0} scenarios) saved to specs/${job.id}/scenarios.feature.
+
+## Next step
+Wait for human approval, then ImplementerAgent should execute the tasks in spec.tasks. If Gherkin scenarios exist, inject them into the implementerSystem prompt so the generated code satisfies the observable acceptance criteria.
+`);
+
       return { success: true, output: 'Specification generated successfully', spec, nextStatus: 'spec_ready' };
     } catch (error) {
       if (error instanceof GaiaError) {

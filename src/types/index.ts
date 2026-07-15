@@ -173,6 +173,9 @@ export interface CodeGenerationJob {
   updatedAt: Date;
   /** Structured error context — set when job enters an error state */
   errorContext?: ErrorContext;
+
+  /** Feedback from Reviewer/MutationTester used by ImplementerAgent on retry loops */
+  reviewFeedback?: string;
 }
 
 export interface TechnicalSpec {

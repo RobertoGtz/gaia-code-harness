@@ -58,11 +58,16 @@ export class ImplementerAgent extends BaseAgent {
       const spec = job.spec;
       if (!spec) return { success: false, output: '', error: 'No spec found in job' };
 
+      const handoff = await this.readHandoff(workspacePath);
+      if (handoff) this.log(`Read handoff from previous agent (${handoff.length} chars)`);
+
       const pluginLoader = await createPluginLoader(repoPath);
       const repoRules = pluginLoader.getRulesAsContext();
       const promptCtx = skill.getPromptContext(job);
       if (repoRules) promptCtx.implementerSystem = `# Project-specific rules\n\n${repoRules}\n\n---\n\n${promptCtx.implementerSystem}`;
+      if (handoff) promptCtx.implementerSystem = `# Handoff from previous agent\n\n${handoff}\n\n---\n\n${promptCtx.implementerSystem}`;
       if (spec.gherkinScenarios) promptCtx.implementerSystem = `# Acceptance scenarios (Gherkin)\n\n${spec.gherkinScenarios}\n\n---\n\n${promptCtx.implementerSystem}`;
+      if (job.reviewFeedback) promptCtx.implementerSystem = `# Reviewer feedback (iteration) — address before anything else\n\n${job.reviewFeedback}\n\n---\n\n${promptCtx.implementerSystem}`;
       const modulePubspec = job.module
         ? path.join(repoPath, 'packages/features', job.module, 'pubspec.yaml')
         : path.join(repoPath, 'pubspec.yaml');
@@ -142,6 +147,27 @@ export class ImplementerAgent extends BaseAgent {
         );
       }
 
+      await this.writeHandoff(workspacePath, `# Handoff: Implementer → Reviewer
+
+## Job
+- **Title**: ${job.title}
+- **Platform**: ${job.platform}
+- **Repository**: ${job.repo}
+- **Branch**: ${branchName}
+- **Module**: ${job.module || 'N/A'}
+
+## Completed
+- ${changes.length} files modified (${changes.filter(c => c.operation === 'create').length} created, ${changes.filter(c => c.operation === 'modify').length} modified).
+- ${testResult ? `Tests ${testResult.passed ? 'passing' : 'failed'} (command: ${testResult.command}).` : 'Tests skipped by job configuration.'}
+- Changes pushed to branch ${branchName}.
+
+## Files touched
+${changes.map(c => `- ${c.operation}: ${c.path}`).join('\n')}
+
+## Next step
+ReviewerAgent should run static analysis, platform tests, verify file count ≤ ${job.maxFilesToTouch}, and create the Pull Request.
+`);
+
       return {
         success: true,
         output: `Implementation completed. ${changes.length} files modified.${testResult ? ' Tests passing.' : ' Tests skipped.'}`,
@@ -189,11 +215,16 @@ export class ImplementerAgent extends BaseAgent {
       const spec = job.spec;
       if (!spec) return { success: false, output: '', error: 'No spec found' };
 
+      const handoff = await this.readHandoff(workspacePath);
+      if (handoff) this.log(`Read handoff from previous agent (${handoff.length} chars)`);
+
       const pluginLoader = await createPluginLoader(repoPath);
       const repoRules = pluginLoader.getRulesAsContext();
       const promptCtx = skill.getPromptContext(job);
       if (repoRules) promptCtx.implementerSystem = `# Project-specific rules\n\n${repoRules}\n\n---\n\n${promptCtx.implementerSystem}`;
+      if (handoff) promptCtx.implementerSystem = `# Handoff from previous agent\n\n${handoff}\n\n---\n\n${promptCtx.implementerSystem}`;
       if (spec.gherkinScenarios) promptCtx.implementerSystem = `# Acceptance scenarios (Gherkin)\n\n${spec.gherkinScenarios}\n\n---\n\n${promptCtx.implementerSystem}`;
+      if (job.reviewFeedback) promptCtx.implementerSystem = `# Reviewer feedback (iteration) — address before anything else\n\n${job.reviewFeedback}\n\n---\n\n${promptCtx.implementerSystem}`;
       const modulePubspec = job.module
         ? path.join(repoPath, 'packages/features', job.module, 'pubspec.yaml')
         : path.join(repoPath, 'pubspec.yaml');
@@ -353,6 +384,27 @@ export class ImplementerAgent extends BaseAgent {
       this.logStep('Committing & pushing changes...');
       try { await commitAndPush(git, `feat: ${job.title}\n\nCloses ${job.jiraTicketId || 'N/A'}`, ['.'], branchName, job.repo); }
       catch (err) { throw new GaiaRepoError(`[${job.platform}] Failed to push '${branchName}'`, String(err)); }
+
+      await this.writeHandoff(workspacePath, `# Handoff: Implementer (TDD) → Reviewer
+
+## Job
+- **Title**: ${job.title}
+- **Platform**: ${job.platform}
+- **Repository**: ${job.repo}
+- **Branch**: ${branchName}
+- **Module**: ${job.module || 'N/A'}
+
+## Completed
+- ${changes.length} files modified using Red-Green-Refactor (${changes.filter(c => c.operation === 'create').length} created, ${changes.filter(c => c.operation === 'modify').length} modified).
+- Tests passing after final fix loop.
+- Changes pushed to branch ${branchName}.
+
+## Files touched
+${changes.map(c => `- ${c.operation}: ${c.path}`).join('\n')}
+
+## Next step
+ReviewerAgent should run static analysis, platform tests, verify file count ≤ ${job.maxFilesToTouch}, and create the Pull Request.
+`);
 
       return {
         success: true,

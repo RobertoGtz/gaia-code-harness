@@ -1,9 +1,11 @@
 import { ReviewerAgent } from '../src/agents/reviewer';
 import * as gitTools from '../src/tools/git';
 import * as skills from '../src/plugins';
+import * as llm from '../src/tools/llm';
 import { GitHubAuthError, GitHubNotFoundError, GitPushError } from '../src/tools/git';
 
 jest.mock('../src/plugins');
+jest.mock('../src/tools/llm');
 
 const mockedSkills = skills as jest.Mocked<typeof skills>;
 
@@ -17,13 +19,15 @@ function makeJob(overrides: any = {}) {
     branchName: 'feature/job-1-add-feature',
     maxFilesToTouch: 5,
     requireTests: false,
+    acceptanceCriteria: [{ id: 'ac-1', text: 'WHEN x THEN y', testable: true }],
     spec: {
-      requirements: [{ content: 'Do thing' }],
+      requirements: [{ id: 'r1', content: 'Do thing' }],
       design: {
         affectedFiles: ['a.swift'],
         newFiles: ['b.swift'],
         architectureDecisions: ['Use protocol'],
       },
+      tasks: [{ id: 't1', type: 'modify', description: 'Update a.swift', filePath: 'a.swift', status: 'pending' }],
     },
     ...overrides,
   };
@@ -54,6 +58,11 @@ describe('ReviewerAgent', () => {
     parseGitHubRepoFromRemoteSpy = jest.spyOn(gitTools, 'parseGitHubRepoFromRemote').mockResolvedValue({ owner: 'rappi-inc', repo: 'ios-rappi-main' });
     createGitHubPRSpy = jest.spyOn(gitTools, 'createGitHubPR').mockResolvedValue({ url: 'https://github.com/rappi-inc/ios-rappi-main/pull/1', id: '1', number: 1 });
     addJiraCommentSpy = jest.spyOn(gitTools, 'addJiraComment').mockResolvedValue(undefined);
+    (llm.callLLM as jest.MockedFunction<typeof llm.callLLM>).mockResolvedValue({
+      text: '{"score": 95, "passed": true, "issues": []}',
+      provider: 'openai',
+      model: 'gpt-test',
+    });
   });
 
   afterEach(() => {
@@ -135,5 +144,28 @@ describe('ReviewerAgent', () => {
     const result = await agent.execute({ job: makeJob(), workspacePath: '/workspace/job' } as any);
     expect(result.success).toBe(false);
     expect(result.error).toContain('Review failed');
+  });
+
+  it('fails with REVIEW_ERROR when LLM review score is below threshold', async () => {
+    (llm.callLLM as jest.MockedFunction<typeof llm.callLLM>).mockResolvedValue({
+      text: '{"score": 55, "passed": false, "issues": ["Missing test for empty list edge case"]}',
+      provider: 'openai',
+      model: 'gpt-test',
+    });
+    const result = await agent.execute({ job: makeJob(), workspacePath: '/workspace/job' } as any);
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe('REVIEW_ERROR');
+    expect(result.error).toContain('Missing test for empty list edge case');
+  });
+
+  it('passes when LLM review score is above threshold', async () => {
+    (llm.callLLM as jest.MockedFunction<typeof llm.callLLM>).mockResolvedValue({
+      text: '{"score": 90, "passed": true, "issues": []}',
+      provider: 'openai',
+      model: 'gpt-test',
+    });
+    const result = await agent.execute({ job: makeJob(), workspacePath: '/workspace/job' } as any);
+    expect(result.success).toBe(true);
+    expect(result.prUrl).toBe('https://github.com/rappi-inc/ios-rappi-main/pull/1');
   });
 });

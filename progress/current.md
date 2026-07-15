@@ -21,4 +21,8 @@ Revisión profunda de consistencia entre código, documentación y configuració
 - Se verificó que `docs/engineering/architecture.md` y `docs/engineering/workflow.md` ya reflejan correctamente la integración de Gherkin del commit anterior.
 - Se confirmó que `scripts/present.sh` ya incluye el slide de CLI deep-dive y el workflow con Gherkin.
 - Se creó/actualizó `docs/guides/cli-demo-script.md` con guión paso a paso para demo del Modo B.
-- **Pendiente/recomendación**: no hay tests unitarios para `SpecAuthorAgent.generateGherkinScenarios()` ni para la inyección de Gherkin en `ImplementerAgent`. Agregar en futura sesión si se considera necesario para cumplir C4 en cambios de agentes.
+- **En progreso**: aplicar insights del artículo de Anthropic sobre harness design para tareas largas:
+  1. Cerrar el loop: feedback de Reviewer/MutationTester → ImplementerAgent (hasta N intentos).
+  2. Handoff artifact: cada agente escribe `handoff.md` con estado y próximos pasos.
+  3. Prompt tuning del Reviewer: añadir evaluación LLM con few-shot examples para hacerlo más escéptico.
+- **Nota**: ReviewerAgent actual es determinista (tests/lint/file count). El "prompt tuning" requiere añadir un paso de juicio con LLM.

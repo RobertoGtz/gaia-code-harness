@@ -43,6 +43,9 @@ export class MutationTesterAgent extends BaseAgent {
     const repoPath = path.join(workspacePath, 'repo');
     this.logStep(`Mutation testing: ${job.title} [${job.platform}]`);
 
+    const handoff = await this.readHandoff(workspacePath);
+    if (handoff) this.log(`Read handoff from previous agent (${handoff.length} chars)`);
+
     try {
       const skill = await loadSkill(job.platform, repoPath);
 
@@ -126,6 +129,22 @@ export class MutationTesterAgent extends BaseAgent {
       await fs.writeFile(reportPath, report, 'utf8').catch(() => {});
 
       this.log(`Mutation score: ${scoreStr} (${killed}/${total} killed) — ${passed ? 'PASS ✅' : 'FAIL ❌'}`);
+
+      const handoffContent = `# Handoff: MutationTester → End of pipeline
+
+## Job
+- **Title**: ${job.title}
+- **Platform**: ${job.platform}
+- **Repository**: ${job.repo}
+
+## Completed
+- Mutation score: ${scoreStr} (${killed}/${total} killed).
+- Report saved to: ${reportPath}
+
+## Status
+${passed ? '✅ All surviving mutations justified or no survivors.' : '❌ Some mutations survived — consider strengthening tests or justifying equivalent mutants.'}
+`;
+      await this.writeHandoff(workspacePath, handoffContent);
 
       if (!passed) {
         return {

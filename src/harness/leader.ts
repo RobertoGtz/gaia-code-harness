@@ -498,10 +498,11 @@ async function handleReviewing(job: CodeGenerationJob): Promise<void> {
     leaderError(`Review failed [${errorCode}]: ${result.error}`);
     await addProgressLog(job.id, `Review failed [${errorCode}]: ${result.error}`);
 
-    if (errorCode === 'TEST_ERROR' && retryCount < 2) {
-      // Tests failed after review — retry implementation
-      await addProgressLog(job.id, `Review retry ${retryCount + 1}/2 — returning to implementing`);
-      await updateJobStatus(job.id, 'implementing');
+    const MAX_REVIEW_RETRIES = 2;
+    if ((errorCode === 'REVIEW_ERROR' || errorCode === 'TEST_ERROR') && retryCount < MAX_REVIEW_RETRIES) {
+      // Closed-loop: reviewer feedback is sent back to ImplementerAgent for retry
+      await addProgressLog(job.id, `Review retry ${retryCount + 1}/${MAX_REVIEW_RETRIES} — returning to implementing with feedback`);
+      await updateJobStatus(job.id, 'implementing', { reviewFeedback: result.error });
       await orchestrateJob(job.id);
       return;
     }
@@ -529,6 +530,15 @@ async function handleReviewing(job: CodeGenerationJob): Promise<void> {
   leaderLog('Running mutation tester...');
   const mutResult = await agents.mutationTester.execute(mutCtx);
   if (!mutResult.success) {
+    const mutRetryCount = job.progressLogs.filter(l => l.includes('Mutation retry')).length;
+    const MAX_MUTATION_RETRIES = 2;
+    if (mutResult.errorCode === 'TEST_ERROR' && mutRetryCount < MAX_MUTATION_RETRIES) {
+      leaderWarn(`Mutation score below threshold — retrying implementation with feedback`);
+      await addProgressLog(job.id, `Mutation retry ${mutRetryCount + 1}/${MAX_MUTATION_RETRIES} — returning to implementing with feedback`);
+      await updateJobStatus(job.id, 'implementing', { reviewFeedback: mutResult.error });
+      await orchestrateJob(job.id);
+      return;
+    }
     leaderWarn(`Mutation score below threshold: ${mutResult.error}`);
     await addProgressLog(job.id, `Mutation test: ${mutResult.error ?? 'score below threshold'}`);
   } else {
