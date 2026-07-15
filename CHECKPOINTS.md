@@ -27,7 +27,7 @@
 
 - [ ] `src/` solo contiene los módulos previstos en `docs/engineering/architecture.md`.
 - [ ] Los agentes TypeScript (`src/agents/`) no tienen lógica de plataforma —
-      esa vive en `src/skills/{platform}/`.
+      esa vive en `src/plugins/{platform}/`.
 - [ ] No hay `console.log` de debug sueltos, ni TODOs sin contexto.
 - [ ] Leader (`src/harness/leader.ts`) importa de `state/`, nunca directamente de `db/`.
 
@@ -35,7 +35,7 @@
 
 - [ ] `src/agents/` tiene tests de integración o unit para el agente tocado.
 - [ ] Los tests usan fixtures reales, no mocks frágiles de filesystem.
-- [ ] `npm test` muestra > 0 tests y todos verdes (actualmente: 120 tests en 12 suites).
+- [ ] `npm test` muestra > 0 tests y todos verdes (actualmente: 238 tests en 18 suites).
 
 ## C5 — La sesión se cerró bien
 

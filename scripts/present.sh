@@ -91,15 +91,19 @@ slides+=("${YELLOW}[SLIDE 4] The Workflow (all modes)${NC}
 
 ${GREEN}1. Trigger a job${NC} ← mode-specific (A / B / C)
    ↓
-${GREEN}2. SpecAuthor generates technical spec${NC}
+${GREEN}2. SpecAuthor generates TechnicalSpec${NC} (JSON)
+   ↓
+${GREEN}2b. SpecAuthor generates Gherkin scenarios${NC} (.feature) — non-blocking
    ↓
 ${CYAN}3. HUMAN REVIEWS and APPROVES spec${NC} ⭐
    ↓
-${GREEN}4. Implementer writes code + tests${NC}
+${GREEN}4. Implementer writes code${NC} (Gherkin injected into prompts)
    ↓
 ${GREEN}5. Reviewer validates + creates GitHub PR${NC}
    ↓
-${CYAN}6. Normal code review by team${NC}
+${GREEN}6. MutationTester validates test quality${NC} (≥ 80% kill rate)
+   ↓
+${CYAN}7. Normal code review by team${NC}
 
 Two human checkpoints: spec approval + PR review.
 
@@ -129,6 +133,29 @@ ${MAGENTA}Mode D — Jira-only HTTP${NC}
   System fetches title, description, ACs from Jira
   Best for: product managers who already write tickets in Jira
   ${CYAN}./scripts/demo.sh flutter jira PROJ-123${NC}
+
+Press Enter to continue...")
+
+slides+=("${YELLOW}[SLIDE 5b] Mode B — CLI Deep Dive${NC}
+
+No server. No Docker. No Postgres. Just a terminal.
+
+${CYAN}npx ts-node src/cli/run.ts --job demo.json --approve${NC}
+
+What happens internally:
+
+  ${GREEN}1.${NC} SpecAuthor    → TechnicalSpec JSON
+  ${GREEN}2.${NC} SpecAuthor    → scenarios.feature  (Gherkin, 2nd LLM call)
+  ${CYAN}  ⏸ --approve skips the manual gate${NC}
+  ${GREEN}3.${NC} Implementer   → reads Gherkin + writes code
+  ${GREEN}4.${NC} Reviewer      → creates GitHub PR
+  ${GREEN}5.${NC} MutationTester → validates test quality
+
+State persists to disk (progress/.state/)
+Progress log: progress/<JOB_ID>.md
+Gherkin file: specs/<JOB_ID>/scenarios.feature
+
+${CYAN}Full script: docs/guides/cli-demo-script.md${NC}
 
 Press Enter to continue...")
 
@@ -249,3 +276,4 @@ echo "  → Do we need any additional notifiers or platform skills?"
 echo ""
 echo "Full docs:"
 echo "  README.md · docs/engineering/architecture.md · docs/guides/demo.md · API.md"
+echo "  docs/guides/cli-demo-script.md  ← guión paso a paso para Modo B"

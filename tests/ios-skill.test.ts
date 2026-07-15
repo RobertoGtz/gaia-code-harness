@@ -1,5 +1,5 @@
 /**
- * Unit tests for IosSkill (src/skills/ios/index.ts).
+ * Unit tests for IosSkill (src/plugins/ios/index.ts).
  * Mocks the xcode-runner toolchain functions — no shell or filesystem access.
  */
 import { IosSkill } from '../src/plugins/ios';

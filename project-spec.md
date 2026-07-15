@@ -68,7 +68,7 @@ validación sin cambiar el resto del pipeline.
 
 ### Artefactos
 
-- `src/skills/ios/index.ts` — selección de estrategia y orquestación.
+- `src/plugins/ios/index.ts` — selección de estrategia y orquestación.
 - `src/tools/xcode-runner.ts` — `runTuistBuild`, `runXcodeBuild`, `ensureTuistGenerated`, etc.
 - `src/tools/repo.ts` — `setupRepository` con cache y upstream preservation.
 - `src/tools/git.ts` — remote parsing, PR creation, token injection.
@@ -118,7 +118,7 @@ lib/
    `flutter pub get` resuelva las dependencias externas.
 
 2. **Navegación con `fluro`, no `go_router`.** El router expone un `Map<String,
-   Handler>` con la ruta como clave y un `Handler` de fluro. El root app
+Handler>` con la ruta como clave y un `Handler` de fluro. El root app
    (`apps/app`) reúne las configuraciones de todas las features y las pasa al
    `router.configureRoutes(...)`. El skill no debe generar `Navigator.push` ni
    `MaterialPageRoute` directamente.
@@ -167,7 +167,7 @@ lib/
 
 ### Artefactos
 
-- `src/skills/flutter_web/index.ts` — prompt context, verificación, build, test, analyze.
+- `src/plugins/flutter_web/index.ts` — prompt context, verificación, build, test, analyze.
 - `src/tools/test-runner.ts` — `runMelosBootstrap`, `runFlutterPubGet`, `runFlutterTests`, `runDartAnalyze`.
 - `feature_list.json` — feature `flutter-web-skill`.
 - `features/flutter-web-skill.feature` — contrato Gherkin.

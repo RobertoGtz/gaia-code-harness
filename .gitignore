@@ -45,3 +45,9 @@ temp/
 # Workspace (cloned repos)
 /tmp/
 /tmp/gaia-workspace/
+
+# Per-job runtime state/logs (keep progress/current.md and progress/history.md)
+progress/.state/
+progress/*.md
+!progress/current.md
+!progress/history.md

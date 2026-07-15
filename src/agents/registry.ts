@@ -1,15 +1,15 @@
 /**
  * @fileoverview Agent Registry - Factory for platform-agnostic agents
  * @description All platforms share the same three generic agents.
- *              Platform-specific logic lives in src/skills/{platform}/.
+ *              Platform-specific logic lives in src/plugins/{platform}/.
  */
 
-import { BaseAgent } from './base';
-import { Platform } from '../types';
-import { SpecAuthorAgent } from './spec-author';
-import { ImplementerAgent } from './implementer';
-import { ReviewerAgent } from './reviewer';
-import { MutationTesterAgent } from './mutation-tester';
+import { BaseAgent } from "./base";
+import { Platform } from "../types";
+import { SpecAuthorAgent } from "./spec-author";
+import { ImplementerAgent } from "./implementer";
+import { ReviewerAgent } from "./reviewer";
+import { MutationTesterAgent } from "./mutation-tester";
 
 /**
  * Set of agents for a specific platform.
@@ -27,7 +27,12 @@ const implementer = new ImplementerAgent();
 const reviewer = new ReviewerAgent();
 const mutationTester = new MutationTesterAgent();
 
-const SUPPORTED_PLATFORMS: Platform[] = ['flutter', 'flutter_web', 'ios', 'android'];
+const SUPPORTED_PLATFORMS: Platform[] = [
+  "flutter",
+  "flutter_web",
+  "ios",
+  "android",
+];
 
 /**
  * Get the set of agents for a given platform.
@@ -43,7 +48,7 @@ const SUPPORTED_PLATFORMS: Platform[] = ['flutter', 'flutter_web', 'ios', 'andro
 export function getAgentsForPlatform(platform: Platform): PlatformAgents {
   if (!SUPPORTED_PLATFORMS.includes(platform)) {
     throw new Error(
-      `Platform "${platform}" is not supported. Supported platforms: ${SUPPORTED_PLATFORMS.join(', ')}`
+      `Platform "${platform}" is not supported. Supported platforms: ${SUPPORTED_PLATFORMS.join(", ")}`,
     );
   }
   // All platforms use the same generic agents — skill loaded at runtime inside each agent
