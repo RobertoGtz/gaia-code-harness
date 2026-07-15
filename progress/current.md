@@ -226,6 +226,7 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
   - Se indexó en `docs/index.md` y `AGENTS.md`.
 - Nueva guía `docs/guides/claude-mode.md`:
   - Explica cómo usar GAIA en modo `.claude` (Claude Code): agentes, pipeline, `/run`, reglas y ejemplo de flujo.
+  - Se actualizó para documentar todos los nuevos recursos: `identity.json`, `package-manager.json`, `rules/`, `skills/`, `team/`, `workflows/` y `research/`.
   - Se indexó en `docs/index.md` y `AGENTS.md`.
 - Nuevos archivos de configuración Claude Code (estilo ECC):
   - `.claude/identity.json` — estilo y dominios técnicos.
