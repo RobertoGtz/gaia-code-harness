@@ -134,6 +134,7 @@ export async function setupJobRoutes(app: FastifyInstance) {
           requireTests: body.fullContext.requireTests ?? true,
           tddMode: body.tddMode ?? false,
           buildStrategy: body.fullContext.buildStrategy,
+          requestSource: 'api',
         };
       } else if (body.platform && body.title) {
         // Flat body — platform/title/repo/acceptanceCriteria directly
@@ -158,6 +159,7 @@ export async function setupJobRoutes(app: FastifyInstance) {
           requireTests: body.requireTests ?? true,
           tddMode: body.tddMode ?? false,
           buildStrategy: body.buildStrategy,
+          requestSource: 'api',
         };
       } else {
         // Jira-only — fetch full data from ticket
@@ -187,6 +189,7 @@ export async function setupJobRoutes(app: FastifyInstance) {
           figmaUrl: ticket.figmaUrl,
           maxFilesToTouch: body.maxFilesToTouch ?? 5,
           requireTests: body.requireTests ?? true,
+          requestSource: 'api',
         };
       }
       

@@ -64,6 +64,8 @@ export async function initDatabase(): Promise<void> {
         ADD COLUMN IF NOT EXISTS build_strategy VARCHAR(16);
       ALTER TABLE code_generation_jobs
         ADD COLUMN IF NOT EXISTS review_feedback TEXT;
+      ALTER TABLE code_generation_jobs
+        ADD COLUMN IF NOT EXISTS request_source VARCHAR(16);
       
       CREATE INDEX IF NOT EXISTS idx_jobs_status ON code_generation_jobs(status);
       CREATE INDEX IF NOT EXISTS idx_jobs_initiative ON code_generation_jobs(initiative_id);
@@ -102,9 +104,9 @@ export async function createJob(
       `INSERT INTO code_generation_jobs (
         jira_ticket_id, jira_epic_id, initiative_id, title, platform, repo, module,
         target_branch, description, acceptance_criteria, figma_url,
-        technical_constraints, max_files_to_touch, require_tests, tdd_mode, build_strategy,
+        technical_constraints, max_files_to_touch, require_tests, tdd_mode, build_strategy, request_source,
         status, progress_logs
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'pending', '[]')
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, 'pending', '[]')
       RETURNING *`,
       [
         jobData.jiraTicketId,
@@ -123,6 +125,7 @@ export async function createJob(
         jobData.requireTests,
         jobData.tddMode ?? false,
         jobData.buildStrategy,
+        jobData.requestSource,
       ]
     );
     return mapRowToJob(result.rows[0]);
@@ -323,6 +326,7 @@ function mapRowToJob(row: any): CodeGenerationJob {
     requireTests: row.require_tests,
     tddMode: row.tdd_mode ?? false,
     buildStrategy: row.build_strategy,
+    requestSource: row.request_source,
 
     status: row.status,
     currentAgent: row.current_agent,

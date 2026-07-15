@@ -200,6 +200,7 @@ export async function main(
     requireTests:         (raw.requireTests as boolean | undefined) ?? true,
     tddMode:              has('--tdd') || (raw.tddMode as boolean | undefined) || false,
     buildStrategy:        raw.buildStrategy as CodeGenerationJob['buildStrategy'],
+    requestSource:        'cli',
     status:               'pending' as const,
     progressLogs:         [] as string[],
   } satisfies Omit<CodeGenerationJob, 'id' | 'createdAt' | 'updatedAt'>;

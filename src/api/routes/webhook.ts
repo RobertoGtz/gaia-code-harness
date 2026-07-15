@@ -200,6 +200,7 @@ export async function setupWebhookRoutes(app: FastifyInstance): Promise<void> {
       initiativeId:       `init-${Date.now()}`,
       maxFilesToTouch:    trigger.maxFilesToTouch,
       requireTests:       trigger.requireTests,
+      requestSource:      'webhook',
       acceptanceCriteria: (trigger.acceptanceCriteria ?? []).map((ac, i) => ({
         id:       ac.id ?? `ac-${i}`,
         text:     ac.text,

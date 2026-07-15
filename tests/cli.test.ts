@@ -111,6 +111,22 @@ describe('CLI Mode B', () => {
       expect(mockOrchestrateJob).toHaveBeenCalledWith('job-123');
     });
 
+    it('tags CLI-created jobs with requestSource=cli', async () => {
+      const backend = makeBackend();
+      const jobJson = JSON.stringify({
+        platform: 'flutter',
+        title: 'Add feature',
+        repo: 'org/repo',
+        acceptanceCriteria: ['WHEN x THEN y'],
+      });
+
+      await main(['--job', jobJson], { backend });
+
+      expect(backend.createJob).toHaveBeenCalled();
+      const jobInit = (backend.createJob as jest.Mock).mock.calls[0][0];
+      expect(jobInit.requestSource).toBe('cli');
+    });
+
     it('creates job from JSON file and orchestrates', async () => {
       const backend = makeBackend();
       const tmpFile = path.join(__dirname, 'tmp-job.json');

@@ -150,6 +150,9 @@ export interface CodeGenerationJob {
 
   /** iOS build validation strategy: resolve | xcodebuild | tuist | auto (default: auto) */
   buildStrategy?: BuildStrategy;
+
+  /** How the job was triggered: api (Mode A), cli (Mode B), webhook (Mode C) */
+  requestSource?: 'api' | 'cli' | 'webhook';
   
   /** Current state in the state machine */
   status: JobStatus;
@@ -260,6 +263,7 @@ export interface CreateJobRequest {
   figmaUrl?: string;
   tddMode?: boolean;
   buildStrategy?: BuildStrategy;
+  requestSource?: 'api' | 'cli' | 'webhook';
   requireTests?: boolean;
   maxFilesToTouch?: number;
   acceptanceCriteria?: Array<string | { id: string; text: string; priority?: string }>;
