@@ -215,7 +215,12 @@ ${design.architectureDecisions.map(d => `- ${d}`).join('\n')}
     const fileContents = await Promise.all(
       modifiedFiles.slice(0, 10).map(async (f) => {
         const content = await readFile(path.join(repoPath, f)).catch(() => '');
-        return `--- ${f} ---\n${content.slice(0, 3000)}`;
+        // Controller tests can be long due to mock setup; reviewers need to see the actual test cases.
+        const isTest = f.endsWith('_test.dart');
+        const shown = isTest
+          ? (content.length > 12000 ? '...\n' + content.slice(-12000) : content)
+          : content.slice(0, 3000);
+        return `--- ${f} ---\n${shown}`;
       })
     );
 
