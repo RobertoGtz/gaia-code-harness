@@ -207,5 +207,13 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
   - Al ejecutar `npm test`, 20/21 suites y 269/270 tests pasan; falla al final porque desaparece `jest-util/build/index.js` (problema externo/entorno, no del código).
 - Se hizo commit `8c60b2c` con la limpieza.
 - Se buscó código muerto en `src/`: se eliminó la función exportada sin usar `fetchJiraEpicTickets` en `src/tools/jira.ts`.
-  - `npx tsc --noEmit` sigue sin errores.
   - Commit `ee4113f`.
+- Segunda pasada de código muerto (grep de exports + conteo de referencias):
+  - Se eliminaron `runKtlint` y `runGradleBuild` de `src/tools/gradle-runner.ts` (exportadas pero no usadas en producción ni tests).
+  - Commit `64a0ca5`.
+  - Se restauró `package-lock.json` (borrado accidentalmente durante pruebas): commit `b64da1f`.
+  - `npx tsc --noEmit` sigue sin errores.
+- Diagnóstico del fallo de Jest:
+  - `CleanMyMac` (com.macpaw.CleanMyMac5) está activo en segundo plano; es el principal sospechoso de borrar directorios `build/` dentro de `node_modules` (desaparecen `jest-util/build`, `jest-cli/build`, etc.).
+  - `npm test` pasa 20/21 suites y 269/270 tests; falla solo cuando `jest-util/build/index.js` ya no está disponible.
+  - Pendiente: pausar/ignorar `CleanMyMac` para confirmar y lograr `npm test` estable.
