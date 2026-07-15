@@ -19,7 +19,7 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
 - Se actualizó el conteo de tests en `CHECKPOINTS.md` (120/12 → 242/19) aunque el archivo aún podría necesitar ajuste si el número cambia.
 - Se actualizó `.gitignore` para ignorar `progress/.state/` y logs individuales de jobs.
 - Se limpiaron archivos temporales no trackeados.
-- Se creó `docs/guides/cli-demo-script.md` y se actualizó `scripts/present.sh` con slide de CLI deep-dive.
+- Se actualizó `scripts/present.sh` con slide de CLI deep-dive.
 
 ### Cambios implementados (commit f621a2b)
 
