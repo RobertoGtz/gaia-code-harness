@@ -178,6 +178,8 @@ describe('FlutterWebSkill', () => {
       const ctx = skill.getPromptContext({ title: 'Add feature', module: 'account_summary', repo: 'rpp-account-basics-multiplatform-pyme' });
       expect(ctx.specSystem).toContain('fluro');
       expect(ctx.specSystem).toContain('NEVER go_router');
+      expect(ctx.specSystem).toContain('ACTION → CONTROLLER RULE');
+      expect(ctx.implementerSystem).toContain('MANDATORY: whenever you add or use a controller method');
       expect(ctx.implementerSystem).toContain('packages/features/account_summary');
       expect(ctx.implementerSystem).toContain('package:account_summary/account_summary.dart');
       expect(ctx.implementerSystem).toContain('lib/src/core/account_summary_routes.dart');

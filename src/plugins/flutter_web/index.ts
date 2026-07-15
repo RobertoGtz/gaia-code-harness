@@ -328,6 +328,7 @@ CRITICAL SPEC AUTHOR INSTRUCTIONS:
 - Only modify lib/src/core/{feature}_routes.dart or {feature}_router.dart when the acceptance criteria explicitly require a NEW route or a navigation change.
 - TODO comments, throw UnimplementedError, and empty/default switch branches in the existing code are signals of where work is needed.
 - Prefer modifying existing files. Create new files only when new models, repositories, services or providers are genuinely required.
+- ACTION → CONTROLLER RULE: If the module widget introduces or wires a user action that delegates to a controller method (e.g. retry -> controller.loadPresummary, primary button -> controller.navigateToSummary), the spec MUST also include tasks to (a) declare the method in the abstract module controller, (b) implement it in the concrete flow controller, and (c) add/update a controller test at test/src/presentation/flows/<module>/<module>_controller_test.dart verifying the method (navigation target, notifier call, etc.).
 State management: hooks_riverpod + flutter_hooks. Notifiers extend StateNotifier with SafeStateNotifier and use freezed sealed classes for states.
 Serialization: freezed + json_serializable.
 NEVER suggest these mobile-only packages: ${forbiddenList}.
@@ -357,6 +358,7 @@ Private dependencies are resolved via pubspec_overrides.yaml with credentials in
     * Location: mirror the lib structure under test/src/ (e.g. test/src/presentation/modules/<module>/...)
     * Notifier tests: import the NOTIFIER class file DIRECTLY, instantiate it with a mocked repository, and call async methods explicitly. Do NOT import module/widget/controller files.
     * Controller tests: import the concrete controller from "package:${feature}/${feature}_core.dart", stub via MockRef pattern (mock appManager, router, repository tokens). If the feature has no test/src/mocks/mocks.dart, define local MockRef, MockAppManager, MockAppRouter and MockAppLogger classes using mocktail.
+    * MANDATORY: whenever you add or use a controller method from a module widget (e.g. controller.loadPresummary, controller.navigateToSummary), you MUST also create/update the controller test at test/src/presentation/flows/<module>/<module>_controller_test.dart and verify the method behavior (navigation target, notifier call, etc.). Do NOT finish implementation without this test.
     * NEVER import files that transitively import pay_multiplatform_common_web or pay_multiplatform_security_web in VM tests.
     * Mock abstract repositories with mocktail: class MockXxxRepository extends Mock implements XxxRepository {}
     * freezed models require ALL named fields (no positional constructors)
