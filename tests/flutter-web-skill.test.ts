@@ -183,6 +183,7 @@ describe('FlutterWebSkill', () => {
       expect(ctx.implementerSystem).toContain('NEVER import the module widget, screen, router');
       expect(ctx.implementerSystem).toContain("any(named: 'transition')");
       expect(ctx.implementerSystem).toContain('PresummaryFormStatesNotifier');
+      expect(ctx.implementerSystem).toContain('NEVER import a relative mocks path that does not exist');
       expect(ctx.implementerSystem).toContain('presummaryFormViewStateProvider');
       expect(ctx.implementerSystem).toContain('packages/features/account_summary');
       expect(ctx.implementerSystem).toContain('package:account_summary/account_summary.dart');
