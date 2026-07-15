@@ -43,6 +43,7 @@
 | `tools/mutate.py`                      | Mutador determinístico sin dependencias (Python, TS, Swift, Kotlin)                             | Fase de mutación                        |
 | `.claude/agents/`                      | `craftsman_lead`, `spec_partner`, `gherkin_author`, `tdd_craftsman`, `judge`, `mutation_tester` | Si orquestas trabajo                    |
 | `.claude/commands/run.md`              | Slash command `/run` para lanzar el Modo B (CLI) desde Claude Code con los mismos agentes       | Si quieres correr GAIA sin teclear CLI  |
+| `docs/guides/claude-vs-gaia-agents.md` | Cuándo usar GAIA agents vs `.claude/agents`                                                     | Para decidir modo de ejecución          |
 
 ### Archivos del harness TypeScript (HTTP mode)
 

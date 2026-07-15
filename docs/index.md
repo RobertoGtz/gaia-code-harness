@@ -19,15 +19,16 @@
 
 ### Uso y referencia
 
-| Documento                                                          | Descripción                                   | Audiencia              |
-| ------------------------------------------------------------------ | --------------------------------------------- | ---------------------- |
-| [`docs/guides/quick-start.md`](../guides/quick-start.md)           | Guía completa de los 3 modos con ejemplos     | Cualquier persona      |
-| [`docs/guides/demo.md`](../guides/demo.md)                         | Demo paso a paso, comandos listos para copiar | PM / Tech Lead         |
-| [`API.md`](../API.md)                                              | Referencia completa REST + Webhook            | Dev / CI               |
-| [`docs/guides/setup.md`](../guides/setup.md)                       | Instalación detallada por plataforma          | Dev                    |
-| [`docs/guides/testing.md`](../guides/testing.md)                   | Cómo correr tests localmente                  | Dev                    |
-| [`docs/guides/cli-mode-product.md`](../guides/cli-mode-product.md) | Cómo funciona el CLI Mode (para producto)     | PM / Cualquier persona |
-| [`docs/guides/production.md`](../guides/production.md)             | Checklist antes de ir a producción            | DevOps / Tech Lead     |
+| Documento                                                                    | Descripción                                   | Audiencia              |
+| ---------------------------------------------------------------------------- | --------------------------------------------- | ---------------------- |
+| [`docs/guides/quick-start.md`](../guides/quick-start.md)                     | Guía completa de los 3 modos con ejemplos     | Cualquier persona      |
+| [`docs/guides/demo.md`](../guides/demo.md)                                   | Demo paso a paso, comandos listos para copiar | PM / Tech Lead         |
+| [`API.md`](../API.md)                                                        | Referencia completa REST + Webhook            | Dev / CI               |
+| [`docs/guides/setup.md`](../guides/setup.md)                                 | Instalación detallada por plataforma          | Dev                    |
+| [`docs/guides/testing.md`](../guides/testing.md)                             | Cómo correr tests localmente                  | Dev                    |
+| [`docs/guides/cli-mode-product.md`](../guides/cli-mode-product.md)           | Cómo funciona el CLI Mode (para producto)     | PM / Cualquier persona |
+| [`docs/guides/claude-vs-gaia-agents.md`](../guides/claude-vs-gaia-agents.md) | ¿Cuándo usar GAIA agents vs `.claude/agents`? | Dev / Tech Lead        |
+| [`docs/guides/production.md`](../guides/production.md)                       | Checklist antes de ir a producción            | DevOps / Tech Lead     |
 
 ### Arquitectura e ingeniería
 
@@ -69,8 +70,9 @@ gaia-code-harness/
 │   │   ├── demo.md          ← Demo con comandos listos
 │   │   ├── setup.md              ← Instalación detallada
 │   │   ├── testing.md            ← Testing local
-│   │   ├── cli-mode-product.md   ← Cómo funciona el CLI Mode (para producto)
-│   │   └── production.md         ← Checklist pre-producción
+│   │   ├── cli-mode-product.md        ← Cómo funciona el CLI Mode (para producto)
+│   │   ├── claude-vs-gaia-agents.md ← ¿Cuándo usar GAIA agents vs `.claude/agents`?
+│   │   └── production.md            ← Checklist pre-producción
 │   ├── engineering/   ← Disciplina de ingeniería (devs + agentes IA)
 │   │   ├── architecture.md  ← Arquitectura interna
 │   │   ├── workflow.md      ← Pipeline + mapeo 3 modos
