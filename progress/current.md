@@ -146,3 +146,23 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
   - El push ahora funciona; la branch remota `feature/14625297-handle-summaryformsuccess-and-summaryfor` fue creada en `rpp-co/rpp-cashflow-multiplatform-pyme`.
   - Los cambios se trajeron al repo local en Desktop y están visibles en `packages/features/bre_b/lib/src/presentation/modules/presummary_form/presummary_form_module.dart`.
   - `ReviewerAgent` sigue pidiendo tests para retry/navigation, lo cual es un problema de prompt/cobertura separado.
+
+### Refinamiento de controller tests para `bre_b` (docs/gaia-conventions)
+
+- Se añadió un esqueleto de controller test en `packages/features/bre_b/test/src/presentation/flow/presummary_form/presummary_form_controller_test.dart` con mocks locales, imports correctos y tests para `loadPresummary`, `retryLoadingPresummary` y `navigateToSummary`.
+- Se actualizó `presummary_form_module_controller.dart` para declarar `retryLoadingPresummary()` abstracto y `presummary_form_controller.dart` para implementarlo importando `presummary_form_module_provider.dart`.
+- Se actualizó `UNIT_TESTS.md` con ejemplo concreto del controller test `bre_b`.
+- Se reforzó el prompt de `flutter_web` (`src/plugins/flutter_web/index.ts`):
+  - Uso de mocks locales cuando no existe `test/src/mocks/mocks.dart`.
+  - Import obligatorio de `hooks_riverpod` y `pay_multiplatform_common` en controller tests.
+  - Patrón `MockAppManager` sin getter recursivo.
+  - Prohibir `handleSuccess`/`handleError` y métodos similares en controllers.
+  - Prohibir stubs/asserts sobre estado del notifier en controller tests.
+  - Conservar imports/mocks existentes cuando el archivo de test ya existe.
+  - Los controllers de flujo concretos manejan navegación con `fluro`; el controller abstracto de módulo solo declara métodos abstractos.
+- Se mejoró `ImplementerAgent` (`src/agents/implementer.ts`) para que los tasks de test sobre archivos existentes usen `modifyCode` en lugar de `generateCode`, preservando imports/mocks.
+- Se mejoró `ReviewerAgent` (`src/agents/reviewer.ts`):
+  - Guía para no marcar como faltantes tests de estados cuando existen tests de métodos de acción.
+  - El contexto de review para archivos `_test.dart` muestra el final del archivo (hasta 12k chars) para que se vean los casos de prueba reales.
+- Resultado: la implementación del job `5c4daa32-f41b-4c5d-9725-f38b99730704` pasó tests y se empujó a `feature/5c4daa32-handle-summaryformsuccess-and-summaryfor`. El `ReviewerAgent` entró en loop pidiendo tests que sí existen; con el fix de contexto de review se espera que la siguiente corrida apruebe.
+- Bloqueador actual: OpenAI API retornó `429 You exceeded your current quota` al generar el spec del siguiente job (`cd6bd82a-1fe9-4c15-8e0e-b77d8bb188cb`). No se pueden ejecutar más jobs hasta resolver el quota/billing.
