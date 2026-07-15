@@ -230,6 +230,7 @@ Be strict: issues should be concrete, actionable gaps (missing tests, unhandled 
 Do not praise. Do not nitpick formatting. If score >= 80 and no concrete issues, passed = true.
 
 Controller-test guidance: Flutter controller tests verify action methods such as loadPresummary, retryLoadingPresummary, and navigateToSummary. Those action tests already cover the behavior triggered by view states (e.g. SummaryFormSuccess -> navigateToSummary, SummaryFormError -> retryLoadingPresummary). Do NOT flag "missing test for SummaryFormSuccess/SummaryFormError handling" when the test file contains the corresponding action-method tests.
+State-preservation guidance: Existing states such as PresummaryFormLoading/PresummaryFormError/PresummaryFormSuccess are unchanged by the module widget's default branches. Do NOT demand controller tests to verify that existing states are unchanged; that is the module widget's responsibility, not the controller's.
 
 Examples:
 
