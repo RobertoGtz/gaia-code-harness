@@ -78,9 +78,9 @@ Escribe `progress/mutation_{featureName}.md` con:
 
 ## Equivalente en los modos TypeScript
 
-| Modo                          | Quién lo ejecuta         | Comportamiento si score < 80%                |
-| ----------------------------- | ------------------------ | -------------------------------------------- |
-| **A — HTTP API**              | `MutationTesterAgent.ts` | Warning en logs; PR procede igual            |
-| **B — CLI**                   | `MutationTesterAgent.ts` | Warning en logs; PR procede igual            |
-| **C — Webhook**               | `MutationTesterAgent.ts` | Warning en logs; PR procede igual            |
-| **Claude Code (este agente)** | Tú                       | **Bloqueante**: devuelves al `tdd_craftsman` |
+| Modo                          | Quién lo ejecuta         | Comportamiento si score < 80%                     |
+| ----------------------------- | ------------------------ | ------------------------------------------------- |
+| **A — HTTP API**              | `MutationTesterAgent.ts` | Closed-loop: feedback a `ImplementerAgent` (≤ 2×) |
+| **B — CLI**                   | `MutationTesterAgent.ts` | Exit 1 / warning; el humano decide si continúa    |
+| **C — Webhook**               | `MutationTesterAgent.ts` | Closed-loop: feedback a `ImplementerAgent` (≤ 2×) |
+| **Claude Code (este agente)** | Tú                       | **Bloqueante**: devuelves al `tdd_craftsman`      |

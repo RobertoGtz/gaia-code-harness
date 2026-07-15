@@ -50,5 +50,16 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
 ### Próximos pasos sugeridos
 
 - Validar el closed-loop del Leader con un test de integración real (mockear agentes + `orchestrateJob`).
-- Ajustar `CHECKPOINTS.md` con el conteo final de tests/suites si es necesario.
 - Evaluar si se prefiere que `ReviewerAgent` no cree el PR hasta que `MutationTesterAgent` pase, para evitar PRs duplicados en el loop de mutación.
+
+### Revisión de documentación
+
+- Se actualizó `README.md` con diagrama de flujo que incluye handoffs y closed-loop feedback.
+- Se actualizó `docs/engineering/architecture.md`: diagrama de estados con loops, procesos de agentes con handoffs/LLM review, schema SQL con `review_feedback`, tabla de retries con closed-loop.
+- Se actualizó `docs/engineering/workflow.md`: artefactos `handoff.md`/`review_report.md`, fase de LLM review, explicación de closed-loop.
+- Se actualizó `docs/engineering/mutation-testing.md`: closed-loop en Modos A/C; Modo B manual.
+- Se actualizó `docs/guides/quick-start.md`, `docs/guides/gaia-http-flow.md`, `docs/guides/demo.md` con LLM review, mutation testing post-PR y closed-loop.
+- Se actualizó `API.md` estados (`reviewing`, `pr_created`) y eventos (`job.pr_created`).
+- Se actualizó `CHECKPOINTS.md` conteo de tests a 242/19.
+- Se actualizó `AGENTS.md` y `.claude/agents/mutation_tester.md` para reflejar closed-loop en HTTP/Webhook.
+- No se editaron bitácoras históricas en `progress/history.md` ni `progress/judge_*.md`/`progress/mutation_*.md` (append-only).

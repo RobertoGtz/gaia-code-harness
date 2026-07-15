@@ -99,16 +99,21 @@ python3 tools/mutate.py src/agents/implementer.ts \
 
 ## Quién hace qué
 
-| Modo             | Quién ejecuta                                | Efecto si score < 80%                |
-| ---------------- | -------------------------------------------- | ------------------------------------ |
-| **Claude Code**  | agente `mutation_tester` (humano en el loop) | Bloquea; vuelve a `tdd_craftsman`    |
-| **A — HTTP API** | `MutationTesterAgent.ts` (automático)        | Warning en logs; no bloquea PR       |
-| **B — CLI**      | `python3 tools/mutate.py` (manual)           | Exit 1; el humano decide si continúa |
-| **C — Webhook**  | `MutationTesterAgent.ts` (automático)        | Warning en logs; no bloquea PR       |
+| Modo             | Quién ejecuta                                | Efecto si score < 80%                             |
+| ---------------- | -------------------------------------------- | ------------------------------------------------- |
+| **Claude Code**  | agente `mutation_tester` (humano en el loop) | Bloquea; vuelve a `tdd_craftsman`                 |
+| **A — HTTP API** | `MutationTesterAgent.ts` (automático)        | Closed-loop: feedback a `ImplementerAgent` (≤ 2×) |
+| **B — CLI**      | `python3 tools/mutate.py` (manual)           | Exit 1; el humano decide si continúa              |
+| **C — Webhook**  | `MutationTesterAgent.ts` (automático)        | Closed-loop: feedback a `ImplementerAgent` (≤ 2×) |
 
-El `mutation_tester` **mide y reporta**. No edita código.
-Un mutante sobreviviente es trabajo del `tdd_craftsman`: escribe el test
-rojo que lo mata y vuelve a pasar por el `judge`.
+El `mutation_tester` **mide y reporta**. No edita código directamente.
+En los Modos A y C, si un mutante sobrevive, `MutationTesterAgent.ts` devuelve
+`TEST_ERROR` con los detalles; el `Leader` persiste ese feedback en
+`reviewFeedback` y re-ejecuta `ImplementerAgent` (máximo 2 reintentos) antes
+de marcar el job como `test_error`.
+En el Modo B el humano es quien cierra el loop manualmente.
+Un mutante sobreviviente es trabajo del implementador: escribe el test
+rojo que lo mata y vuelve a pasar por el `judge`/reviewer.
 
 ---
 

@@ -30,9 +30,20 @@
 │  pending ──► fetching_jira ──► spec_generating ──► spec_ready              │
 │                                                          │                   │
 │  done ◄── pr_created ◄── reviewing ◄── implementing ◄── spec_approved       │
-│                 │                │                │                         │
-│           review_error      test_error       repo_error                      │
-│           spec_error        build_error      env_error   failed              │
+│       │          │              │                │                           │
+│       │          │              │                └─ reviewFeedback           │
+│       │          │              │                   (closed-loop)            │
+│       │          │              │                                            │
+│       │          │              └─ REVIEW_ERROR / TEST_ERROR → retry        │
+│       │          │                 (max 2 intentos)                          │
+│       │          │                                                          │
+│       │          └─ Mutation TEST_ERROR → retry                             │
+│       │             (max 2 intentos)                                       │
+│       │                                                                    │
+│       └── Mutation pass → done                                              │
+│                                                                              │
+│  Estados de error: env_error, repo_error, build_error, spec_error, failed    │
+│  (todos aceptan POST /retry → pending)                                       │
 │                                                                              │
 │  Todos los estados de error aceptan POST /retry → vuelven a pending          │
 └──────────┬─────────────────┬─────────────────┬──────────────────────────────┘
@@ -168,23 +179,35 @@ ImplementerAgent:
 
 ```
 ReviewerAgent:
+  0. Read handoff.md from ImplementerAgent (state context)
   1. Lint: dart analyze / swiftlint / lintDebug + ktlintCheck
   2. Tests: flutter test / swift test / gradle testDebugUnitTest
-  3. Verify changes vs spec
-  4. Create GitHub PR
-  5. Comment on Jira (optional)
+  3. Verify changes vs spec (file count, traceability)
+  4. LLM review: few-shot evaluator scores the diff 0-100
+     → issues are concrete and actionable
+     → if passed=false, return REVIEW_ERROR with feedback
+  5. Create GitHub PR
+  6. Comment on Jira (optional)
+  7. Write handoff.md for MutationTesterAgent
   → DB: status='pr_created'
 
 MutationTesterAgent (automatic, post-review):
+  0. Read handoff.md from ReviewerAgent
   For each modified production file:
-    1. Generate 3-5 mutations with LLM (flip boolean, remove return, etc.)
+    1. Prefer deterministic mutator (tools/mutate.py); fallback to LLM mutations
     2. Apply mutation → run tests → revert
     3. KILLED = tests failed (good) / SURVIVED = tests missed defect (bad)
   Score = killed/total × 100
-  ≥ 80% → PASS (warning in logs if < 80%, does not block PR)
+  ≥ 80% → PASS
+  < 80% → return TEST_ERROR with survived mutant details
   Report: progress/mutation_{jobId}.md
-  → DB: status='done'
+  → DB: status='done' if pass
+  → Closed-loop: feedback to ImplementerAgent (max 2 retries) if fail
 ```
+
+### Closed-loop feedback
+
+Cuando `ReviewerAgent` devuelve `REVIEW_ERROR` o `TEST_ERROR`, o cuando `MutationTesterAgent` detecta mutaciones sobrevivientes, el `Leader` no solo marca el job como fallido: persiste el feedback en `reviewFeedback` del job y vuelve a `implementing`. `ImplementerAgent` inyecta ese feedback en su system prompt en la siguiente iteración. Máximo 2 reintentos por evaluador antes de entrar en estado de error granular (`review_error` / `test_error`).
 
 ---
 
@@ -232,6 +255,9 @@ CREATE TABLE code_generation_jobs (
   -- Error handling
   error_context JSONB,     -- ErrorContext set when the job enters an error state
 
+  -- Closed-loop review feedback
+  review_feedback TEXT,    -- Issues from ReviewerAgent/MutationTesterAgent for retry
+
   -- Metadata
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -274,15 +300,15 @@ Cuando un job falla, el Leader persiste un objeto estructurado con toda la infor
 
 En lugar de un estado genérico `failed`, el Leader transiciona a estados específicos según el tipo de error reportado por el agente:
 
-| Estado         | `ErrorCode`    | Causa                                                     | Retry automático |
-| -------------- | -------------- | --------------------------------------------------------- | ---------------- |
-| `env_error`    | `ENV_ERROR`    | SDK no instalado (Flutter, Xcode, JDK/Android SDK)        | No               |
-| `repo_error`   | `REPO_ERROR`   | Clone, branch creation o push fallaron                    | No               |
-| `build_error`  | `BUILD_ERROR`  | `pub get` / `gradle sync` / `swift package resolve` falló | No               |
-| `test_error`   | `TEST_ERROR`   | Tests o lint fallaron tras implementación                 | Sí (hasta 3×)    |
-| `review_error` | `REVIEW_ERROR` | Validación del reviewer falló (file count, spec ausente)  | Sí (hasta 2×)    |
-| `spec_error`   | `SPEC_ERROR`   | LLM no pudo generar un spec válido                        | No               |
-| `failed`       | `UNKNOWN`      | Error inesperado                                          | Sí (hasta 3×)    |
+| Estado         | `ErrorCode`    | Causa                                                     | Retry automático                         |
+| -------------- | -------------- | --------------------------------------------------------- | ---------------------------------------- |
+| `env_error`    | `ENV_ERROR`    | SDK no instalado (Flutter, Xcode, JDK/Android SDK)        | No                                       |
+| `repo_error`   | `REPO_ERROR`   | Clone, branch creation o push fallaron                    | No                                       |
+| `build_error`  | `BUILD_ERROR`  | `pub get` / `gradle sync` / `swift package resolve` falló | No                                       |
+| `test_error`   | `TEST_ERROR`   | Tests o lint fallaron tras implementación o mutación      | Sí (hasta 3× en impl; 2× closed-loop)    |
+| `review_error` | `REVIEW_ERROR` | LLM review, file count o spec traceability fallaron       | Sí (hasta 2×) closed-loop → implementing |
+| `spec_error`   | `SPEC_ERROR`   | LLM no pudo generar un spec válido                        | No                                       |
+| `failed`       | `UNKNOWN`      | Error inesperado                                          | Sí (hasta 3×)                            |
 
 ### Flujo de errores
 
@@ -430,6 +456,7 @@ Define el contrato que cada plugin debe cumplir (`src/plugins/index.ts`):
 6. LLM call → `TechnicalSpec` JSON (requirements, design, tasks)
 7. LLM call → `scenarios.feature` (Gherkin) — **non-blocking**: si falla se loggea como warning y el pipeline continúa
 8. Save to disk: `requirements.json`, `design.json`, `tasks.json`, `scenarios.feature`
+9. Write `handoff.md` for `ImplementerAgent`
 
 ### ImplementerAgent (generic)
 
@@ -438,43 +465,56 @@ Define el contrato que cada plugin debe cumplir (`src/plugins/index.ts`):
 1. `loadSkill(platform, repoPath)` → `verifyEnvironment`, `build`, `getPromptContext`
 2. Setup repo + create branch
 3. `skill.build()` → resolve deps
-4. Inject into `implementerSystem`: `[gherkinScenarios +] [repoRules +] promptCtx.implementerSystem`
-5. For each task: generate/modify code with LLM (bulk)
-6. `skill.test()` → up to 3 LLM fix loops if tests fail
-7. Commit & push
+4. Read `handoff.md` from previous agent and `reviewFeedback` from prior reviewer/mutation loop
+5. Inject into `implementerSystem`: `[reviewFeedback +] [handoff +] [gherkinScenarios +] [repoRules +] promptCtx.implementerSystem`
+6. For each task: generate/modify code with LLM (bulk)
+7. `skill.test()` → up to 3 LLM fix loops if tests fail
+8. Commit & push
+9. Write `handoff.md` for `ReviewerAgent`
 
 **`executeTDD()` — Red-Green-Refactor mode (mismo PluginLoader aplicado):**
 
-1–3. Same setup as `execute()`. 4. Write all impl files (non-test) to establish compile baseline. 5. For each test task, in order:
+1–3. Same setup as `execute()`.  
+4. Read `handoff.md` and `reviewFeedback` (same as bulk).  
+5. Write all impl files (non-test) to establish compile baseline.  
+6. For each test task, in order:
 
 - **RED**: write test → confirm it fails for the right reason
 - **GREEN**: `fixAllFiles()` with LLM → confirm it passes
 
-6. Final fix loop (up to 3) to cover any remaining failures
-7. Commit & push
+7. Final fix loop (up to 3) to cover any remaining failures
+8. Commit & push
+9. Write `handoff.md` for `ReviewerAgent`
 
 ### MutationTesterAgent (automatic)
 
 **Process:**
 
-1. Collect modified production files in the job (excludes tests)
-2. For each file: ask LLM for 3-5 simple mutations
-3. Apply mutation → `skill.test()` → revert
-4. `KILLED` = tests failed (good); `SURVIVED` = tests passed with broken code (bad)
-5. Score ≥ 80% → PASS; < 80% → warn in logs (does not block)
-6. Write `progress/mutation_{jobId}.md`
+1. Read `handoff.md` from previous agent
+2. Collect modified production files in the job (excludes tests)
+3. For each file: ask LLM for 3-5 simple mutations
+4. Apply mutation → `skill.test()` → revert
+5. `KILLED` = tests failed (good); `SURVIVED` = tests passed with broken code (bad)
+6. Score ≥ 80% → PASS; < 80% → return `TEST_ERROR` with survived mutant details
+7. Leader persists feedback in `reviewFeedback` and re-runs `ImplementerAgent` (≤ 2 retries)
+8. Write `progress/mutation_{jobId}.md`
+9. Write final `handoff.md` (end of pipeline)
 
 ### ReviewerAgent (generic)
 
 **Process:**
 
-1. `loadSkill(platform, repoPath)` → `verifyEnvironment`, `analyze`, `test`
-2. `skill.analyze()` → lint (non-blocking, warnings only)
-3. `skill.test()` → tests must pass (blocking)
-4. Verify `modifiedFiles ≤ maxFilesToTouch`
-5. Traceability: spec must exist
-6. Create GitHub PR with body from `generatePRBody()`
-7. Comment on Jira (optional)
+1. Read `handoff.md` from previous agent
+2. `loadSkill(platform, repoPath)` → `verifyEnvironment`, `analyze`, `test`
+3. `skill.analyze()` → lint (non-blocking, warnings only)
+4. `skill.test()` → tests must pass (blocking)
+5. Verify `modifiedFiles ≤ maxFilesToTouch`
+6. Traceability: spec must exist
+7. LLM review (few-shot evaluator): score 0-100; return `REVIEW_ERROR` with concrete issues if not passed
+8. Create GitHub PR with body from `generatePRBody()`
+9. Comment on Jira (optional)
+10. Write `handoff.md` for `MutationTesterAgent`
+11. Write `review_report.md` with score and issues
 
 **Dry-run mode:** If `GITHUB_TOKEN` is not set, returns a mock PR.
 

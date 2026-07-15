@@ -38,9 +38,16 @@ flowchart TD
   end
 
   subgraph "4️⃣  REVIEW & PR"
-    O --> P["🔍 ReviewerAgent\nstatus: reviewing"]
-    P --> Q["🎉 PR creado\nstatus: done\nprUrl: github.com/…/pull/15"]
-    Q -->|"Polling\nGET /jobs/abc-123"| R["👤 Dev recibe\nURL del PR"]
+    O --> P["🔍 ReviewerAgent\nlint + tests + LLM review\nstatus: reviewing"]
+    P --> Q["🎉 PR creado\nstatus: pr_created"]
+  end
+
+  subgraph "5️⃣  MUTATION TESTING"
+    Q --> S["🧬 MutationTesterAgent\nscore ≥ 80%?"]
+    S -->|"Sí"| T["✅ done\nprUrl: github.com/…/pull/15"]
+    S -->|"No (≤ 2×)"| U["↩️ feedback a ImplementerAgent"]
+    U --> H
+    T -->|"Polling\nGET /jobs/abc-123"| R["👤 Dev recibe\nURL del PR"]
   end
 ```
 
@@ -70,6 +77,7 @@ curl -X POST http://localhost:3000/jobs \
 ```
 
 **Respuesta:**
+
 ```json
 {
   "job": {
@@ -135,6 +143,7 @@ curl http://localhost:3000/jobs/a8523665-...
 ```
 
 **Progresión de estados:**
+
 ```
 pending → spec_generating → spec_ready
   → (aprobación humana)
@@ -142,6 +151,7 @@ pending → spec_generating → spec_ready
 ```
 
 **Si falla tests** → `test_error` → hacer retry:
+
 ```bash
 curl -X POST http://localhost:3000/jobs/a8523665-.../retry
 ```
@@ -164,25 +174,27 @@ curl -X POST http://localhost:3000/jobs/a8523665-.../retry
 
 ## Estados del job
 
-| Estado | Quién | Qué pasa |
-|---|---|---|
-| `pending` | Sistema | Job en cola |
-| `spec_generating` | SpecAuthorAgent | LLM generando spec |
-| `spec_ready` | — | **⏸ Espera aprobación humana** |
-| `implementing` | ImplementerAgent | Escribe código + tests |
-| `reviewing` | ReviewerAgent | Revisa calidad del código |
-| `done` | — | PR creado en GitHub |
-| `test_error` | — | Tests fallaron tras 3 intentos → `/retry` |
-| `failed` | — | Error irrecuperable o spec rechazada |
+| Estado            | Quién               | Qué pasa                                             |
+| ----------------- | ------------------- | ---------------------------------------------------- |
+| `pending`         | Sistema             | Job en cola                                          |
+| `spec_generating` | SpecAuthorAgent     | LLM generando spec                                   |
+| `spec_ready`      | —                   | **⏸ Espera aprobación humana**                       |
+| `implementing`    | ImplementerAgent    | Escribe código + tests                               |
+| `reviewing`       | ReviewerAgent       | Lint + tests + LLM review + PR                       |
+| `pr_created`      | MutationTesterAgent | Mutation testing post-PR                             |
+| `done`            | —                   | PR creado en GitHub                                  |
+| `test_error`      | —                   | Tests/mutación fallaron tras reintentos → `/retry`   |
+| `review_error`    | —                   | Reviewer encontró problemas; feedback al Implementer |
+| `failed`          | —                   | Error irrecuperable o spec rechazada                 |
 
 ---
 
 ## Resumen de endpoints
 
-| Método | Endpoint | Para qué |
-|---|---|---|
-| `POST` | `/jobs` | Crear nuevo job |
-| `GET` | `/jobs/:id` | Ver estado y spec |
-| `POST` | `/jobs/:id/approve` | Aprobar o rechazar spec |
-| `POST` | `/jobs/:id/retry` | Reintentar tras `test_error` |
-| `GET` | `/jobs` | Listar todos los jobs |
+| Método | Endpoint            | Para qué                     |
+| ------ | ------------------- | ---------------------------- |
+| `POST` | `/jobs`             | Crear nuevo job              |
+| `GET`  | `/jobs/:id`         | Ver estado y spec            |
+| `POST` | `/jobs/:id/approve` | Aprobar o rechazar spec      |
+| `POST` | `/jobs/:id/retry`   | Reintentar tras `test_error` |
+| `GET`  | `/jobs`             | Listar todos los jobs        |

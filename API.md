@@ -283,24 +283,24 @@ POST /jobs/:id/retry
 
 ## Estados de Job
 
-| Estado            | Descripción              | UI Sugerida            |
-| ----------------- | ------------------------ | ---------------------- |
-| `pending`         | Iniciando                | 🟡 Iniciando...        |
-| `fetching_jira`   | Obteniendo info de Jira  | 🟡 Leyendo ticket...   |
-| `spec_generating` | IA generando spec        | 🟡 Generando spec...   |
-| `spec_ready`      | **Listo para revisión**  | 🔵 Revisión requerida  |
-| `spec_approved`   | Aprobado, implementando  | 🟡 Implementando...    |
-| `implementing`    | Escribiendo código       | 🟡 Generando código... |
-| `reviewing`       | Validando y creando PR   | 🟡 Creando PR...       |
-| `pr_created`      | PR listo                 | 🟣 PR creado           |
-| `done`            | **Completado**           | ✅ Completado          |
-| `failed`          | Error inesperado (retry) | ❌ Error               |
-| `env_error`       | SDK no encontrado        | ❌ Env error           |
-| `repo_error`      | Git clone/push falló     | ❌ Repo error          |
-| `build_error`     | Deps no resueltas        | ❌ Build error         |
-| `test_error`      | Tests fallaron           | ❌ Test error          |
-| `review_error`    | Reviewer falló           | ❌ Review error        |
-| `spec_error`      | LLM no pudo generar spec | ❌ Spec error          |
+| Estado            | Descripción                    | UI Sugerida            |
+| ----------------- | ------------------------------ | ---------------------- |
+| `pending`         | Iniciando                      | 🟡 Iniciando...        |
+| `fetching_jira`   | Obteniendo info de Jira        | 🟡 Leyendo ticket...   |
+| `spec_generating` | IA generando spec              | 🟡 Generando spec...   |
+| `spec_ready`      | **Listo para revisión**        | 🔵 Revisión requerida  |
+| `spec_approved`   | Aprobado, implementando        | 🟡 Implementando...    |
+| `implementing`    | Escribiendo código             | 🟡 Generando código... |
+| `reviewing`       | Lint + tests + LLM review + PR | 🟡 Creando PR...       |
+| `pr_created`      | Mutation testing post-PR       | 🟣 PR creado           |
+| `done`            | **Completado**                 | ✅ Completado          |
+| `failed`          | Error inesperado (retry)       | ❌ Error               |
+| `env_error`       | SDK no encontrado              | ❌ Env error           |
+| `repo_error`      | Git clone/push falló           | ❌ Repo error          |
+| `build_error`     | Deps no resueltas              | ❌ Build error         |
+| `test_error`      | Tests fallaron                 | ❌ Test error          |
+| `review_error`    | Reviewer falló                 | ❌ Review error        |
+| `spec_error`      | LLM no pudo generar spec       | ❌ Spec error          |
 
 ---
 
@@ -478,6 +478,7 @@ Configura una o más variables en `.env` para activar notificaciones de salida:
 | `job.spec_ready`   | Spec lista, esperando aprobación |
 | `job.implementing` | Implementación iniciada          |
 | `job.reviewing`    | Revisión en curso                |
+| `job.pr_created`   | PR creado, mutation testing      |
 | `job.done`         | Job completado con PR            |
 | `job.failed`       | Error en el pipeline             |
 

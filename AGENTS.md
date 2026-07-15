@@ -93,14 +93,14 @@ pending
 
 ### Mapeo Claude Code ↔ HTTP mode (TypeScript)
 
-| Agente Claude Code | Equivalente TypeScript          | Diferencia clave                        |
-| ------------------ | ------------------------------- | --------------------------------------- |
-| `spec_partner`     | `SpecAuthorAgent`               | Conversacional (Claude) vs bulk (TS)    |
-| `gherkin_author`   | _(parte de SpecAuthorAgent)_    | Separado en Claude mode                 |
-| `tdd_craftsman`    | `ImplementerAgent.executeTDD()` | Activo cuando `tddMode: true`           |
-| _(bulk)_           | `ImplementerAgent.execute()`    | `tddMode: false` (default)              |
-| `judge`            | `ReviewerAgent`                 | Judge bloquea; reviewer no bloquea lint |
-| `mutation_tester`  | `MutationTesterAgent.ts`        | Claude mode bloquea; HTTP mode warning  |
+| Agente Claude Code | Equivalente TypeScript          | Diferencia clave                                                                 |
+| ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
+| `spec_partner`     | `SpecAuthorAgent`               | Conversacional (Claude) vs bulk (TS)                                             |
+| `gherkin_author`   | _(parte de SpecAuthorAgent)_    | Separado en Claude mode                                                          |
+| `tdd_craftsman`    | `ImplementerAgent.executeTDD()` | Activo cuando `tddMode: true`                                                    |
+| _(bulk)_           | `ImplementerAgent.execute()`    | `tddMode: false` (default)                                                       |
+| `judge`            | `ReviewerAgent`                 | Judge bloquea; reviewer no bloquea lint                                          |
+| `mutation_tester`  | `MutationTesterAgent.ts`        | Claude mode bloquea; HTTP/Webhook closed-loop feedback → ImplementerAgent (≤ 2×) |
 
 ---
 

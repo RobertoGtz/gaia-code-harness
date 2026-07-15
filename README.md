@@ -13,21 +13,23 @@ Le das criterios de aceptación. El sistema genera un plan técnico, espera tu a
 PM escribe ACs
       │
       ▼
- SpecAuthor      → analiza el repo + genera TechnicalSpec
-      │
+ SpecAuthor      → analiza el repo + genera TechnicalSpec + Gherkin
+      │            └─ escribe handoff.md para el siguiente agente
       ⏸  Human aprueba el plan  ← único punto de control obligatorio
       │
       ▼
- Implementer     → escribe código  (bulk o TDD Red-Green-Refactor)
+ Implementer     → escribe código (bulk o TDD Red-Green-Refactor)
+      │            └─ lee handoff.md y reviewFeedback de iteraciones previas
       │
       ▼
- Reviewer        → lint + tests + abre GitHub PR
+ Reviewer        → lint + tests + LLM review crítico (few-shot)
+      │            └─ abre GitHub PR si todo pasa
       │
       ▼
  MutationTester  → valida que los tests detecten bugs reales (≥ 80%)
       │
-      ▼
- ✅  Pull Request listo  (~60 segundos)
+      └─ ¿falló? → feedback vuelve al Implementer (hasta 2 retries)
+           ✅  Pull Request listo  (~60 segundos)
 ```
 
 **Plataformas:** Flutter · Flutter Web · iOS/Swift · Android/Kotlin

@@ -177,7 +177,7 @@ Los estados que verás en orden:
 | `spec_generating` | Analizando el repo y generando el plan técnico |
 | `spec_ready`      | Plan listo — **esperando tu aprobación**       |
 | `implementing`    | Escribiendo código                             |
-| `reviewing`       | Corriendo análisis + creando PR                |
+| `reviewing`       | Lint/tests + LLM review + creando PR           |
 | `pr_created`      | PR creado — corriendo mutation tests           |
 | `done`            | ¡Listo!                                        |
 
@@ -564,8 +564,8 @@ TRIGGER (API / CLI / Webhook)
         │
         ▼
   ┌─────────────┐
-  │  SpecAuthor │  Analiza el repo + genera plan técnico
-  └──────┬──────┘
+  │  SpecAuthor │  Analiza el repo + genera plan técnico + Gherkin
+  └──────┬──────┘  └─ escribe handoff.md
          │  spec_ready
          ▼
    ⏸ APROBACIÓN HUMANA  ← solo en Modos A y B
@@ -573,21 +573,23 @@ TRIGGER (API / CLI / Webhook)
          ▼
   ┌──────────────┐
   │  Implementer │  Escribe código (bulk o TDD)
-  └──────┬───────┘
+  └──────┬───────┘  └─ lee handoff.md + reviewFeedback
          │
          ▼
   ┌──────────────┐
-  │   Reviewer   │  Lint + tests + crea GitHub PR
-  └──────┬───────┘
+  │   Reviewer   │  Lint + tests + LLM review crítico → GitHub PR
+  └──────┬───────┘  └─ escribe handoff.md
          │
          ▼
   ┌──────────────────┐
   │  MutationTester  │  Valida que los tests detecten bugs
   └──────┬───────────┘
          │
-         ▼
-       done ✅
-      (PR listo para revisión humana)
+         └── ¿falla? → feedback al Implementer (hasta 2×)
+              │
+              ▼
+            done ✅
+           (PR listo para revisión humana)
 ```
 
 **Tiempo típico: 50–90 segundos por job**

@@ -27,10 +27,10 @@ La diferencia es en cómo entra el job, dónde persiste el estado y si la aproba
 | Spec                | `spec_partner`                 | `SpecAuthorAgent`               | `project-spec.md` / `TechnicalSpec` JSON        |
 | Gherkin             | `gherkin_author`               | `SpecAuthorAgent` (2ª LLM call) | `features/<name>.feature` / `scenarios.feature` |
 | ⏸ **PUERTA HUMANA** | `craftsman_lead` para          | `POST /jobs/:id/approve`        | —                                               |
-| Implementación      | `tdd_craftsman` (si `tddMode`) | `ImplementerAgent.executeTDD()` | `src/` + `tests/`                               |
-| _(bulk)_            | _(bulk implementer)_           | `ImplementerAgent.execute()`    | `src/` + `tests/`                               |
-| Review              | `judge`                        | `ReviewerAgent`                 | `progress/judge_<name>.md`                      |
-| Mutación            | `mutation_tester`              | `MutationTesterAgent`           | `progress/mutation_<name>.md`                   |
+| Implementación      | `tdd_craftsman` (si `tddMode`) | `ImplementerAgent.executeTDD()` | `src/` + `tests/` + `handoff.md`                |
+| _(bulk)_            | _(bulk implementer)_           | `ImplementerAgent.execute()`    | `src/` + `tests/` + `handoff.md`                |
+| Review              | `judge` + `LLM evaluator`      | `ReviewerAgent`                 | `progress/judge_<name>.md` + `review_report.md` |
+| Mutación            | `mutation_tester`              | `MutationTesterAgent`           | `progress/mutation_<name>.md` + `handoff.md`    |
 
 Una sola feature a la vez. Una sola puerta de aprobación humana: sobre los
 escenarios Gherkin, **antes** de escribir producción.
@@ -72,6 +72,12 @@ Generar borradores es barato. El valor escaso es el **juicio** que decide
 qué sobrevive. El `judge` no edita: poda. Si un escenario no tiene test, o
 hay código que nadie pidió, rechaza.
 
+En los Modos A/B/C, `ReviewerAgent` añade un evaluador LLM con few-shot
+examples entrenado para ser escéptico: devuelve un score 0-100 y issues
+concretas (no genéricos como "mejorar calidad"). Si el score está bajo, el
+pipeline cierra el loop: el feedback se guarda en `reviewFeedback` y el
+`Leader` devuelve el job a `ImplementerAgent` para iterar.
+
 ### 6. La validación es compute-bound
 
 > "Raw computer power is the limiting factor." / "Mutation testing is
@@ -94,6 +100,8 @@ medida real de si la red atrapa peces. Ver `docs/engineering/mutation-testing.md
 | `progress/tdd_<name>.md`          | `tdd_craftsman`                               | Bitácora de ciclos + mapa `@s → test`                      |
 | `progress/judge_<name>.md`        | `judge`                                       | Veredicto + checkpoints                                    |
 | `progress/mutation_<name>.md`     | `mutation_tester`                             | Score + mutantes sobrevivientes                            |
+| `handoff.md`                      | Cada agente                                   | Resumen de estado para el siguiente agente                 |
+| `review_report.md`                | `ReviewerAgent` (Modos A/B/C)                 | Score e issues del LLM review                              |
 | `feature_list.json`               | `craftsman_lead` / `tdd_craftsman`            | `pending → spec_ready → in_progress → done`                |
 
 **Regla anti-teléfono-descompuesto:** los subagentes escriben en disco y
