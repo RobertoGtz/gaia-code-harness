@@ -73,3 +73,17 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
 - Se probó manualmente `npx ts-node src/cli/run.ts --list` y funciona correctamente.
 - Se añadió flag `--retry` al CLI: `npx ts-node src/cli/run.ts --id <jobId> --retry` transiciona `review_error`/`test_error`/`failed` → `implementing` y re-ejecuta `orchestrateJob` con el `reviewFeedback` persistido.
 - Se actualizó `docs/guides/quick-start.md` y `docs/engineering/mutation-testing.md` con el nuevo flag `--retry`.
+
+### Prueba end-to-end del Modo B (CLI) en `rpp-account-basics-multiplatform-pyme`
+
+- Job creado: `0f001bc8-cb44-4b9b-ad71-c71594ea94ce` — `Add pull-to-refresh support to PymeWallMovementsListNotifier`.
+- Se añadió soporte para ejecutar `scripts/setup.sh` desde `src/plugins/flutter/index.ts` antes de resolver dependencias.
+- Se añadió migración automática de dependencias Bitbucket → GitHub (`rpp-co`) usando `GITHUB_TOKEN_RPP` y `GITHUB_OWNER_RPP` en `runRepoSetupScript`.
+- El CLI logró: crear job, generar spec, auto-aprobar, clonar repo, ejecutar `setup.sh`, resolver dependencias, generar código y tests.
+- Los tests fallaron por errores de implementación del LLM (rutas de import, nombres de clases) y por un error transversal de `dart:js_in...` en `pay_multiplatform_common_web` al correr `flutter test`.
+- El job entró en loop de reintentos del `ImplementerAgent`; se detuvo manualmente para evitar consumo innecesario.
+- Conclusión: el CLI (Modo B) funciona end-to-end. Los fallos restantes son de calidad de generación de código y de configuración de plataforma del repo, no del CLI.
+
+### Test count
+
+- `CHECKPOINTS.md` actualizado a 262 tests en 21 suites.

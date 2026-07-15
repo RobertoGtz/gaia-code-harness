@@ -157,6 +157,17 @@ describe('CLI Mode B', () => {
       expect(mockOrchestrateJob).toHaveBeenCalledWith('job-123');
     });
 
+    it('retries build_error job with --id --retry', async () => {
+      const backend = makeBackend({
+        getJob: jest.fn().mockResolvedValue({ id: 'job-123', status: 'build_error' }),
+      });
+
+      await main(['--id', 'job-123', '--retry'], { backend });
+
+      expect(backend.updateJobStatus).toHaveBeenCalledWith('job-123', 'implementing');
+      expect(mockOrchestrateJob).toHaveBeenCalledWith('job-123');
+    });
+
     it('retries review_error job with --id --retry', async () => {
       const backend = makeBackend({
         getJob: jest.fn().mockResolvedValue({ id: 'job-123', status: 'review_error', reviewFeedback: 'bad' }),

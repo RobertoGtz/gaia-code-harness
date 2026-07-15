@@ -43,7 +43,7 @@ export function parseArgs(argv: string[]) {
   return { flag, has };
 }
 
-const RETRYABLE_STATUSES: JobStatus[] = ['review_error', 'test_error', 'failed'];
+const RETRYABLE_STATUSES: JobStatus[] = ['build_error', 'review_error', 'test_error', 'failed'];
 
 export async function retryJob(jobId: string, backend: DiskBackend): Promise<void> {
   const job = await backend.getJob(jobId);

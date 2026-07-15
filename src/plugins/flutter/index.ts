@@ -9,6 +9,7 @@ import {
   runFlutterTests,
   runDartAnalyze,
   verifyFlutterEnvironment,
+  runRepoSetupScript,
 } from '../../tools/test-runner';
 import { fileExists } from '../../tools/file';
 import { GaiaEnvError, GaiaBuildError, GaiaTestError, trim } from '../../errors';
@@ -31,6 +32,17 @@ export class FlutterSkill implements PlatformSkill {
   }
 
   async build(repoPath: string, module?: string, _strategy?: BuildStrategy): Promise<BuildResult> {
+    // Some repositories require a setup script to inject credentials or configure
+    // environment-specific files (e.g. pubspec_overrides.yaml) before dependency
+    // resolution. Execute it first and fail fast if it does not succeed.
+    const setup = await runRepoSetupScript(repoPath);
+    if (!setup.passed) {
+      throw new GaiaBuildError(
+        `[Flutter] repository setup script failed in ${path.basename(repoPath)}`,
+        trim(setup.stderr)
+      );
+    }
+
     const isMonorepo = await fileExists(path.join(repoPath, 'melos.yaml'));
     const cmd = isMonorepo ? 'melos bootstrap' : 'flutter pub get';
     const result = isMonorepo
