@@ -157,6 +157,28 @@ describe('CLI Mode B', () => {
       expect(mockOrchestrateJob).toHaveBeenCalledWith('job-123');
     });
 
+    it('retries review_error job with --id --retry', async () => {
+      const backend = makeBackend({
+        getJob: jest.fn().mockResolvedValue({ id: 'job-123', status: 'review_error', reviewFeedback: 'bad' }),
+      });
+
+      await main(['--id', 'job-123', '--retry'], { backend });
+
+      expect(backend.updateJobStatus).toHaveBeenCalledWith('job-123', 'implementing');
+      expect(mockOrchestrateJob).toHaveBeenCalledWith('job-123');
+    });
+
+    it('does not retry done job with --retry', async () => {
+      const backend = makeBackend({
+        getJob: jest.fn().mockResolvedValue({ id: 'job-123', status: 'done' }),
+      });
+
+      await main(['--id', 'job-123', '--retry'], { backend });
+
+      expect(backend.updateJobStatus).not.toHaveBeenCalled();
+      expect(mockOrchestrateJob).not.toHaveBeenCalled();
+    });
+
     it('exits with usage when no args provided', async () => {
       const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => { throw new Error('exit'); });

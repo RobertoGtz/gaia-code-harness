@@ -11,6 +11,7 @@
  *   npx ts-node src/cli/run.ts --job job.json --tdd --approve # Red-Green-Refactor mode
  *   npx ts-node src/cli/run.ts --jira PROJ-123 --approve      # fetch from Jira and run full pipeline
  *   npx ts-node src/cli/run.ts --id <existing-job-id>         # resume
+ *   npx ts-node src/cli/run.ts --id <existing-job-id> --retry # retry from review_error/test_error/failed
  *   npx ts-node src/cli/run.ts --list                         # show all jobs
  *
  * @module cli/run
@@ -40,6 +41,23 @@ export function parseArgs(argv: string[]) {
   };
   const has = (name: string): boolean => argv.includes(name);
   return { flag, has };
+}
+
+const RETRYABLE_STATUSES: JobStatus[] = ['review_error', 'test_error', 'failed'];
+
+export async function retryJob(jobId: string, backend: DiskBackend): Promise<void> {
+  const job = await backend.getJob(jobId);
+  if (!job) {
+    console.error(`Job ${jobId} not found`);
+    return;
+  }
+  if (!RETRYABLE_STATUSES.includes(job.status)) {
+    console.log(`Job status is ${job.status}, not retryable.`);
+    return;
+  }
+  console.log(`Retrying job ${jobId} from ${job.status}...`);
+  await backend.updateJobStatus(jobId, 'implementing');
+  await orchestrateJob(jobId);
 }
 
 export async function approveAndResume(jobId: string, backend: DiskBackend): Promise<void> {
@@ -80,10 +98,14 @@ export async function main(
   // Resume existing job
   const existingId = flag('--id');
   if (existingId) {
-    console.log(`Resuming job ${existingId}…`);
-    await orchestrateJob(existingId);
-    if (has('--approve')) {
-      await approveAndResume(existingId, backend);
+    if (has('--retry')) {
+      await retryJob(existingId, backend);
+    } else {
+      console.log(`Resuming job ${existingId}…`);
+      await orchestrateJob(existingId);
+      if (has('--approve')) {
+        await approveAndResume(existingId, backend);
+      }
     }
     return;
   }
@@ -129,7 +151,7 @@ export async function main(
   // Create new job from --job flag
   const jobArg = flag('--job');
   if (!jobArg) {
-    console.error('Usage: run.ts --job <json-file-or-inline-json> [--approve]  |  --jira <PROJ-123> [--approve]  |  --id <job-id> [--approve]  |  --list');
+    console.error('Usage: run.ts --job <json-file-or-inline-json> [--approve]  |  --jira <PROJ-123> [--approve]  |  --id <job-id> [--approve|--retry]  |  --list');
     process.exit(1);
   }
 

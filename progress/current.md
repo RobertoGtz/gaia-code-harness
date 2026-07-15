@@ -60,7 +60,7 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
 - Se actualizó `docs/engineering/mutation-testing.md`: closed-loop en Modos A/C; Modo B manual.
 - Se actualizó `docs/guides/quick-start.md`, `docs/guides/gaia-http-flow.md`, `docs/guides/demo.md` con LLM review, mutation testing post-PR y closed-loop.
 - Se actualizó `API.md` estados (`reviewing`, `pr_created`) y eventos (`job.pr_created`).
-- Se actualizó `CHECKPOINTS.md` conteo de tests a 252/20.
+- Se actualizó `CHECKPOINTS.md` conteo de tests a 254/20.
 - Se actualizó `AGENTS.md` y `.claude/agents/mutation_tester.md` para reflejar closed-loop en HTTP/Webhook.
 - No se editaron bitácoras históricas en `progress/history.md` ni `progress/judge_*.md`/`progress/mutation_*.md` (append-only).
 
@@ -68,6 +68,8 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
 
 - `src/cli/run.ts` refactorizado para ser testeable: `main()` ahora acepta `argv` y un `backend` opcional; `approveAndResume()` recibe backend explícito; solo se auto-ejecuta cuando `require.main === module`.
 - Se verificó que `DiskBackend` persiste `reviewFeedback` vía `updateJobStatus(..., { reviewFeedback })`, lo que permite closed-loop retries en Modo B.
-- Se añadieron tests en `tests/cli.test.ts`: parseo de args, auto-aprobar `spec_ready`, crear job desde JSON inline/archivo, resumir con `--id`, listar jobs, y mensaje de uso sin args.
+- Se añadieron tests en `tests/cli.test.ts`: parseo de args, auto-aprobar `spec_ready`, crear job desde JSON inline/archivo, resumir con `--id`, reintentar `--id --retry`, listar jobs, y mensaje de uso sin args.
 - Se añadió test en `tests/disk-backend.test.ts` para verificar persistencia de `reviewFeedback`.
 - Se probó manualmente `npx ts-node src/cli/run.ts --list` y funciona correctamente.
+- Se añadió flag `--retry` al CLI: `npx ts-node src/cli/run.ts --id <jobId> --retry` transiciona `review_error`/`test_error`/`failed` → `implementing` y re-ejecuta `orchestrateJob` con el `reviewFeedback` persistido.
+- Se actualizó `docs/guides/quick-start.md` y `docs/engineering/mutation-testing.md` con el nuevo flag `--retry`.

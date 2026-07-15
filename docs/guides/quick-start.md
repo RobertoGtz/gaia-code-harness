@@ -211,9 +211,19 @@ Verás el link al Pull Request en GitHub.
 
 Si el job falló (`test_error`, `build_error`, etc.):
 
+**Modo A / C (HTTP API / Webhook):**
+
 ```bash
 curl -s -X POST http://localhost:3000/jobs/TU_JOB_ID/retry | python3 -m json.tool
 ```
+
+**Modo B (CLI):**
+
+```bash
+npx ts-node src/cli/run.ts --id TU_JOB_ID --retry
+```
+
+> En el CLI, `--retry` solo actúa sobre estados `review_error`, `test_error` o `failed`, devolviendo el job a `implementing` para que el `ImplementerAgent` lea el `reviewFeedback` persistido.
 
 ### Usando el script de demo automático
 
@@ -313,6 +323,12 @@ Ver detalles de un job específico:
 
 ```bash
 npx ts-node src/cli/run.ts --id TU_JOB_ID
+```
+
+Reintentar un job fallido (`review_error`, `test_error`, `failed`):
+
+```bash
+npx ts-node src/cli/run.ts --id TU_JOB_ID --retry
 ```
 
 ### Estado guardado en disco
