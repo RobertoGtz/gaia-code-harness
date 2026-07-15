@@ -359,6 +359,8 @@ Private dependencies are resolved via pubspec_overrides.yaml with credentials in
     * Notifier tests: import the NOTIFIER class file DIRECTLY, instantiate it with a mocked repository, and call async methods explicitly. Do NOT import module/widget/controller files.
     * Controller tests: import the concrete controller from "package:${feature}/${feature}_core.dart", stub via MockRef pattern (mock appManager, router, repository tokens). If the feature has no test/src/mocks/mocks.dart, define local MockRef, MockAppManager, MockAppRouter and MockAppLogger classes using mocktail.
     * MANDATORY: whenever you add or use a controller method from a module widget (e.g. controller.loadPresummary, controller.navigateToSummary), you MUST also create/update the controller test at test/src/presentation/flows/<module>/<module>_controller_test.dart and verify the method behavior (navigation target, notifier call, etc.). Do NOT finish implementation without this test.
+    * Controller tests MUST import only the concrete controller from "package:${feature}/${feature}_core.dart"; NEVER import the module widget, screen, router, or "flutter/widgets.dart" in a controller test.
+    * To verify navigation in a controller test, use verify(() => appManager.router.navigateTo(...)) with any(named: 'transition') and any(named: 'clearStack') so you do NOT need to import TransitionType or fluro in the test.
     * NEVER import files that transitively import pay_multiplatform_common_web or pay_multiplatform_security_web in VM tests.
     * Mock abstract repositories with mocktail: class MockXxxRepository extends Mock implements XxxRepository {}
     * freezed models require ALL named fields (no positional constructors)
