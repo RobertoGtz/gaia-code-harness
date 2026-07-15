@@ -138,4 +138,7 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
 - `ImplementerAgent` completó las 4 tareas y los tests pasaron.
 - `ReviewerAgent` detectó falta de cobertura de tests (retry + primary action + estados existentes); `ImplementerAgent` reintentó agregarlos.
 - El job falló finalmente por permisos de push: `Failed to push branch 'feature/...' to 'rpp-co/rpp-cashflow-multiplatform-pyme'. Check push permissions and GITHUB_TOKEN scope.`
-- `dart analyze` reportó issues menores (non-blocking) que deben revisarse.
+- Root cause adicional: `commitAndPush` duplicaba el token en la URL (`https://token@token@github.com/...`) porque el regex inyectaba sobre URLs que ya tenían credenciales.
+- Fix en `src/tools/git.ts`: usar `new URL()` para normalizar SSH→HTTPS, eliminar credenciales previas e inyectar el token exactamente una vez.
+- Tests añadidos: no duplicar token, usar `GITHUB_TOKEN_RPP` para `rpp-co`, normalizar SSH.
+- Test count actualizado a 270.

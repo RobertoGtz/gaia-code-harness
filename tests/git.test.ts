@@ -177,6 +177,52 @@ describe('git tools', () => {
       expect(git.push).toHaveBeenCalledWith('origin', 'feature/x', ['--force']);
     });
 
+    it('does not double-inject token when origin already has credentials', async () => {
+      process.env.GITHUB_TOKEN = 'tok';
+      const git = {
+        add: jest.fn(),
+        commit: jest.fn(),
+        push: jest.fn().mockResolvedValue(undefined),
+        getRemotes: jest.fn().mockResolvedValue([
+          { name: 'origin', refs: { fetch: 'https://old_tok@github.com/o/r.git' } },
+        ]),
+        remote: jest.fn(),
+      } as any;
+      await commitAndPush(git, 'msg', ['.'], 'feature/x', 'r');
+      expect(git.remote).toHaveBeenCalledWith(['set-url', 'origin', 'https://tok@github.com/o/r.git']);
+    });
+
+    it('uses GITHUB_TOKEN_RPP for rpp-co repos', async () => {
+      process.env.GITHUB_TOKEN = 'rappi-tok';
+      process.env.GITHUB_TOKEN_RPP = 'rpp-tok';
+      const git = {
+        add: jest.fn(),
+        commit: jest.fn(),
+        push: jest.fn().mockResolvedValue(undefined),
+        getRemotes: jest.fn().mockResolvedValue([
+          { name: 'origin', refs: { fetch: 'https://github.com/rpp-co/r.git' } },
+        ]),
+        remote: jest.fn(),
+      } as any;
+      await commitAndPush(git, 'msg', ['.'], 'feature/x', 'rpp-co/r');
+      expect(git.remote).toHaveBeenCalledWith(['set-url', 'origin', 'https://rpp-tok@github.com/rpp-co/r.git']);
+    });
+
+    it('normalizes SSH origin URLs to HTTPS with token', async () => {
+      process.env.GITHUB_TOKEN = 'tok';
+      const git = {
+        add: jest.fn(),
+        commit: jest.fn(),
+        push: jest.fn().mockResolvedValue(undefined),
+        getRemotes: jest.fn().mockResolvedValue([
+          { name: 'origin', refs: { push: 'git@github.com:o/r.git' } },
+        ]),
+        remote: jest.fn(),
+      } as any;
+      await commitAndPush(git, 'msg', ['.'], 'feature/x', 'r');
+      expect(git.remote).toHaveBeenCalledWith(['set-url', 'origin', 'https://tok@github.com/o/r.git']);
+    });
+
     it('throws GitPushError on push failure', async () => {
       const git = {
         add: jest.fn(),

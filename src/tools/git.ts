@@ -261,8 +261,13 @@ export async function commitAndPush(
         const origin = remotes.find(r => r.name === 'origin');
         const baseUrl = origin?.refs.fetch || origin?.refs.push || (repo ? `https://github.com/${repo.includes('/') ? repo : `${process.env.GITHUB_OWNER || ''}/${repo}`}.git` : undefined);
         if (baseUrl) {
-          const authUrl = baseUrl.replace(/^https:\/\//, `https://${token}@`).replace(/^https:\/\/[^@]+@/, `https://${token}@`);
-          await git.remote(['set-url', 'origin', authUrl]);
+          // Normalize SSH-style GitHub URLs, then strip any existing credentials
+          // and inject the current token exactly once.
+          const normalized = baseUrl.replace(/^git@github\.com:/, 'https://github.com/');
+          const url = new URL(normalized);
+          url.username = token;
+          url.password = '';
+          await git.remote(['set-url', 'origin', url.toString()]);
         }
       } catch {
         // origin might not exist yet; push will fail cleanly below with details
