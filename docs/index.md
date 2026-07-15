@@ -77,7 +77,6 @@ gaia-code-harness/
 │   │   ├── tdd.md           ← Las Tres Leyes + ciclo R-V-R
 │   │   ├── gherkin.md       ← Formato Gherkin, reglas
 │   │   └── mutation-testing.md ← mutate.py, umbrales
-│   └── archive/       ← Documentos históricos (ignorar)
 │
 ├── scripts/
 │   ├── demo.sh        ← Demo automático multi-modo

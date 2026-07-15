@@ -7,9 +7,9 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
 ## Estado
 
 - `init.sh`: verde
-- `npm test`: 242/242 tests pasan, 19 suites
 - `npx tsc --noEmit`: sin errores
-- Git working tree: limpio (commit f621a2b pushed)
+- Tests locales Jest: entorno roto (jest-watcher faltante), pendiente de reparar `node_modules`
+- Git working tree: limpio de archivos temporales; docs/archive y logs de runtime eliminados
 
 ## Notas de sesión
 
@@ -192,3 +192,14 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
   - Se añadió a `docs/RULES.md` sección "Archivos y carpetas que NO se deben tocar" (pubspec_overrides.yaml, pubspec.yaml, build/, assets/, fonts/, etc.).
   - Se añadió regla equivalente en `flutter_web/index.ts` para que el skill lo recuerde.
 - Nota: el entorno local de tests de `gaia-code-harness` tiene problemas con paquetes de Jest incompletos (npm descarga tarballs sin `build/`); `npx tsc --noEmit` sí pasa. Pendiente reparar `node_modules`.
+
+### Limpieza de archivos/carpetas no usadas (sesión actual)
+
+- Se eliminó la carpeta vacía `src/hooks/` (el experimento de hooks fue revertido por el usuario).
+- Se eliminaron `dist/` y `examples/` (vacíos / no usados).
+- Se eliminaron archivos temporales `tmp-bre-b-job.json` y `tmp-bre-b-job-docs.json`.
+- Se eliminaron `.DS_Store` del root y docs.
+- Se eliminó `docs/archive/` (documentos históricos autoreferenciados y marcados como ignorar).
+- Se eliminaron logs de runtime de `progress/.state/` y `progress/*.md` individuales, dejando solo `current.md` y `history.md`.
+- Se actualizó `docs/index.md` para quitar la línea del `docs/archive/`.
+- Se verificó `npx tsc --noEmit` sin errores.
