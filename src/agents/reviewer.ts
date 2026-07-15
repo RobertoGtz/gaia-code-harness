@@ -224,6 +224,8 @@ Score 0-100. Return ONLY a JSON object with this shape: {"score": number, "passe
 Be strict: issues should be concrete, actionable gaps (missing tests, unhandled edge cases, spec mismatches, obvious bugs).
 Do not praise. Do not nitpick formatting. If score >= 80 and no concrete issues, passed = true.
 
+Controller-test guidance: Flutter controller tests verify action methods such as loadPresummary, retryLoadingPresummary, and navigateToSummary. Those action tests already cover the behavior triggered by view states (e.g. SummaryFormSuccess -> navigateToSummary, SummaryFormError -> retryLoadingPresummary). Do NOT flag "missing test for SummaryFormSuccess/SummaryFormError handling" when the test file contains the corresponding action-method tests.
+
 Examples:
 
 Bad review (too lenient):
