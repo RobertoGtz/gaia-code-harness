@@ -128,3 +128,14 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
   - `specSystem` de `flutter_web` reforzado con las mismas instrucciones.
 - Tests: 3 nuevos tests en `tests/file.test.ts` para `getRelevantSourceContext`.
 - Test count actualizado a 267.
+
+### Validación end-to-end con `bre_b` (job `6a3fdd9c-1c31-4333-af9b-c1031a72a487`)
+
+- El `SpecAuthorAgent` ahora carga **60,798 chars** de contexto fuente y generó un spec correcto:
+  - 4 tareas, **todas** apuntan a `packages/features/bre_b/lib/src/presentation/modules/presummary_form/presummary_form_module.dart`.
+  - Ya no propone modificar screen/controller/router innecesariamente.
+- `RULES.md` y `UNIT_TESTS.md` del repo cashflow se cargaron correctamente.
+- `ImplementerAgent` completó las 4 tareas y los tests pasaron.
+- `ReviewerAgent` detectó falta de cobertura de tests (retry + primary action + estados existentes); `ImplementerAgent` reintentó agregarlos.
+- El job falló finalmente por permisos de push: `Failed to push branch 'feature/...' to 'rpp-co/rpp-cashflow-multiplatform-pyme'. Check push permissions and GITHUB_TOKEN scope.`
+- `dart analyze` reportó issues menores (non-blocking) que deben revisarse.
