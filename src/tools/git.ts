@@ -200,21 +200,32 @@ export async function parseGitHubRepoFromRemote(
 }
 
 /**
- * Find all pubspec_overrides.yaml files in the repo (excluding .dart_tool).
+ * Find paths that must never be committed: pubspec_overrides.yaml, build outputs,
+ * .dart_tool, Flutter plugin metadata, and cache dill files.
  * Returns paths relative to repoRoot.
  */
-function findPubspecOverrides(repoRoot: string): string[] {
+function findNeverCommitPaths(repoRoot: string): string[] {
   const results: string[] = [];
   const walk = (dir: string) => {
     let entries: fs.Dirent[];
     try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
     for (const entry of entries) {
-      if (entry.name === '.dart_tool' || entry.name === 'build' || entry.name === '.git') continue;
+      if (entry.name === '.git') continue;
       const full = path.join(dir, entry.name);
+      const rel = path.relative(repoRoot, full);
       if (entry.isDirectory()) {
+        if (entry.name === 'build' || entry.name === '.dart_tool') {
+          results.push(rel);
+          continue;
+        }
         walk(full);
-      } else if (entry.name === 'pubspec_overrides.yaml') {
-        results.push(path.relative(repoRoot, full));
+      } else if (
+        entry.name === 'pubspec_overrides.yaml' ||
+        entry.name === '.flutter-plugins' ||
+        entry.name === '.flutter-plugins-dependencies' ||
+        entry.name.endsWith('.cache.dill.track.dill')
+      ) {
+        results.push(rel);
       }
     }
   };
@@ -223,14 +234,21 @@ function findPubspecOverrides(repoRoot: string): string[] {
 }
 
 /**
- * Unstage and restore all pubspec_overrides.yaml files so they are never committed.
+ * Unstage and restore all never-commit files/directories so they are never part of the PR.
  * Uses explicit relative paths (no shell glob expansion needed).
  */
 async function unstageNeverCommitFiles(git: SimpleGit, repoRoot: string): Promise<void> {
-  const overrides = findPubspecOverrides(repoRoot);
-  for (const relPath of overrides) {
+  const neverCommitPaths = findNeverCommitPaths(repoRoot);
+  for (const relPath of neverCommitPaths) {
     try { await git.reset(['HEAD', '--', relPath]); } catch { /* not staged — fine */ }
     try { await git.checkout(['--', relPath]); } catch { /* not tracked — fine */ }
+    try {
+      const full = path.join(repoRoot, relPath);
+      const stat = fs.statSync(full);
+      if (stat.isDirectory()) {
+        fs.rmSync(full, { recursive: true, force: true });
+      }
+    } catch { /* does not exist or not a directory — fine */ }
   }
 }
 
