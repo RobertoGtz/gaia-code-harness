@@ -180,6 +180,11 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
     - `SummaryFormError(message: final error)` → `SummaryFormError()` (la clase sellada no tiene campo `message`; se usa `CommonConstants.genericErrorMessage`).
     - Parámetro `label:` del `PayButton` → `text:`.
     - Se eliminó el `ref.listen` que navegaba automáticamente al emitirse `SummaryFormSuccess`, porque el criterio de aceptación dice que la navegación debe ser por la acción primaria del usuario.
+- Documentación para producto:
+  - Se creó `docs/guides/cli-mode-product.md` explicando el CLI Mode en lenguaje no técnico.
+  - Incluye: qué es, cuándo usarlo, flujo paso a paso, estados, ejemplo `job.json`, FAQ y glosario.
+  - Se actualizó `docs/index.md` con el nuevo documento.
+  - FigJam de referencia: https://www.figma.com/board/hg8uzqC0Wx17t3XNlSvfEe
 - Fix en `gaia-code-harness/src/tools/git.ts`:
   - Se extendió `unstageNeverCommitFiles` para deshacer y eliminar: `pubspec_overrides.yaml`, `.dart_tool/`, `build/`, `.flutter-plugins`, `.flutter-plugins-dependencies` y `*.cache.dill.track.dill`.
   - De esta forma futuros jobs no empujarán esos archivos aunque `flutter test` los genere.
