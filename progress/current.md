@@ -88,7 +88,19 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
 
 1. **Loop infinito en CLI**: Se añadió `requestSource` (`api` | `cli` | `webhook`) a `CodeGenerationJob` y a los creadores de jobs. En `leader.ts`, los errores `test_error`/`review_error`/`failed` solo se reintentan automáticamente si `requestSource !== 'cli'`, evitando loops en Modo B.
 2. **Tests generados inconsistentes**: En `ImplementerAgent.execute()` (bulk) ahora se ejecutan primero los tasks de implementación (`create`/`modify`) y luego los de test, pasando el contenido real de los archivos fuente como `sourceContext` para que el LLM genere imports y APIs correctos. Se mantiene el orden original vía `dependsOn`.
+3. **Timeout melos bootstrap**: Se aumentó de 5 a 10 minutos (`src/tools/test-runner.ts`) para monorepos RPP grandes con dependencias git.
+
+### Segunda prueba end-to-end en `rpp-cashflow-multiplatform-pyme` (feature bre_b)
+
+- Job creado: `c7a94f76-c492-4972-9812-7f2f466302e8` — `Handle SummaryFormSuccess and SummaryFormError states in Bre-B presummary form`.
+- Primera corrida falló con `BUILD_ERROR` porque `melos bootstrap` superó el timeout de 5 min al descargar dependencias git.
+- Tras aumentar timeout a 10 min y reintentar con `--retry`, el CLI pasó a implementación y generó código/tests.
+- Los tests fallaron por errores del LLM:
+  - Import inexistente `presummary_form_module.dart` en `presummary_form_screen.dart`.
+  - Uso incorrecto de `FluroRouter()` como constructor.
+- El job terminó en `TEST_ERROR` y no reintentó automáticamente (comportamiento esperado en Modo B).
+- Conclusión: el CLI sigue funcionando end-to-end; los fallos son de precisión del `SpecAuthorAgent`/`ImplementerAgent` al interpretar la estructura del repo RPP.
 
 ### Test count
 
-- `CHECKPOINTS.md` actualizado a 262 tests en 21 suites.
+- `CHECKPOINTS.md` actualizado a 263 tests en 21 suites.
