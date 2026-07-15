@@ -121,9 +121,24 @@ export class ImplementerAgent extends BaseAgent {
           const sourceContext = ctxParts.join('\n\n');
 
           const filePath = path.join(repoPath, task.filePath);
-          const content = await this.generateCode(task, promptCtx.implementerSystem, job.title, pubspecRaw, sourceContext);
+          const existing = await readFile(filePath).catch(() => '');
+          let content: string;
+          let operation: FileChange['operation'];
+          if (existing) {
+            content = await this.modifyCode(
+              { ...task, description: `${task.description}\n\nIMPORTANT: The test file already exists. Preserve all existing imports, mock classes, setUp, and helper methods. Only add the new test cases needed to fulfill the task.` },
+              existing,
+              promptCtx.implementerSystem,
+              job.title,
+              pubspecRaw
+            );
+            operation = 'modify';
+          } else {
+            content = await this.generateCode(task, promptCtx.implementerSystem, job.title, pubspecRaw, sourceContext);
+            operation = 'create';
+          }
           await writeFile(filePath, content);
-          changes.push({ path: task.filePath, operation: 'create', newContent: content, diff: `+ ${task.filePath}` });
+          changes.push({ path: task.filePath, operation, originalContent: existing || undefined, newContent: content, diff: `${operation === 'create' ? '+' : '~'} ${task.filePath}` });
         }
 
         task.status = 'done';
