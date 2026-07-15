@@ -167,7 +167,7 @@ export async function runMelosBootstrap(workingDir: string, extraEnv?: Record<st
   try {
     const { stdout, stderr } = await execAsync('melos bootstrap', {
       cwd: workingDir,
-      timeout: 300000, // 5 minute timeout
+      timeout: 600000, // 10 minute timeout for large monorepos with git dependencies
       env: extraEnv ? { ...process.env, ...extraEnv } : process.env,
     });
 
