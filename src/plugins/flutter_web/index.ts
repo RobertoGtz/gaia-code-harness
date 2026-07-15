@@ -332,6 +332,7 @@ CRITICAL SPEC AUTHOR INSTRUCTIONS:
 State management: hooks_riverpod + flutter_hooks. Notifiers extend StateNotifier with SafeStateNotifier and use freezed sealed classes for states.
 Serialization: freezed + json_serializable.
 NEVER suggest these mobile-only packages: ${forbiddenList}.
+NEVER modify, create, or delete: pubspec_overrides.yaml, pubspec.yaml (unless explicitly adding a dependency), build/ directories, .dart_tool/, .flutter-plugins, assets/, fonts/, or icon font files (*.ttf, *.otf). Build artifacts, assets and fonts are already configured; do not touch them.
 Private dependencies are resolved via pubspec_overrides.yaml with credentials injected by scripts/setup.sh; this is separate from GitHub PR credentials.`,
       implementerSystem: `You are an expert Flutter Web developer for RPP multiplatform monorepos.
 - Feature package: ${base}
