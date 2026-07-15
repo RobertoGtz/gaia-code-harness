@@ -367,7 +367,7 @@ Private dependencies are resolved via pubspec_overrides.yaml with credentials in
     * freezed models require ALL named fields (no positional constructors)
 - KNOWN CASHFLOW REPOS (rpp-co/rpp-cashflow-multiplatform-pyme):
     * bre_b feature: notifier+module at packages/features/bre_b/lib/src/presentation/modules/presummary_form/presummary_form_states_notifier.dart and presummary_form_module.dart
-    * bre_b notifier class: PresummaryFormStatesNotifier extends StateNotifier<SummaryFormViewStates> with SafeStateNotifier (method loadPresummary lives here)
+    * bre_b notifier class: PresummaryFormStatesNotifier extends StateNotifier<SummaryFormViewStates> with SafeStateNotifier (method loadPresummary lives here); import from package:bre_b/src/presentation/modules/presummary_form/presummary_form_states_notifier.dart when mocking it in tests
     * bre_b view states: packages/features/bre_b/lib/src/data/models/presummary_form/summary_form_view_states.dart (SummaryFormViewStates sealed class with PresummaryFormLoading/Error/Success, SummaryFormLoading/Error/Success)
     * bre_b controller abstract: packages/features/bre_b/lib/src/presentation/modules/presummary_form/presummary_form_module_controller.dart
     * bre_b concrete flow controller: PresummaryFormController at packages/features/bre_b/lib/src/presentation/flow/presummary_form/presummary_form_controller.dart
