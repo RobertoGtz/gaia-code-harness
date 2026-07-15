@@ -203,3 +203,6 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
 - Se eliminaron logs de runtime de `progress/.state/` y `progress/*.md` individuales, dejando solo `current.md` y `history.md`.
 - Se actualizó `docs/index.md` para quitar la línea del `docs/archive/`.
 - Se verificó `npx tsc --noEmit` sin errores.
+- Se reinstaló `node_modules` varias veces (`npm cache clean --force`, `npm install --prefer-online`).
+  - Al ejecutar `npm test`, 20/21 suites y 269/270 tests pasan; falla al final porque desaparece `jest-util/build/index.js` (problema externo/entorno, no del código).
+- Se hizo commit `8c60b2c` con la limpieza.
