@@ -135,6 +135,15 @@ describe('DiskBackend', () => {
       expect(updated?.prUrl).toBe('https://github.com/pr/1');
     });
 
+    it('persists reviewFeedback for closed-loop retries', async () => {
+      const job = await backend.createJob(minimalJob);
+      const feedback = 'Missing test for empty list edge case';
+      await backend.updateJobStatus(job.id, 'implementing', { reviewFeedback: feedback });
+      const updated = await backend.getJob(job.id);
+      expect(updated?.reviewFeedback).toBe(feedback);
+      expect(updated?.status).toBe('implementing');
+    });
+
     it('throws for unknown id', async () => {
       await expect(backend.updateJobStatus('bad-id', 'done')).rejects.toThrow('Job bad-id not found');
     });

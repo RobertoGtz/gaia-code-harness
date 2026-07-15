@@ -31,19 +31,18 @@ import { fetchJiraTicket, JiraError, JiraConfigError, JiraAuthError, JiraNotFoun
 process.env.GAIA_HARNESS_ROOT = process.env.GAIA_HARNESS_ROOT
   || path.resolve(__dirname, '../..');
 
-const backend = new DiskBackend();
-setStateBackend(backend);
-
 // ── CLI args ────────────────────────────────────────────────────────────────
 
-const args = process.argv.slice(2);
-const flag = (name: string): string | undefined => {
-  const i = args.indexOf(name);
-  return i >= 0 ? args[i + 1] : undefined;
-};
-const has = (name: string): boolean => args.includes(name);
+export function parseArgs(argv: string[]) {
+  const flag = (name: string): string | undefined => {
+    const i = argv.indexOf(name);
+    return i >= 0 ? argv[i + 1] : undefined;
+  };
+  const has = (name: string): boolean => argv.includes(name);
+  return { flag, has };
+}
 
-async function approveAndResume(jobId: string): Promise<void> {
+export async function approveAndResume(jobId: string, backend: DiskBackend): Promise<void> {
   const job = await backend.getJob(jobId);
   if (!job) {
     console.error(`Job ${jobId} not found`);
@@ -60,7 +59,13 @@ async function approveAndResume(jobId: string): Promise<void> {
   }
 }
 
-async function main(): Promise<void> {
+export async function main(
+  argv: string[] = process.argv.slice(2),
+  deps: { backend?: DiskBackend } = {}
+): Promise<void> {
+  const backend = deps.backend ?? new DiskBackend();
+  setStateBackend(backend);
+  const { flag, has } = parseArgs(argv);
   // List mode
   if (has('--list')) {
     const jobs = await backend.listJobs();
@@ -78,7 +83,7 @@ async function main(): Promise<void> {
     console.log(`Resuming job ${existingId}…`);
     await orchestrateJob(existingId);
     if (has('--approve')) {
-      await approveAndResume(existingId);
+      await approveAndResume(existingId, backend);
     }
     return;
   }
@@ -116,7 +121,7 @@ async function main(): Promise<void> {
     console.log(`  Progress: progress/${job.id}.md\n`);
     await orchestrateJob(job.id);
     if (has('--approve')) {
-      await approveAndResume(job.id);
+      await approveAndResume(job.id, backend);
     }
     return;
   }
@@ -183,23 +188,25 @@ async function main(): Promise<void> {
 
   await orchestrateJob(job.id);
   if (has('--approve')) {
-    await approveAndResume(job.id);
+    await approveAndResume(job.id, backend);
   }
 }
 
-main().catch(err => {
-  if (err instanceof JiraConfigError) {
-    console.error(`\n${err.message}`);
-    console.error('Set JIRA_BASE_URL, JIRA_EMAIL, and JIRA_API_TOKEN in .env');
-  } else if (err instanceof JiraAuthError) {
-    console.error(`\n${err.message}`);
-    console.error('Verify your JIRA_EMAIL and JIRA_API_TOKEN are correct and have read access to the project.');
-  } else if (err instanceof JiraNotFoundError) {
-    console.error(`\n${err.message}`);
-  } else if (err instanceof JiraError) {
-    console.error(`\n[Jira] ${err.message} (HTTP ${err.status})`);
-  } else {
-    console.error('Fatal:', err);
-  }
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch(err => {
+    if (err instanceof JiraConfigError) {
+      console.error(`\n${err.message}`);
+      console.error('Set JIRA_BASE_URL, JIRA_EMAIL, and JIRA_API_TOKEN in .env');
+    } else if (err instanceof JiraAuthError) {
+      console.error(`\n${err.message}`);
+      console.error('Verify your JIRA_EMAIL and JIRA_API_TOKEN are correct and have read access to the project.');
+    } else if (err instanceof JiraNotFoundError) {
+      console.error(`\n${err.message}`);
+    } else if (err instanceof JiraError) {
+      console.error(`\n[Jira] ${err.message} (HTTP ${err.status})`);
+    } else {
+      console.error('Fatal:', err);
+    }
+    process.exit(1);
+  });
+}
