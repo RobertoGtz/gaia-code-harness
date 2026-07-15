@@ -165,4 +165,10 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
   - Guía para no marcar como faltantes tests de estados cuando existen tests de métodos de acción.
   - El contexto de review para archivos `_test.dart` muestra el final del archivo (hasta 12k chars) para que se vean los casos de prueba reales.
 - Resultado: la implementación del job `5c4daa32-f41b-4c5d-9725-f38b99730704` pasó tests y se empujó a `feature/5c4daa32-handle-summaryformsuccess-and-summaryfor`. El `ReviewerAgent` entró en loop pidiendo tests que sí existen; con el fix de contexto de review se espera que la siguiente corrida apruebe.
-- Bloqueador actual: OpenAI API retornó `429 You exceeded your current quota` al generar el spec del siguiente job (`cd6bd82a-1fe9-4c15-8e0e-b77d8bb188cb`). No se pueden ejecutar más jobs hasta resolver el quota/billing.
+- Bloqueador temporal: OpenAI API retornó `429 You exceeded your current quota` al generar el spec del siguiente job (`cd6bd82a-1fe9-4c15-8e0e-b77d8bb188cb`). Se resolvió.
+- Nueva corrida `28ee8542-9e7e-44c4-ae71-7b8020c41a71` completada exitosamente:
+  - Spec generado correctamente (5 tasks, todas apuntan al module widget o controller test).
+  - Implementación pasó tests.
+  - `ReviewerAgent` aprobó con 85/100.
+  - PR creado: https://github.com/rpp-co/rpp-cashflow-multiplatform-pyme/pull/15
+  - Mutation testing skipped (no source files to mutate según el agente).
