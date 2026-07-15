@@ -224,4 +224,7 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
 - Nueva guía `docs/guides/claude-vs-gaia-agents.md`:
   - Compara objetivamente GAIA agents vs `.claude/agents` y explica cuándo usar cada uno.
   - Se indexó en `docs/index.md` y `AGENTS.md`.
+- Nueva guía `docs/guides/claude-mode.md`:
+  - Explica cómo usar GAIA en modo `.claude` (Claude Code): agentes, pipeline, `/run`, reglas y ejemplo de flujo.
+  - Se indexó en `docs/index.md` y `AGENTS.md`.
   - Commit pendiente (trabajo en curso).
