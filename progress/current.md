@@ -172,3 +172,7 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
   - `ReviewerAgent` aprobó con 85/100.
   - PR creado: https://github.com/rpp-co/rpp-cashflow-multiplatform-pyme/pull/15
   - Mutation testing skipped (no source files to mutate según el agente).
+- Limpieza del PR #15: se eliminaron del commit `a36c66d` los cambios no deseados en `pubspec_overrides.yaml` de varios packages y los archivos de build/fonts/assets. Se reescribió la branch `feature/28ee8542-handle-summaryformsuccess-and-summaryfor` con un commit limpio (`b0bc558`) que solo toca el module widget y el controller test.
+- Prevención futura:
+  - Se añadió a `docs/RULES.md` sección "Archivos y carpetas que NO se deben tocar" (pubspec_overrides.yaml, pubspec.yaml, build/, assets/, fonts/, etc.).
+  - Se añadió regla equivalente en `flutter_web/index.ts` para que el skill lo recuerde.
