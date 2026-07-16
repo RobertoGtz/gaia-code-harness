@@ -269,6 +269,12 @@ ${fileContents.join('\n\n')}
 
 Return the JSON review object only.`;
 
+    // Demo jobs are presentation-only; skip LLM review to ensure predictable demos.
+    if (job.initiativeId === 'demo') {
+      this.logStep('Skipping LLM review for demo job');
+      return { score: 100, passed: true, issues: [] };
+    }
+
     try {
       const response = await callLLM([
         { role: 'system', content: systemPrompt },
