@@ -67,7 +67,7 @@ export class ReviewerAgent extends BaseAgent {
 
       // 5. LLM review — catch subjective/spec gaps that deterministic checks miss
       this.logStep('Running LLM review...');
-      const review = await this.runLLMReview(job, modifiedFiles, repoPath, handoff);
+      const review = await this.runLLMReview(job, modifiedFiles, repoPath, handoff, skill);
       const reviewReportPath = path.join(workspacePath, 'review_report.md');
       await readFile(reviewReportPath).catch(() => '') && undefined; // ensure dir exists via writeFile below
       const reviewReport = `# LLM Review Report: ${job.title}\n\n**Score**: ${review.score}/100\n\n**Passed**: ${review.passed ? 'Yes' : 'No'}\n\n## Issues\n${review.issues.map((i: string) => `- ${i}`).join('\n') || '- No issues detected.'}\n`;
@@ -208,7 +208,8 @@ ${design.architectureDecisions.map(d => `- ${d}`).join('\n')}
     job: AgentContext['job'],
     modifiedFiles: string[],
     repoPath: string,
-    handoff: string
+    handoff: string,
+    skill: Awaited<ReturnType<typeof loadSkill>>
   ): Promise<{ score: number; passed: boolean; issues: string[] }> {
     if (!job.spec) return { score: 100, passed: true, issues: [] };
 
@@ -224,13 +225,14 @@ ${design.architectureDecisions.map(d => `- ${d}`).join('\n')}
       })
     );
 
+    const platformGuidance = skill.getPromptContext(job).reviewerSystem;
+
     const systemPrompt = `You are a skeptical code reviewer. Evaluate the changes against the spec and acceptance criteria.
 Score 0-100. Return ONLY a JSON object with this shape: {"score": number, "passed": boolean, "issues": string[]}.
 Be strict: issues should be concrete, actionable gaps (missing tests, unhandled edge cases, spec mismatches, obvious bugs).
 Do not praise. Do not nitpick formatting. If score >= 80 and no concrete issues, passed = true.
 
-Controller-test guidance: Flutter controller tests verify action methods such as loadPresummary, retryLoadingPresummary, and navigateToSummary. Those action tests already cover the behavior triggered by view states (e.g. SummaryFormSuccess -> navigateToSummary, SummaryFormError -> retryLoadingPresummary). Do NOT flag "missing test for SummaryFormSuccess/SummaryFormError handling" when the test file contains the corresponding action-method tests.
-State-preservation guidance: Existing states such as PresummaryFormLoading/PresummaryFormError/PresummaryFormSuccess are unchanged by the module widget's default branches. Do NOT demand controller tests to verify that existing states are unchanged; that is the module widget's responsibility, not the controller's.
+${platformGuidance}
 
 Examples:
 

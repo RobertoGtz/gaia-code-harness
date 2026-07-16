@@ -237,4 +237,10 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
   - `.claude/workflows/` — `security-review.md`, `release-checklist.md`, `add-new-platform.md`.
   - `.claude/research/gaia-research-playbook.md` — investigación estructurada antes de specs.
   - Se indexaron en `docs/index.md` y `AGENTS.md`.
-  - Commit pendiente (trabajo en curso).
+- Archivos sin commitear verificados:
+  - `./init.sh` pasa.
+  - `npx tsc --noEmit` pasa.
+  - `feature_list.json` es válido.
+  - Import manual de `BackendSkill` y `ReviewerAgent` funciona.
+  - `npm test` sigue bloqueado porque `CleanMyMac` borra directorios `build/` dentro de `node_modules` (`jest-util`, `jest-circus`, `jest-worker`, `jest-runtime`, etc.) durante la ejecución.
+  - Commit de estos cambios realizado; el entorno Jest requiere pausar/ignorar `CleanMyMac` para test completo.

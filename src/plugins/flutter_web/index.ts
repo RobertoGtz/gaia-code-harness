@@ -391,7 +391,10 @@ Check for:
 - module changes target the module file, not unnecessary flow/router files
 - generated files: exclude *.g.dart, *.freezed.dart, *.config.dart from analyze
 - mobile-only packages: ${forbiddenList} must be absent
-- tests: mocktail repository tests and flutter_test widget tests; tests do not import web-only transitive deps`,
+- tests: mocktail repository tests and flutter_test widget tests; tests do not import web-only transitive deps
+
+Controller-test guidance: Flutter controller tests verify action methods such as loadPresummary, retryLoadingPresummary, and navigateToSummary. Those action tests already cover the behavior triggered by view states (e.g. SummaryFormSuccess -> navigateToSummary, SummaryFormError -> retryLoadingPresummary). Do NOT flag "missing test for SummaryFormSuccess/SummaryFormError handling" when the test file contains the corresponding action-method tests.
+State-preservation guidance: Existing states such as PresummaryFormLoading/PresummaryFormError/PresummaryFormSuccess are unchanged by the module widget's default branches. Do NOT demand controller tests to verify that existing states are unchanged; that is the module widget's responsibility, not the controller's.`,
       filePatterns: {
         routes: `${base}/lib/src/core/${feature}_routes.dart`,
         router: `${base}/lib/src/core/${feature}_router.dart`,

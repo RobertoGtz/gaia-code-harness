@@ -138,6 +138,11 @@ export async function loadSkill(platform: Platform, repoPath?: string): Promise<
         skill = new AndroidSkill();
         break;
       }
+      case 'backend': {
+        const { BackendSkill } = await import('./backend');
+        skill = new BackendSkill();
+        break;
+      }
       default:
         throw new Error(`No skill registered for platform: "${platform}"`);
     }

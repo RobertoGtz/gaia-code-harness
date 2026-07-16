@@ -110,7 +110,7 @@
       "The primary action on SummaryFormSuccess navigates to the summary route",
       "Existing PresummaryFormLoading, PresummaryFormError and PresummaryFormSuccess states are unchanged"
     ],
-    "status": "in_progress",
+    "status": "done",
     "tddMode": false,
     "sdd": false,
     "jobId": null
