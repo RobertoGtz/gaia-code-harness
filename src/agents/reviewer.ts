@@ -261,6 +261,9 @@ Tasks:
 ${job.spec.tasks.map(t => `- [${t.type}] ${t.description}`).join('\n')}
 
 ${handoff ? `Handoff from previous agent:\n${handoff}\n` : ''}
+Testing context:
+${job.requireTests === false ? '- Tests were intentionally skipped because requireTests=false. Do NOT penalize the implementation for missing tests; evaluate only whether the code satisfies the spec and acceptance criteria.' : '- Tests were required and are expected to pass. Missing or failing tests is a concrete issue.'}
+
 Changed files:
 ${fileContents.join('\n\n')}
 

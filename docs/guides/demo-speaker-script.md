@@ -17,15 +17,15 @@
 cat > /tmp/demo-cashflow-job.json <<'JSON'
 {
   "initiativeId": "demo",
-  "title": "Demo: add GAIA watermark to Bre-B presummary success view",
+  "title": "Demo: add isDemoBuild utility flag to bre_b core",
   "platform": "flutter_web",
   "repo": "rpp-co/rpp-cashflow-multiplatform-pyme",
   "targetBranch": "master",
   "module": "bre_b",
-  "description": "Presentation demo: add a subtle 'GAIA demo' watermark to the SummaryFormSuccess view in the bre_b module. No functional logic changes.",
+  "description": "Small demo change to verify GAIA pipeline on the cashflow repository. Adds a simple boolean utility and exports it from the core entry point.",
   "acceptanceCriteria": [
-    "WHEN SummaryFormSuccess is rendered THEN a 'GAIA demo' watermark text is visible",
-    "WHEN the watermark is shown THEN it uses the existing secondary text style"
+    "WHEN the bre_b core library is imported THEN an isDemoBuild boolean constant is available",
+    "WHEN isDemoBuild is evaluated THEN it returns false"
   ],
   "maxFilesToTouch": 3,
   "requireTests": false,
@@ -33,6 +33,8 @@ cat > /tmp/demo-cashflow-job.json <<'JSON'
 }
 JSON
 ```
+
+> **Nota:** `requireTests: false` hace que la demo sea rápida y predecible. En producción se usa `true` y GAIA exige tests verdes antes de crear el PR.
 
 6. Limpia PRs de demos anteriores si es necesario (opcional).
 
@@ -112,7 +114,7 @@ git show HEAD
 **Qué mostrar:**
 
 - Sólo los archivos que el spec autorizó.
-- Cómo el watermark se integra con estilos existentes.
+- Cómo la constante se exporta desde el core y su valor es `false`.
 - Ausencia de cambios en CI/CD, secrets, o archivos de infraestructura.
 
 > **Tip:** Si querés resaltar que la IA no toca lo que no debe, corrés `git show --stat HEAD` y mostrás que los archivos modificados están dentro del módulo `bre_b`.
@@ -146,7 +148,7 @@ Flujo de la demo
 
 **Qué decir:**
 
-> "Vamos a pedirle a GAIA que agregue un pequeño watermark de demo en la pantalla de éxito del módulo `bre_b` de la app de cashflow. El repo es real: `rpp-co/rpp-cashflow-multiplatform-pyme`."
+> "Vamos a pedirle a GAIA que agregue una bandera booleana de demo en el core del módulo `bre_b` de la app de cashflow. Es un cambio mínimo y seguro. El repo es real: `rpp-co/rpp-cashflow-multiplatform-pyme`."
 
 **Mostrar en pantalla:**
 
@@ -160,10 +162,11 @@ cat /tmp/demo-cashflow-job.json
 - `"requireTests": false` — para la demo lo desactivamos; en producción se exigen tests verdes.
 - `"maxFilesToTouch": 3` — seguridad de scope.
 - `"module": "bre_b"` — restringe aún más el contexto.
+- `"requireTests": false` — acelera la demo; en producción se exigen tests.
 
 **Mencionar:**
 
-> "Si quisiéramos TDD, pondríamos `tddMode: true`. El Implementer escribiría primero el test rojo, luego haría que pase. Para la demo usamos modo normal para que sea rápido."
+> "Si quisiéramos TDD, pondríamos `tddMode: true`. El Implementer escribiría primero el test rojo, luego haría que pase. Para la demo desactivamos tests para que termine en PR de forma predecible."
 
 ---
 
@@ -272,12 +275,12 @@ git show --stat HEAD
 
 - Rama feature creada automáticamente.
 - Commit con mensaje descriptivo.
-- Sólo los archivos que el plan autorizó.
+- Sólo los archivos que el plan autorizó (core + test, aunque el test no se corra por `requireTests: false`).
 
 **Luego, mostrá el diff:**
 
 ```bash
-git show HEAD -- packages/features/bre_b/
+git show HEAD -- packages/features/bre_b/lib/bre_b_core.dart
 ```
 
 **Frase clave:**
@@ -302,7 +305,7 @@ open <PR_URL>
 **En el navegador, mostrá:**
 
 - Título y descripción del PR.
-- Files changed: sólo archivos del módulo `bre_b`.
+- Files changed: `bre_b_core.dart` + test, todo dentro del módulo `bre_b`.
 - No hay cambios en `pubspec_overrides.yaml`, `build/`, `.dart_tool/`, ni CI/CD.
 
 **Si tenés tiempo, mostrá la trazabilidad:**

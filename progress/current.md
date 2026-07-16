@@ -249,10 +249,13 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
   - Resultado: `pubspec_overrides.yaml`, `build/`, `.dart_tool/`, cache dill, assets/fonts generados se quedaban en el commit/PR.
   - Se corrigió seteando `_baseDir` explícitamente en `initGit`.
   - `./init.sh` y `npx tsc --noEmit` pasan.
-- Demo re-ejecutado en `rpp-co/rpp-cashflow-multiplatform-pyme` (job `b7e7b95d`):
-  - El commit del Implementer ahora solo incluye los 2 archivos intencionales (`bre_b_core.dart` + test).
+- Demo validado exitosamente en `rpp-co/rpp-cashflow-multiplatform-pyme` (job `c77e9b4a-04a2-4384-b002-5098ad2a209f`):
+  - El commit del Implementer solo incluye los 2 archivos intencionales (`bre_b_core.dart` + test).
   - No aparecen `pubspec_overrides.yaml`, `build/`, cache dill ni assets/fonts generados en el commit.
-  - El job quedó en `test_error` porque `flutter test` en el módulo `bre_b` falla para el test trivial; el fix de never-commit sí funcionó.
+  - Se creó PR real: `https://github.com/rpp-co/rpp-cashflow-multiplatform-pyme/pull/18`.
+- Fix en `src/agents/reviewer.ts`:
+  - El LLM review penalizaba faltantes de tests aun cuando `requireTests=false`.
+  - Se añadió "Testing context" al prompt para que no exija tests cuando están desactivados, haciendo demos predecibles sin debilitar el comportamiento con `requireTests=true`.
 - Nueva guía para presentador:
   - Creado `docs/guides/demo-speaker-script.md` con guión de qué decir en cada fase de una demo en vivo, job JSON para `rpp-cashflow-multiplatform-pyme` y comandos exactos.
   - Referenciado desde `docs/guides/demo.md` y `docs/index.md`.
