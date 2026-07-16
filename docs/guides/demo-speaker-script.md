@@ -17,18 +17,18 @@
 cat > /tmp/demo-cashflow-job.json <<'JSON'
 {
   "initiativeId": "demo",
-  "title": "Demo: add GAIA demo constants to bre_b_core.dart",
+  "title": "Demo: add DemoMetadata model with toMap to bre_b core",
   "platform": "flutter_web",
   "repo": "rpp-co/rpp-cashflow-multiplatform-pyme",
   "targetBranch": "master",
   "module": "bre_b",
-  "description": "Presentation-only demo change: add four static constants to bre_b_core.dart for demo metadata (appName, version, buildNumber, isDemoFlag). No business logic changes and no unit tests are required for this demo-only addition.",
+  "description": "Presentation-only demo change: add a DemoMetadata model class with final fields (appName, version, buildNumber, isDemo) and a toMap() method. Export it from bre_b_core.dart. No business logic changes and no unit tests are required for this demo-only model.",
   "acceptanceCriteria": [
-    "WHEN bre_b_core.dart is imported THEN it exposes gaiaDemoAppName, gaiaDemoVersion, gaiaDemoBuildNumber and gaiaDemoFlag",
-    "WHEN gaiaDemoVersion is read THEN it returns '1.0.0-demo'",
-    "WHEN gaiaDemoFlag is read THEN it returns true"
+    "WHEN DemoMetadata is constructed with default values THEN it exposes appName, version, buildNumber and isDemo",
+    "WHEN DemoMetadata.toMap is called THEN it returns a Map<String, dynamic> with the four fields",
+    "WHEN DemoMetadata is exported from bre_b_core.dart THEN it is reachable from the core library"
   ],
-  "maxFilesToTouch": 2,
+  "maxFilesToTouch": 3,
   "requireTests": false,
   "tddMode": false
 }
@@ -115,7 +115,8 @@ git show HEAD
 **Qué mostrar:**
 
 - Sólo los archivos que el spec autorizó.
-- Cómo se agregan las constantes `gaiaDemoAppName`, `gaiaDemoVersion`, `gaiaDemoBuildNumber`, `gaiaDemoFlag` directamente en `bre_b_core.dart`.
+- Cómo se crea `packages/features/bre_b/lib/src/data/models/demo_metadata.dart` con la clase `DemoMetadata` y su método `toMap()`.
+- Cómo `bre_b_core.dart` exporta el nuevo modelo.
 - Ausencia de cambios en CI/CD, secrets, o archivos de infraestructura.
 
 > **Tip:** Si querés resaltar que la IA no toca lo que no debe, corrés `git show --stat HEAD` y mostrás que los archivos modificados están dentro del módulo `bre_b`.
@@ -254,7 +255,7 @@ Flujo de la demo
 
 **Qué decir:**
 
-> "Vamos a pedirle a GAIA que agregue un conjunto de constantes de demo en el core del módulo `bre_b` de la app de cashflow. Es un cambio seguro, toca un solo archivo y genera más código que el ejemplo mínimo. El repo es real: `rpp-co/rpp-cashflow-multiplatform-pyme`."
+> "Vamos a pedirle a GAIA que agregue un pequeño modelo `DemoMetadata` en el core del módulo `bre_b` de la app de cashflow. Es un cambio seguro, genera más código: un archivo nuevo con una clase, campos y un método `toMap()`, más la exportación desde `bre_b_core.dart`. El repo es real: `rpp-co/rpp-cashflow-multiplatform-pyme`."
 
 **Mostrar en pantalla:**
 
@@ -265,7 +266,7 @@ cat /tmp/demo-cashflow-job.json
 **Destacar mientras se ve el JSON:**
 
 - `"platform": "flutter_web"` — GAIA carga el skill de Flutter Web y conoce la estructura Melos + FVM del repo.
-- `"maxFilesToTouch": 2` — seguridad de scope (solo un archivo).
+- `"maxFilesToTouch": 3` — seguridad de scope (archivo nuevo + exportación).
 - `"module": "bre_b"` — restringe aún más el contexto.
 - `"requireTests": false` — para la demo lo desactivamos; en producción se exigen tests verdes.
 
@@ -380,13 +381,16 @@ git show --stat HEAD
 
 - Rama feature creada automáticamente.
 - Commit con mensaje descriptivo.
-- Sólo los archivos que el plan autorizó: un solo archivo (`bre_b_core.dart`).
-- Las constantes tienen tipado y valores predecibles.
+- El plan autorizó 2 archivos: `demo_metadata.dart` (nuevo) y `bre_b_core.dart` (exportación).
+- La clase `DemoMetadata` tiene campos tipados y un método `toMap()`.
 - No se tocaron widgets, navegación ni infraestructura.
 
 **Luego, mostrá el diff:**
 
 ```bash
+# Nuevo archivo
+git show HEAD -- packages/features/bre_b/lib/src/data/models/demo_metadata.dart
+# Exportación
 git show HEAD -- packages/features/bre_b/lib/bre_b_core.dart
 ```
 
@@ -412,7 +416,7 @@ open <PR_URL>
 **En el navegador, mostrá:**
 
 - Título y descripción del PR.
-- Files changed: `bre_b_core.dart` (modificación con las constantes), todo dentro del módulo `bre_b`.
+- Files changed: `demo_metadata.dart` (clase nueva) + `bre_b_core.dart` (exportación), todo dentro del módulo `bre_b`.
 - No hay cambios en `pubspec_overrides.yaml`, `build/`, `.dart_tool/`, ni CI/CD.
 
 **Si tenés tiempo, mostrá la trazabilidad:**

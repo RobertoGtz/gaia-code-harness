@@ -249,11 +249,12 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
   - Resultado: `pubspec_overrides.yaml`, `build/`, `.dart_tool/`, cache dill, assets/fonts generados se quedaban en el commit/PR.
   - Se corrigió seteando `_baseDir` explícitamente en `initGit`.
   - `./init.sh` y `npx tsc --noEmit` pasan.
-- Demo más robusto validado en `rpp-co/rpp-cashflow-multiplatform-pyme` (job `127b35a5-a1e8-4da4-9924-936c8379c109`):
-  - El commit del Implementer modifica un solo archivo (`packages/features/bre_b/lib/bre_b_core.dart`) y agrega 4 constantes de demo (`gaiaDemoAppName`, `gaiaDemoVersion`, `gaiaDemoBuildNumber`, `gaiaDemoFlag`).
+- Demo que genera más código validado en `rpp-co/rpp-cashflow-multiplatform-pyme` (job `4b5ede9c-f373-49c8-b9d4-6d807d71e053`):
+  - El Implementer creó `packages/features/bre_b/lib/src/data/models/demo_metadata.dart` (clase `DemoMetadata` con campos `appName`, `version`, `buildNumber`, `isDemo`, `fromJson` y `toMap()` vía extensión) y exportó el modelo desde `bre_b_core.dart`.
   - No aparecen `pubspec_overrides.yaml`, `build/`, cache dill ni assets/fonts generados en el commit.
-  - Se creó PR real: `https://github.com/rpp-co/rpp-cashflow-multiplatform-pyme/pull/20`.
+  - Se creó PR real: `https://github.com/rpp-co/rpp-cashflow-multiplatform-pyme/pull/21`.
   - El job finalizó con status `done` y el LLM review aceptó el cambio pese a no tener tests (`requireTests: false`).
+- Demo anterior con constantes (`127b35a5`) generó PR #20 con un solo archivo modificado y 4 constantes; sirvió para validar el flujo base.
 - Fix en `src/agents/reviewer.ts`:
   - El LLM review penalizaba faltantes de tests aun cuando `requireTests=false`.
   - Se añadió "Testing context" al prompt para que no exija tests cuando están desactivados, haciendo demos predecibles sin debilitar el comportamiento con `requireTests=true`.
