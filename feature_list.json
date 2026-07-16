@@ -1,116 +1,22 @@
 [
   {
     "id": 1,
-    "name": "example_feature",
-    "title": "Add pull-to-refresh on feed",
-    "platform": "ios",
-    "repo": "mi-org/demo-repo-ios",
-    "targetBranch": "develop",
-    "acceptanceCriteria": [
-      "Feed data refreshes when user pulls down",
-      "Loading indicator shown during refresh",
-      "Items list updates after refresh completes"
-    ],
+    "name": "demo-analytics",
     "status": "pending",
-    "tddMode": true,
-    "sdd": true,
-    "jobId": null
-  },
-  {
-    "id": 2,
-    "name": "ios-build-strategy",
-    "title": "iOS build strategy for large Tuist monorepos",
-    "platform": "ios",
-    "repo": "rappi-inc/ios-rappi-main",
-    "targetBranch": "develop",
-    "acceptanceCriteria": [
-      "resolve strategy validates dependencies without full compilation",
-      "tuist strategy runs tuist build for Tuist modules",
-      "auto strategy falls back from tuist to xcodebuild to resolve",
-      "xcodebuild strategy works for standalone non-Tuist modules",
-      "repository setup preserves GitHub origin and Tuist cache",
-      "mutation score for touched files is at least 80%"
-    ],
-    "status": "done",
-    "tddMode": true,
-    "sdd": true,
-    "jobId": null
-  },
-  {
-    "id": 5,
-    "name": "test-download-movements-providers",
-    "title": "Add unit tests for movementsDataProvider and fileDataProvider",
-    "platform": "flutter_web",
-    "repo": "rpp-co/rpp-account-basics-multiplatform-pyme",
-    "targetBranch": "master",
-    "module": "account_summary",
-    "acceptanceCriteria": [
-      "When getMovementsData succeeds, movementsDataProvider returns DownloadMovements data",
-      "When getMovementsData throws, movementsDataProvider returns null",
-      "When downloadMovements succeeds, fileDataProvider returns DownloadMovementsFileResponse",
-      "When downloadMovements throws, fileDataProvider propagates the error"
-    ],
-    "status": "pending",
-    "tddMode": true,
-    "sdd": false,
-    "jobId": null
-  },
-  {
-    "id": 4,
-    "name": "fix-pyme-wall-movements-empty-page-state",
-    "title": "Fix emptyPage state logic in PymeWallMovementsListNotifier",
-    "platform": "flutter_web",
-    "repo": "rpp-co/rpp-account-basics-multiplatform-pyme",
-    "targetBranch": "master",
-    "acceptanceCriteria": [
-      "When loadFirstPage receives non-empty content, pageState is pageLoaded",
-      "When loadFirstPage receives empty content, pageState is emptyPage",
-      "When loadNextPage adds content to an existing list, pageState is pageLoaded",
-      "When loadNextPage returns empty and existing list is non-empty, pageState is pageLoaded",
-      "When repository throws, pageState is pageError",
-      "Mutation score for pyme_wall_movements_providers.dart is at least 80%"
-    ],
-    "status": "pending",
-    "tddMode": true,
-    "sdd": false,
-    "jobId": null
-  },
-  {
-    "id": 3,
-    "name": "flutter-web-skill",
-    "title": "Update Flutter Web skill for RPP multiplatform monorepos",
-    "platform": "flutter_web",
-    "repo": "rpp-co/rpp-account-basics-multiplatform-pyme",
-    "targetBranch": "master",
-    "acceptanceCriteria": [
-      "Skill recognizes Melos + FVM 3.35.7 monorepo structure",
-      "Skill uses melos bootstrap before flutter pub get",
-      "Skill detects fluro-based routing and package exports",
-      "Skill flags mobile-only packages and respects Flutter Web constraints",
-      "Skill prompts use correct package layout (core/data/presentation)",
-      "Skill documents separate GitHub/Bitbucket credentials for dependencies"
-    ],
-    "status": "done",
-    "tddMode": true,
-    "sdd": true,
-    "jobId": null
-  },
-  {
-    "id": 6,
-    "name": "bre-b-presummary-success-error-states",
-    "title": "Handle SummaryFormSuccess and SummaryFormError states in Bre-B presummary form",
+    "initiativeId": "demo",
+    "title": "Demo: add DemoAnalytics feature with event model and repository to bre_b core",
     "platform": "flutter_web",
     "repo": "rpp-co/rpp-cashflow-multiplatform-pyme",
     "targetBranch": "master",
     "module": "bre_b",
+    "description": "Presentation-only demo change: add a DemoAnalyticsEvent model, a DemoAnalyticsRepository class with a logEvent method, and export both from bre_b_core.dart. No business logic changes and no unit tests are required for this demo-only feature.",
     "acceptanceCriteria": [
-      "When the notifier emits SummaryFormSuccess, the module renders a success view with a primary action",
-      "When the notifier emits SummaryFormError, the module renders a GenericError with retry and back actions",
-      "Retrying from SummaryFormError reloads the presummary",
-      "The primary action on SummaryFormSuccess navigates to the summary route",
-      "Existing PresummaryFormLoading, PresummaryFormError and PresummaryFormSuccess states are unchanged"
+      "WHEN DemoAnalyticsEvent is constructed THEN it has name, timestamp and payload fields",
+      "WHEN DemoAnalyticsRepository.logEvent is called THEN it stores the event in an internal list",
+      "WHEN DemoAnalyticsEvent and DemoAnalyticsRepository are exported from bre_b_core.dart THEN they are reachable from the core library"
     ],
-    "status": "done",
+    "maxFilesToTouch": 4,
+    "requireTests": false,
     "tddMode": false,
     "sdd": false,
     "jobId": null
