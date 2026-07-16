@@ -1,7 +1,7 @@
-# Guión para presentador — Demo GAIA en `rpp-cashflow-multiplatform-pyme`
+# Guión para presentador — Demo GAIA en `rpp-cashflow-multiplatform-pyme` (CLI + `.claude`)
 
-> Demo de ~5 minutos usando **Modo B (CLI)**. No requiere servidor ni Docker.
-> El objetivo es mostrar cómo GAIA pasa de un requerimiento en lenguaje natural a un Pull Request, con un punto de aprobación humana en el medio.
+> Demo de ~5 minutos usando **Modo B (CLI)** y **Modo `.claude`**. No requiere servidor ni Docker.
+> El objetivo es mostrar, con el mismo requerimiento, cómo GAIA genera un Pull Request en cada modo.
 
 ---
 
@@ -437,16 +437,14 @@ open progress/<JOB_ID>.md
 
 **Qué decir:**
 
-> "GAIA no impone una sola interfaz. Hoy vimos el modo **CLI**, pero existe también el modo **`.claude`**. Ambos corren exactamente el mismo pipeline y los mismos agentes; lo que cambia es dónde pones el control humano."
+> "GAIA no impone una sola interfaz. Hoy vamos a ver dos modos: el **CLI** y el **`.claude`**. Ambos corren exactamente el mismo pipeline y los mismos agentes; lo que cambia es dónde pones el control humano."
 
 **Mostrar en pantalla — comparación rápida:**
 
 ```text
 | Modo        | Arranca con                  | Orquestador                  | Aprobación de spec              |
 | ----------- | ---------------------------- | ---------------------------- | ------------------------------- |
-| HTTP API    | POST /jobs                   | Servidor + src/harness/leader.ts | POST /jobs/:id/approve       |
 | CLI         | npx ts-node src/cli/run.ts   | src/cli/run.ts + leader.ts   | --approve flag                  |
-| Webhook     | POST /webhook/trigger        | Servidor + leader.ts         | Automática (Jira/Slack)         |
 | .claude     | Conversación o `/run`        | craftsman_lead + subagentes  | Pausa humana en Gherkin         |
 ```
 
@@ -508,7 +506,7 @@ Implementá la siguiente feature pendiente
 
 **Qué decir:**
 
-> "Ambos modos no se pelean; se complementan. Arrancás una idea en `.claude` para conversarla, aprobar los escenarios y validar TDD. Cuando la tarea es repetible y bien definida, la mandás por CLI o HTTP API. Si viene de Jira, un webhook la dispara automáticamente."
+> "Ambos modos no se pelean; se complementan. Arrancás una idea en `.claude` para conversarla, aprobar los escenarios y validar TDD. Cuando la tarea es repetible y bien definida, la mandás por CLI."
 
 **Mostrar en pantalla:**
 
@@ -523,7 +521,7 @@ Claude Code → /run --job job.json --approve
 
 - El `/run` de `.claude` usa los **mismos agentes TypeScript** que el CLI.
 - La aprobación humana en `.claude` está en los `.feature`; en CLI se salta con `--approve`.
-- En producción se usa `--approve=false` o el endpoint `POST /jobs/:id/approve`.
+- En producción se usa `--approve=false` o la aprobación manual en los escenarios Gherkin de `.claude`.
 
 **Frase clave:**
 
