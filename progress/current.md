@@ -253,3 +253,14 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
   - El commit del Implementer ahora solo incluye los 2 archivos intencionales (`bre_b_core.dart` + test).
   - No aparecen `pubspec_overrides.yaml`, `build/`, cache dill ni assets/fonts generados en el commit.
   - El job quedó en `test_error` porque `flutter test` en el módulo `bre_b` falla para el test trivial; el fix de never-commit sí funcionó.
+- Nueva guía para presentador:
+  - Creado `docs/guides/demo-speaker-script.md` con guión de qué decir en cada fase de una demo en vivo, job JSON para `rpp-cashflow-multiplatform-pyme` y comandos exactos.
+  - Referenciado desde `docs/guides/demo.md` y `docs/index.md`.
+  - Actualizada referencia rota en `scripts/present.sh` (`cli-demo-script.md` → `demo-speaker-script.md`).
+  - Expandido con:
+    - Sección "¿Qué es Harness Engineering?" con explicación y analogía.
+    - Sección "Cómo mostrar el código durante la demo" (progreso, spec/Gherkin, diff y PR).
+    - Para cada diapositiva: qué decir, qué mostrar en pantalla, puntos clave y frase clave.
+    - Plan B con manejo de errores en vivo (spec lento, test_error, PR no creado, archivos inesperados).
+    - FAQ extensa para la audiencia (reemplazo devs, scope, seguridad, TDD, mutation testing, Jira/Slack, repos privados).
+    - Comandos rápidos ampliados.

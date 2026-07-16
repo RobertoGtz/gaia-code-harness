@@ -155,7 +155,7 @@ State persists to disk (progress/.state/)
 Progress log: progress/<JOB_ID>.md
 Gherkin file: specs/<JOB_ID>/scenarios.feature
 
-${CYAN}Full script: docs/guides/cli-demo-script.md${NC}
+${CYAN}Full script: docs/guides/demo-speaker-script.md${NC}
 
 Press Enter to continue...")
 
@@ -276,4 +276,4 @@ echo "  → Do we need any additional notifiers or platform skills?"
 echo ""
 echo "Full docs:"
 echo "  README.md · docs/engineering/architecture.md · docs/guides/demo.md · API.md"
-echo "  docs/guides/cli-demo-script.md  ← guión paso a paso para Modo B"
+echo "  docs/guides/demo-speaker-script.md  ← guión paso a paso para Modo B"

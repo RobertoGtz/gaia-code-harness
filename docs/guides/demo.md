@@ -3,6 +3,8 @@
 > Paso a paso para ver el sistema en acción, desde los ACs hasta el Pull Request.  
 > No necesitas saber programar para seguir esta guía.
 
+> **¿Vas a dar una demo en vivo?** Usa [`demo-speaker-script.md`](demo-speaker-script.md): tiene el guión de qué decir en cada fase, el `job.json` listo y los comandos exactos para `rpp-cashflow-multiplatform-pyme`.
+
 ---
 
 ## ¿Qué vamos a ver?

@@ -6,12 +6,13 @@
 
 ## Quiero usarlo ahora mismo
 
-| Objetivo                                  | Documento                                                |
-| ----------------------------------------- | -------------------------------------------------------- |
-| Entender qué hace el sistema en 2 minutos | [`README.md`](../README.md)                              |
-| Setup + primer job paso a paso            | [`docs/guides/quick-start.md`](../guides/quick-start.md) |
-| Demo con comandos listos para copiar      | [`docs/guides/demo.md`](../guides/demo.md)               |
-| Demo automático en 1 comando              | `./scripts/demo.sh flutter`                              |
+| Objetivo                                  | Documento                                                                |
+| ----------------------------------------- | ------------------------------------------------------------------------ |
+| Entender qué hace el sistema en 2 minutos | [`README.md`](../README.md)                                              |
+| Setup + primer job paso a paso            | [`docs/guides/quick-start.md`](../guides/quick-start.md)                 |
+| Demo con comandos listos para copiar      | [`docs/guides/demo.md`](../guides/demo.md)                               |
+| Guión de presentador para demo en vivo    | [`docs/guides/demo-speaker-script.md`](../guides/demo-speaker-script.md) |
+| Demo automático en 1 comando              | `./scripts/demo.sh flutter`                                              |
 
 ---
 
@@ -76,7 +77,8 @@ gaia-code-harness/
 │   ├── INDEX.md       ← Este archivo
 │   ├── guides/        ← Documentación para USAR el sistema
 │   │   ├── quick-start.md   ← Los 3 modos paso a paso
-│   │   ├── demo.md          ← Demo con comandos listos
+│   │   ├── demo.md                    ← Demo con comandos listos
+│   │   ├── demo-speaker-script.md     ← Guión de presentador para demo en vivo
 │   │   ├── setup.md              ← Instalación detallada
 │   │   ├── testing.md            ← Testing local
 │   │   ├── cli-mode-product.md        ← Cómo funciona el CLI Mode (para producto)
