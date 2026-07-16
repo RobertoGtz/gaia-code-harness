@@ -286,7 +286,7 @@ cat /tmp/demo-cashflow-job.json
 **Mostrar en pantalla:**
 
 ```bash
-npm run gaia -- --job /tmp/demo-cashflow-job.json --approve
+npm run gaia -- /tmp/demo-cashflow-job.json --approve
 ```
 
 > **Tip:** Si querés algo aún más corto, agregá este alias a tu shell (`~/.zshrc` o `~/.bashrc`):
@@ -295,7 +295,7 @@ npm run gaia -- --job /tmp/demo-cashflow-job.json --approve
 > alias gaia='npm run gaia --'
 > ```
 >
-> Después podés correr simplemente `gaia --job /tmp/demo-cashflow-job.json --approve`.
+> Después podés correr simplemente `gaia /tmp/demo-cashflow-job.json --approve`.
 
 **Empieza a correr.** Mientras el output avanza, narra cada fase.
 
@@ -453,7 +453,7 @@ open progress/<JOB_ID>.md
 ```text
 | Modo        | Arranca con                  | Orquestador                  | Aprobación de spec              |
 | ----------- | ---------------------------- | ---------------------------- | ------------------------------- |
-| CLI         | npm run gaia --   | src/cli/run.ts + leader.ts   | --approve flag                  |
+| CLI         | npm run gaia -- <job.json>   | src/cli/run.ts + leader.ts   | --approve flag                  |
 | .claude     | Conversación o `/run`        | craftsman_lead + subagentes  | Pausa humana en Gherkin         |
 ```
 
@@ -467,7 +467,7 @@ open progress/<JOB_ID>.md
 
 ```bash
 cat /tmp/demo-cashflow-job.json | head -20
-npm run gaia -- --job /tmp/demo-cashflow-job.json --approve
+npm run gaia -- /tmp/demo-cashflow-job.json --approve
 ```
 
 **Archivos del harness que mostrar:**
@@ -586,7 +586,7 @@ tail -f progress/<JOB_ID>.md
 
 ```bash
 # Re-lanzar con requireTests false
-npm run gaia -- --job /tmp/demo-cashflow-job.json --approve
+npm run gaia -- /tmp/demo-cashflow-job.json --approve
 ```
 
 ### No se crea el PR
@@ -784,7 +784,7 @@ Copiá este brief en un generador de slides (Gamma, Beautiful.ai, Canva Magic, C
       "number": 3,
       "title": "Lanzar el pipeline (CLI)",
       "key_points": [
-        "Comando: npm run gaia -- --job job.json --approve",
+        "Comando: npm run gaia -- job.json --approve",
         "El pipeline arranca localmente",
         "Se puede pausar en spec_ready para aprobación manual"
       ],

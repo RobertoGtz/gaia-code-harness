@@ -146,6 +146,25 @@ describe('CLI Mode B', () => {
       }
     });
 
+    it('creates job from positional JSON file without --job flag', async () => {
+      const backend = makeBackend();
+      const tmpFile = path.join(__dirname, 'tmp-job-positional.json');
+      fs.writeFileSync(tmpFile, JSON.stringify({
+        platform: 'flutter',
+        title: 'Add feature',
+        repo: 'org/repo',
+        acceptanceCriteria: ['WHEN x THEN y'],
+      }));
+
+      try {
+        await main([tmpFile, '--approve'], { backend });
+        expect(backend.createJob).toHaveBeenCalled();
+        expect(mockOrchestrateJob).toHaveBeenCalledWith('job-123');
+      } finally {
+        fs.unlinkSync(tmpFile);
+      }
+    });
+
     it('auto-approves after orchestration when --approve is passed', async () => {
       const backend = makeBackend({
         getJob: jest.fn().mockResolvedValue({ id: 'job-123', status: 'spec_ready' }),

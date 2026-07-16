@@ -5,10 +5,11 @@
  *              DiskBackend. Designed for local development and Claude Code agent use.
  *
  * Usage:
+ *   npx ts-node src/cli/run.ts path/to/job.json
  *   npx ts-node src/cli/run.ts --job path/to/job.json
- *   npx ts-node src/cli/run.ts --job '{"title":"...", "platform":"ios", ...}'
- *   npx ts-node src/cli/run.ts --job job.json --approve      # auto-approve spec and run full pipeline
- *   npx ts-node src/cli/run.ts --job job.json --tdd --approve # Red-Green-Refactor mode
+ *   npx ts-node src/cli/run.ts '{"title":"...", "platform":"ios", ...}'
+ *   npx ts-node src/cli/run.ts job.json --approve      # auto-approve spec and run full pipeline
+ *   npx ts-node src/cli/run.ts job.json --tdd --approve # Red-Green-Refactor mode
  *   npx ts-node src/cli/run.ts --jira PROJ-123 --approve      # fetch from Jira and run full pipeline
  *   npx ts-node src/cli/run.ts --id <existing-job-id>         # resume
  *   npx ts-node src/cli/run.ts --id <existing-job-id> --retry # retry from review_error/test_error/failed
@@ -148,10 +149,10 @@ export async function main(
     return;
   }
 
-  // Create new job from --job flag
-  const jobArg = flag('--job');
+  // Create new job from --job flag or a positional argument (file path / inline JSON)
+  const jobArg = flag('--job') ?? argv.find(a => !a.startsWith('-') && (a.startsWith('{') || a.endsWith('.json')));
   if (!jobArg) {
-    console.error('Usage: run.ts --job <json-file-or-inline-json> [--approve]  |  --jira <PROJ-123> [--approve]  |  --id <job-id> [--approve|--retry]  |  --list');
+    console.error('Usage: run.ts <json-file-or-inline-json> [--approve]  |  --job <json-file-or-inline-json> [--approve]  |  --jira <PROJ-123> [--approve]  |  --id <job-id> [--approve|--retry]  |  --list');
     process.exit(1);
   }
 
