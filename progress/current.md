@@ -249,3 +249,7 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
   - Resultado: `pubspec_overrides.yaml`, `build/`, `.dart_tool/`, cache dill, assets/fonts generados se quedaban en el commit/PR.
   - Se corrigió seteando `_baseDir` explícitamente en `initGit`.
   - `./init.sh` y `npx tsc --noEmit` pasan.
+- Demo re-ejecutado en `rpp-co/rpp-cashflow-multiplatform-pyme` (job `b7e7b95d`):
+  - El commit del Implementer ahora solo incluye los 2 archivos intencionales (`bre_b_core.dart` + test).
+  - No aparecen `pubspec_overrides.yaml`, `build/`, cache dill ni assets/fonts generados en el commit.
+  - El job quedó en `test_error` porque `flutter test` en el módulo `bre_b` falla para el test trivial; el fix de never-commit sí funcionó.
