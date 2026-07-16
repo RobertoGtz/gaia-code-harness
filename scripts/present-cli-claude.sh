@@ -76,7 +76,6 @@ Press Enter to continue...")
 
 slides+=("${YELLOW}[SLIDE 3] Harness Engineering in one picture${NC}
 
-```text
 Requirement
      │
      ▼
@@ -103,7 +102,6 @@ Requirement
 ┌─────────────┐
 │ MutationTester│ measures test quality
 └─────────────┘
-```
 
 Key rules:
   ${GREEN}*${NC} No code before spec.
