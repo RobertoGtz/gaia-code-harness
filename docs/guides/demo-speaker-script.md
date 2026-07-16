@@ -286,8 +286,16 @@ cat /tmp/demo-cashflow-job.json
 **Mostrar en pantalla:**
 
 ```bash
-npx ts-node src/cli/run.ts --job /tmp/demo-cashflow-job.json --approve
+npm run gaia -- --job /tmp/demo-cashflow-job.json --approve
 ```
+
+> **Tip:** Si querés algo aún más corto, agregá este alias a tu shell (`~/.zshrc` o `~/.bashrc`):
+>
+> ```bash
+> alias gaia='npm run gaia --'
+> ```
+>
+> Después podés correr simplemente `gaia --job /tmp/demo-cashflow-job.json --approve`.
 
 **Empieza a correr.** Mientras el output avanza, narra cada fase.
 
@@ -445,7 +453,7 @@ open progress/<JOB_ID>.md
 ```text
 | Modo        | Arranca con                  | Orquestador                  | Aprobación de spec              |
 | ----------- | ---------------------------- | ---------------------------- | ------------------------------- |
-| CLI         | npx ts-node src/cli/run.ts   | src/cli/run.ts + leader.ts   | --approve flag                  |
+| CLI         | npm run gaia --   | src/cli/run.ts + leader.ts   | --approve flag                  |
 | .claude     | Conversación o `/run`        | craftsman_lead + subagentes  | Pausa humana en Gherkin         |
 ```
 
@@ -459,7 +467,7 @@ open progress/<JOB_ID>.md
 
 ```bash
 cat /tmp/demo-cashflow-job.json | head -20
-npx ts-node src/cli/run.ts --job /tmp/demo-cashflow-job.json --approve
+npm run gaia -- --job /tmp/demo-cashflow-job.json --approve
 ```
 
 **Archivos del harness que mostrar:**
@@ -578,7 +586,7 @@ tail -f progress/<JOB_ID>.md
 
 ```bash
 # Re-lanzar con requireTests false
-npx ts-node src/cli/run.ts --job /tmp/demo-cashflow-job.json --approve
+npm run gaia -- --job /tmp/demo-cashflow-job.json --approve
 ```
 
 ### No se crea el PR
@@ -709,7 +717,7 @@ curl -s -X POST http://localhost:3000/jobs/<JOB_ID>/approve \
 
 ### ¿Puede actualizar un PR existente o rehacer uno anterior?
 
-> Sí. Si un job falla en `test_error` o `review_error`, podés reintentarlo con `npx ts-node src/cli/run.ts --id <JOB_ID> --retry`. El Implementer usa la rama existente, aplica fixes y hace push. También podés pasar un nuevo job con el mismo `targetBranch` y título relacionado.
+> Sí. Si un job falla en `test_error` o `review_error`, podés reintentarlo con `npm run gaia -- --id <JOB_ID> --retry`. El Implementer usa la rama existente, aplica fixes y hace push. También podés pasar un nuevo job con el mismo `targetBranch` y título relacionado.
 
 ### ¿Cómo veo el spec que generó la IA?
 
@@ -776,7 +784,7 @@ Copiá este brief en un generador de slides (Gamma, Beautiful.ai, Canva Magic, C
       "number": 3,
       "title": "Lanzar el pipeline (CLI)",
       "key_points": [
-        "Comando: npx ts-node src/cli/run.ts --job job.json --approve",
+        "Comando: npm run gaia -- --job job.json --approve",
         "El pipeline arranca localmente",
         "Se puede pausar en spec_ready para aprobación manual"
       ],
@@ -859,13 +867,13 @@ Copiá este brief en un generador de slides (Gamma, Beautiful.ai, Canva Magic, C
 ls -t progress/*.md | head -1
 
 # Ver los últimos jobs guardados
-npx ts-node src/cli/run.ts --list
+npm run gaia -- --list
 
 # Seguir un job en tiempo real
 tail -f progress/<JOB_ID>.md
 
 # Reintentar un job desde test_error/review_error
-npx ts-node src/cli/run.ts --id <JOB_ID> --retry
+npm run gaia -- --id <JOB_ID> --retry
 
 # Ver diff del commit generado
 cd /tmp/gaia-workspace/<JOB_ID>/repo

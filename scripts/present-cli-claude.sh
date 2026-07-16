@@ -165,7 +165,7 @@ slides+=("${YELLOW}[SLIDE 6] Mode A: CLI step by step${NC}
 
 ${CYAN}Step 1 - generate the spec (it stops at spec_ready)${NC}
   cd ~/Desktop/gaia-code-harness
-  npx ts-node src/cli/run.ts --job /tmp/demo-cashflow-job.json
+  npm run gaia -- --job /tmp/demo-cashflow-job.json
 
 What to say while it runs:
   \"SpecAuthor is reading the repo and building a plan. No code is written yet.\"
@@ -176,7 +176,7 @@ ${CYAN}Step 2 - inspect the spec${NC}
   cat /tmp/gaia-workspace/$JOB_ID/specs/$JOB_ID/scenarios.feature
 
 ${CYAN}Step 3 - approve and run the rest${NC}
-  npx ts-node src/cli/run.ts --id $JOB_ID --approve
+  npm run gaia -- --id $JOB_ID --approve
 
 Key phrase:
   \"CLI is speed and reproducibility: same pipeline, one command.\"
@@ -209,7 +209,7 @@ slides+=("${YELLOW}[SLIDE 8] CLI vs .claude side by side${NC}
 
 | Aspect            | CLI                           | .claude                         |
 | ----------------- | ----------------------------- | ------------------------------- |
-| How you start     | npx ts-node src/cli/run.ts    | /run or chat message            |
+| How you start     | npm run gaia --    | /run or chat message            |
 | Orchestrator      | src/cli/run.ts + leader.ts    | craftsman_lead + subagents      |
 | Spec approval     | --approve flag (auto)          | Pause on Gherkin (human)        |
 | Best for          | demos, fast iterations, CI    | ambiguous features, TDD, teaching |
@@ -323,14 +323,14 @@ CHOICE="${CHOICE:-1}"
 case "$CHOICE" in
   1)
     echo ""
-    echo -e "${CYAN}Running: npx ts-node src/cli/run.ts --job /tmp/demo-cashflow-job.json --approve${NC}"
-    npx ts-node src/cli/run.ts --job /tmp/demo-cashflow-job.json --approve
+    echo -e "${CYAN}Running: npm run gaia -- --job /tmp/demo-cashflow-job.json --approve${NC}"
+    npm run gaia -- --job /tmp/demo-cashflow-job.json --approve
     ;;
   2)
     echo ""
-    echo -e "${CYAN}Running: npx ts-node src/cli/run.ts --job /tmp/demo-cashflow-job.json${NC}"
+    echo -e "${CYAN}Running: npm run gaia -- --job /tmp/demo-cashflow-job.json${NC}"
     echo -e "${YELLOW}(it will stop at spec_ready)${NC}"
-    npx ts-node src/cli/run.ts --job /tmp/demo-cashflow-job.json
+    npm run gaia -- --job /tmp/demo-cashflow-job.json
     JOB_ID=$(ls -t progress/*.md 2>/dev/null | head -1 | sed 's|.*/||;s|\.md||')
     if [ -z "$JOB_ID" ]; then
       echo -ne "${YELLOW}Paste JOB_ID: ${NC}"
@@ -341,10 +341,10 @@ case "$CHOICE" in
     echo -ne "${YELLOW}Approve and continue? (y/n): ${NC}"
     read -r CONFIRM
     if [ "$CONFIRM" = "y" ]; then
-      npx ts-node src/cli/run.ts --id "$JOB_ID" --approve
+      npm run gaia -- --id "$JOB_ID" --approve
     else
       echo -e "${YELLOW}Skipped.${NC} Resume later with:"
-      echo -e "  npx ts-node src/cli/run.ts --id $JOB_ID --approve"
+      echo -e "  npm run gaia -- --id $JOB_ID --approve"
     fi
     ;;
   3)

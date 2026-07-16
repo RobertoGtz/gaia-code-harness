@@ -7,6 +7,7 @@
     "dev": "ts-node src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "gaia": "ts-node src/cli/run.ts",
     "db:init": "ts-node -e \"require('./src/db').initDatabase().then(() => process.exit(0))\"",
     "test": "jest",
     "test:watch": "jest --watch",
