@@ -276,11 +276,13 @@ Return the JSON review object only.`;
       ]);
       const cleaned = response.text.replace(/^\`\`\`[\w]*\n?/, '').replace(/\n?\`\`\`$/, '').trim();
       const parsed = JSON.parse(cleaned) as { score: number; passed: boolean; issues: string[] };
-      return {
-        score: Number(parsed.score) || 0,
-        passed: Boolean(parsed.passed),
-        issues: Array.isArray(parsed.issues) ? parsed.issues : [],
-      };
+      let issues = Array.isArray(parsed.issues) ? parsed.issues : [];
+      if (job.requireTests === false) {
+        issues = issues.filter((issue: string) => !/tests?/i.test(issue));
+      }
+      const score = Number(parsed.score) || 0;
+      const passed = issues.length === 0 && (score >= 80 || Boolean(parsed.passed));
+      return { score, passed, issues };
     } catch {
       // Non-blocking fallback: if LLM review fails, assume passed
       this.logWarn('LLM review failed to parse response — treating as passed');

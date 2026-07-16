@@ -17,18 +17,18 @@
 cat > /tmp/demo-cashflow-job.json <<'JSON'
 {
   "initiativeId": "demo",
-  "title": "Demo: add DemoMetadata model with toMap to bre_b core",
+  "title": "Demo: add DemoAnalytics feature with event model and repository to bre_b core",
   "platform": "flutter_web",
   "repo": "rpp-co/rpp-cashflow-multiplatform-pyme",
   "targetBranch": "master",
   "module": "bre_b",
-  "description": "Presentation-only demo change: add a DemoMetadata model class with final fields (appName, version, buildNumber, isDemo) and a toMap() method. Export it from bre_b_core.dart. No business logic changes and no unit tests are required for this demo-only model.",
+  "description": "Presentation-only demo change: add a DemoAnalyticsEvent model, a DemoAnalyticsRepository class with a logEvent method, and export both from bre_b_core.dart. No business logic changes and no unit tests are required for this demo-only feature.",
   "acceptanceCriteria": [
-    "WHEN DemoMetadata is constructed with default values THEN it exposes appName, version, buildNumber and isDemo",
-    "WHEN DemoMetadata.toMap is called THEN it returns a Map<String, dynamic> with the four fields",
-    "WHEN DemoMetadata is exported from bre_b_core.dart THEN it is reachable from the core library"
+    "WHEN DemoAnalyticsEvent is constructed THEN it has name, timestamp and payload fields",
+    "WHEN DemoAnalyticsRepository.logEvent is called THEN it stores the event in an internal list",
+    "WHEN DemoAnalyticsEvent and DemoAnalyticsRepository are exported from bre_b_core.dart THEN they are reachable from the core library"
   ],
-  "maxFilesToTouch": 3,
+  "maxFilesToTouch": 4,
   "requireTests": false,
   "tddMode": false
 }
@@ -115,8 +115,8 @@ git show HEAD
 **Qué mostrar:**
 
 - Sólo los archivos que el spec autorizó.
-- Cómo se crea `packages/features/bre_b/lib/src/data/models/demo_metadata.dart` con la clase `DemoMetadata` y su método `toMap()`.
-- Cómo `bre_b_core.dart` exporta el nuevo modelo.
+- Cómo se crean `demo_analytics_event.dart` y `demo_analytics_repository.dart`.
+- Cómo `bre_b_core.dart` exporta el modelo y el repositorio.
 - Ausencia de cambios en CI/CD, secrets, o archivos de infraestructura.
 
 > **Tip:** Si querés resaltar que la IA no toca lo que no debe, corrés `git show --stat HEAD` y mostrás que los archivos modificados están dentro del módulo `bre_b`.
@@ -255,7 +255,7 @@ Flujo de la demo
 
 **Qué decir:**
 
-> "Vamos a pedirle a GAIA que agregue un pequeño modelo `DemoMetadata` en el core del módulo `bre_b` de la app de cashflow. Es un cambio seguro, genera más código: un archivo nuevo con una clase, campos y un método `toMap()`, más la exportación desde `bre_b_core.dart`. El repo es real: `rpp-co/rpp-cashflow-multiplatform-pyme`."
+> "Vamos a pedirle a GAIA que agregue una mini feature de analytics de demo en el core del módulo `bre_b`: un modelo `DemoAnalyticsEvent`, un repositorio `DemoAnalyticsRepository` con `logEvent`, y la exportación desde `bre_b_core.dart`. Genera tres archivos y es 100 % código de demo. El repo es real: `rpp-co/rpp-cashflow-multiplatform-pyme`."
 
 **Mostrar en pantalla:**
 
@@ -266,7 +266,7 @@ cat /tmp/demo-cashflow-job.json
 **Destacar mientras se ve el JSON:**
 
 - `"platform": "flutter_web"` — GAIA carga el skill de Flutter Web y conoce la estructura Melos + FVM del repo.
-- `"maxFilesToTouch": 3` — seguridad de scope (archivo nuevo + exportación).
+- `"maxFilesToTouch": 4` — seguridad de scope (dos archivos nuevos + exportación + margen).
 - `"module": "bre_b"` — restringe aún más el contexto.
 - `"requireTests": false` — para la demo lo desactivamos; en producción se exigen tests verdes.
 
@@ -381,15 +381,16 @@ git show --stat HEAD
 
 - Rama feature creada automáticamente.
 - Commit con mensaje descriptivo.
-- El plan autorizó 2 archivos: `demo_metadata.dart` (nuevo) y `bre_b_core.dart` (exportación).
-- La clase `DemoMetadata` tiene campos tipados y un método `toMap()`.
+- El plan autorizó 3 archivos: `demo_analytics_event.dart` (modelo), `demo_analytics_repository.dart` (repositorio) y `bre_b_core.dart` (exportación).
+- El modelo tiene campos tipados y el repositorio almacena eventos en una lista interna.
 - No se tocaron widgets, navegación ni infraestructura.
 
 **Luego, mostrá el diff:**
 
 ```bash
-# Nuevo archivo
-git show HEAD -- packages/features/bre_b/lib/src/data/models/demo_metadata.dart
+# Nuevos archivos
+git show HEAD -- packages/features/bre_b/lib/src/data/models/demo_analytics_event.dart
+git show HEAD -- packages/features/bre_b/lib/src/data/repositories/demo_analytics_repository.dart
 # Exportación
 git show HEAD -- packages/features/bre_b/lib/bre_b_core.dart
 ```
@@ -416,7 +417,7 @@ open <PR_URL>
 **En el navegador, mostrá:**
 
 - Título y descripción del PR.
-- Files changed: `demo_metadata.dart` (clase nueva) + `bre_b_core.dart` (exportación), todo dentro del módulo `bre_b`.
+- Files changed: `demo_analytics_event.dart` (modelo) + `demo_analytics_repository.dart` (repositorio) + `bre_b_core.dart` (exportación), todo dentro del módulo `bre_b`.
 - No hay cambios en `pubspec_overrides.yaml`, `build/`, `.dart_tool/`, ni CI/CD.
 
 **Si tenés tiempo, mostrá la trazabilidad:**
