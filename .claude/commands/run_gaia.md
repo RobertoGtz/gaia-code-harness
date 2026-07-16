@@ -17,12 +17,27 @@ Este comando hace que `.claude` se comporte como el **CLI Mode**: toma una ficha
    - Si no, lee `feature_list.json`, elige la primera feature con `"sdd": true` y `status` distinto de `done`/`blocked`, y genera un `job.json` temporal con los campos requeridos.
 4. Pregunta al humano si quiere ejecutar con `--approve` (auto-aprobar) o pausar después del spec, como el CLI normal.
 5. Corre el comando equivalente:
-   - `npx ts-node src/cli/run.ts --job <job.json> --approve`
+   - `npm run gaia -- <job.json> --approve`
    - o sin `--approve` si el humano quiere revisar el spec primero.
 6. Si el job se detuvo en `spec_ready`, espera la aprobación humana y luego corre:
-   - `npx ts-node src/cli/run.ts --id <job-id> --approve`
+   - `npm run gaia -- --id <job-id> --approve`
 7. Reporta el resultado final, el URL del PR y el próximo paso.
 8. Actualiza `progress/current.md` si aplica.
+9. Al finalizar, entregá un bloque listo para copiar y pegar en la terminal (handoff):
+
+   ```text
+   # Listar jobs recientes
+   cd ~/Desktop/gaia-code-harness && npm run gaia -- --list
+
+   # Reanudar/reintentar el mismo job desde la terminal
+   cd ~/Desktop/gaia-code-harness && npm run gaia -- --id <JOB_ID> --retry
+
+   # Inspeccionar el repo generado
+   cd /tmp/gaia-workspace/<JOB_ID>/repo && git log --oneline -3 && git show --stat HEAD
+
+   # Si por alguna razón la rama no se empujó, hacelo manualmente
+   cd /tmp/gaia-workspace/<JOB_ID>/repo && git push -u origin <branch>
+   ```
 
 ## Reglas importantes
 
