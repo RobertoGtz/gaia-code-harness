@@ -281,5 +281,83 @@ for slide in "${slides[@]}"; do
     fi
 done
 
+# ── Optional live demo launcher ───────────────────────────────────────────────
+
+if [ ! -f /tmp/demo-cashflow-job.json ]; then
+  cat > /tmp/demo-cashflow-job.json <<'JSON'
+{
+  "initiativeId": "demo",
+  "title": "Demo: add DemoAnalytics feature with event model and repository to bre_b core",
+  "platform": "flutter_web",
+  "repo": "rpp-co/rpp-cashflow-multiplatform-pyme",
+  "targetBranch": "master",
+  "module": "bre_b",
+  "description": "Presentation-only demo change: add a DemoAnalyticsEvent model, a DemoAnalyticsRepository class with a logEvent method, and export both from bre_b_core.dart. No business logic changes and no unit tests are required for this demo-only feature.",
+  "acceptanceCriteria": [
+    "WHEN DemoAnalyticsEvent is constructed THEN it has name, timestamp and payload fields",
+    "WHEN DemoAnalyticsRepository.logEvent is called THEN it stores the event in an internal list",
+    "WHEN DemoAnalyticsEvent and DemoAnalyticsRepository are exported from bre_b_core.dart THEN they are reachable from the core library"
+  ],
+  "maxFilesToTouch": 4,
+  "requireTests": false,
+  "tddMode": false
+}
+JSON
+  echo -e "${CYAN}Created /tmp/demo-cashflow-job.json${NC}"
+fi
+
 clear
+echo -e "${BLUE}${BOLD}═══════════════════════════════════════════${NC}"
+echo -e "${BLUE}${BOLD}  Run the live demo?${NC}"
+echo -e "${BLUE}${BOLD}═══════════════════════════════════════════${NC}"
+echo ""
+echo -e "${YELLOW}1.${NC} Run CLI demo in one step (${BOLD}--approve${NC})"
+echo -e "${YELLOW}2.${NC} Run CLI demo step by step (stop at spec, then approve)"
+echo -e "${YELLOW}3.${NC} Show .claude instructions only"
+echo -e "${YELLOW}4.${NC} Skip"
+echo ""
+echo -ne "${YELLOW}Choice [1]: ${NC}"
+read -r CHOICE
+CHOICE="${CHOICE:-1}"
+
+case "$CHOICE" in
+  1)
+    echo ""
+    echo -e "${CYAN}Running: npx ts-node src/cli/run.ts --job /tmp/demo-cashflow-job.json --approve${NC}"
+    npx ts-node src/cli/run.ts --job /tmp/demo-cashflow-job.json --approve
+    ;;
+  2)
+    echo ""
+    echo -e "${CYAN}Running: npx ts-node src/cli/run.ts --job /tmp/demo-cashflow-job.json${NC}"
+    echo -e "${YELLOW}(it will stop at spec_ready)${NC}"
+    npx ts-node src/cli/run.ts --job /tmp/demo-cashflow-job.json
+    JOB_ID=$(ls -t progress/*.md 2>/dev/null | head -1 | sed 's|.*/||;s|\.md||')
+    if [ -z "$JOB_ID" ]; then
+      echo -ne "${YELLOW}Paste JOB_ID: ${NC}"
+      read -r JOB_ID
+    fi
+    echo ""
+    echo -e "${CYAN}Latest job ID detected: $JOB_ID${NC}"
+    echo -ne "${YELLOW}Approve and continue? (y/n): ${NC}"
+    read -r CONFIRM
+    if [ "$CONFIRM" = "y" ]; then
+      npx ts-node src/cli/run.ts --id "$JOB_ID" --approve
+    else
+      echo -e "${YELLOW}Skipped.${NC} Resume later with:"
+      echo -e "  npx ts-node src/cli/run.ts --id $JOB_ID --approve"
+    fi
+    ;;
+  3)
+    echo ""
+    echo -e "${MAGENTA}.claude mode instructions:${NC}"
+    echo -e "  /run --job /tmp/demo-cashflow-job.json --approve"
+    echo -e "  or (human-in-the-loop):"
+    echo -e "  Implementa la siguiente feature pendiente"
+    ;;
+  4|*)
+    echo -e "${YELLOW}Skipped.${NC}"
+    ;;
+esac
+
+echo ""
 echo -e "${BLUE}${BOLD}Done.${NC}"
