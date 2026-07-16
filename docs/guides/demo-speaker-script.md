@@ -248,6 +248,7 @@ Flujo de la demo
 - Límite de archivos: `maxFilesToTouch` evita reescrituras sorpresa.
 - Traceability: cada PR se puede rastrear a su spec y sus criterios.
 - **Tiempo total esperado:** 50-90 segundos.
+- **Momento de correr el demo en vivo:** al finalizar las diapositivas explicativas, usar el launcher de `scripts/present-cli-claude.sh`. Presionando `q` en cualquier slide se salta directo al launcher.
 
 ---
 

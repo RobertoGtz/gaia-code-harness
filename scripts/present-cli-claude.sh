@@ -26,6 +26,8 @@ Repo:   rpp-co/rpp-cashflow-multiplatform-pyme
 Module: bre_b
 Goal:   same job, two ways to run it
 
+Tip: Press ${YELLOW}q${NC} at any slide to skip to the live demo launcher.
+
 Press Enter to continue...")
 
 slides+=("${YELLOW}[SLIDE 1] What we will see today${NC}
