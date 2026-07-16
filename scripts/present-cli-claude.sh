@@ -186,7 +186,7 @@ Press Enter to continue...")
 slides+=("${YELLOW}[SLIDE 7] Mode B: .claude step by step${NC}
 
 ${MAGENTA}Option 1 - one shot${NC}
-  /run --job /tmp/demo-cashflow-job.json --approve
+  /run_gaia --job /tmp/demo-cashflow-job.json --approve
 
 ${MAGENTA}Option 2 - human-in-the-loop${NC}
   Implementa la siguiente feature pendiente
@@ -209,7 +209,7 @@ slides+=("${YELLOW}[SLIDE 8] CLI vs .claude side by side${NC}
 
 | Aspect            | CLI                           | .claude                         |
 | ----------------- | ----------------------------- | ------------------------------- |
-| How you start     | npm run gaia -- <job.json>    | /run or chat message            |
+| How you start     | npm run gaia -- <job.json>    | /run_gaia or chat message            |
 | Orchestrator      | src/cli/run.ts + leader.ts    | craftsman_lead + subagents      |
 | Spec approval     | --approve flag (auto)          | Pause on Gherkin (human)        |
 | Best for          | demos, fast iterations, CI    | ambiguous features, TDD, teaching |
@@ -218,7 +218,7 @@ slides+=("${YELLOW}[SLIDE 8] CLI vs .claude side by side${NC}
 | Same output?      | PR + spec + progress log      | PR + spec + progress log        |
 
 Visual to show:
-  Claude Code -> /run --job job.json --approve
+  Claude Code -> /run_gaia --job job.json --approve
                      │
                      ▼
          src/cli/run.ts -> leader.ts -> Implementer -> Reviewer -> PR
@@ -350,7 +350,7 @@ case "$CHOICE" in
   3)
     echo ""
     echo -e "${MAGENTA}.claude mode instructions:${NC}"
-    echo -e "  /run --job /tmp/demo-cashflow-job.json --approve"
+    echo -e "  /run_gaia --job /tmp/demo-cashflow-job.json --approve"
     echo -e "  or (human-in-the-loop):"
     echo -e "  Implementa la siguiente feature pendiente"
     ;;

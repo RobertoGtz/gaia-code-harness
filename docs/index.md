@@ -53,7 +53,7 @@
 | [`.claude/identity.json`](../.claude/identity.json)                                           | Preferencias de estilo y dominios técnicos para Claude Code |
 | [`.claude/package-manager.json`](../.claude/package-manager.json)                             | Gestor de paquetes del proyecto (`npm`)                     |
 | [`.claude/agents/`](../.claude/agents/)                                                       | Definiciones de los 6 subagentes Claude                     |
-| [`.claude/commands/run.md`](../.claude/commands/run.md)                                       | Slash command `/run` para lanzar CLI Mode                   |
+| [`.claude/commands/run_gaia.md`](../.claude/commands/run_gaia.md)                                       | Slash command `/run_gaia` para lanzar CLI Mode                   |
 | [`.claude/rules/security-and-conventions.md`](../.claude/rules/security-and-conventions.md)   | Guardrails de seguridad y convenciones                      |
 | [`.claude/skills/gaia/SKILL.md`](../.claude/skills/gaia/SKILL.md)                             | Knowledge base del proyecto GAIA para Claude Code           |
 | [`.claude/team/gaia-team-config.json`](../.claude/team/gaia-team-config.json)                 | Config compartida de skills, commands, rules y agentes      |
@@ -112,7 +112,7 @@ gaia-code-harness/
     ├── identity.json              ← Estilo y dominios técnicos
     ├── package-manager.json       ← npm
     ├── agents/                    ← Subagentes (craftsman_lead, spec_partner, ...)
-    ├── commands/                  ← Slash commands (/run)
+    ├── commands/                  ← Slash commands (/run_gaia)
     ├── rules/                     ← Guardrails de seguridad y convenciones
     ├── skills/gaia/SKILL.md       ← Knowledge base del proyecto
     ├── team/gaia-team-config.json ← Config compartida de recursos

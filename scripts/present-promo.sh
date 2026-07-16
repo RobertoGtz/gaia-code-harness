@@ -108,9 +108,9 @@ Press Enter to continue...")
 slides+=("${YELLOW}[SLIDE 5] Mode .claude step by step${NC}
 
 ${CYAN}Option A: one-shot via slash command${NC}
-  /run --job /tmp/demo-promo-job.json --approve
+  /run_gaia --job /tmp/demo-promo-job.json --approve
 
-${CYAN}Option B: human-in-the-loop (canonical /run.md example)${NC}
+${CYAN}Option B: human-in-the-loop (canonical run_gaia.md example)${NC}
   Implementa la siguiente feature pendiente
 
 What to say:
@@ -130,7 +130,7 @@ slides+=("${YELLOW}[SLIDE 6] CLI vs .claude${NC}
 
 | Aspect          | CLI                          | .claude                         |
 | --------------- | ---------------------------- | ------------------------------- |
-| How it starts   | npx ts-node src/cli/run.ts   | Chat or /run                    |
+| How it starts   | npx ts-node src/cli/run.ts   | Chat or /run_gaia                    |
 | Orchestrator    | src/cli/run.ts + leader.ts   | craftsman_lead + subagents      |
 | Spec approval   | --approve (auto)             | Pause on Gherkin (human)        |
 | Speed           | Faster                       | Slower, more conversation       |

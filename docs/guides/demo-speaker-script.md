@@ -454,7 +454,7 @@ open progress/<JOB_ID>.md
 | Modo        | Arranca con                  | Orquestador                  | Aprobación de spec              |
 | ----------- | ---------------------------- | ---------------------------- | ------------------------------- |
 | CLI         | npm run gaia -- <job.json>   | src/cli/run.ts + leader.ts   | --approve flag                  |
-| .claude     | Conversación o `/run`        | craftsman_lead + subagentes  | Pausa humana en Gherkin         |
+| .claude     | Conversación o `/run_gaia`        | craftsman_lead + subagentes  | Pausa humana en Gherkin         |
 ```
 
 ### Bloque A — Modo CLI (rápido y predecible)
@@ -490,7 +490,7 @@ npm run gaia -- /tmp/demo-cashflow-job.json --approve
 **Mostrar en pantalla:**
 
 ```text
-/run --job /tmp/demo-cashflow-job.json --approve
+/run_gaia --job /tmp/demo-cashflow-job.json --approve
 ```
 
 o, para paso a paso:
@@ -504,7 +504,7 @@ Implementá la siguiente feature pendiente
 - `.claude/agents/craftsman_lead.md` — rol del conductor del pipeline.
 - `.claude/agents/spec_partner.md` — conversa y escribe `project-spec.md`.
 - `.claude/agents/gherkin_author.md` — destila `features/<name>.feature`.
-- `.claude/commands/run.md` — slash command `/run` que usa el CLI por detrás.
+- `.claude/commands/run_gaia.md` — slash command `/run_gaia` que usa el CLI por detrás.
 - `CLAUDE.md` — contexto que Claude lee al arrancar.
 
 **Frase clave:**
@@ -520,7 +520,7 @@ Implementá la siguiente feature pendiente
 **Mostrar en pantalla:**
 
 ```text
-Claude Code → /run --job job.json --approve
+Claude Code → /run_gaia --job job.json --approve
                      │
                      ▼
          src/cli/run.ts → leader.ts → Implementer → Reviewer → PR
@@ -528,7 +528,7 @@ Claude Code → /run --job job.json --approve
 
 **Puntos a destacar:**
 
-- El `/run` de `.claude` usa los **mismos agentes TypeScript** que el CLI.
+- El `/run_gaia` de `.claude` usa los **mismos agentes TypeScript** que el CLI.
 - La aprobación humana en `.claude` está en los `.feature`; en CLI se salta con `--approve`.
 - En producción se usa `--approve=false` o la aprobación manual en los escenarios Gherkin de `.claude`.
 
@@ -835,7 +835,7 @@ Copiá este brief en un generador de slides (Gamma, Beautiful.ai, Canva Magic, C
       "title": "CLI vs .claude",
       "key_points": [
         "CLI: velocidad y reproducibilidad, --approve automático",
-        ".claude: control humano en Gherkin, slash command /run",
+        ".claude: control humano en Gherkin, slash command /run_gaia",
         "Ambos usan los mismos agentes TypeScript por detrás"
       ],
       "visual": "Tabla comparativa de dos columnas con íconos de terminal y chat"

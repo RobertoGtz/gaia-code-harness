@@ -98,7 +98,7 @@ python3 tools/mutate.py <file> --cmd "<runner>" --threshold 80 # mutación manua
 
 ## From Claude Code
 
-- `/run` — lanza el CLI Mode con los mismos agentes TypeScript.
+- `/run_gaia` — lanza el CLI Mode con los mismos agentes TypeScript.
 - `@craftsman_lead` — inicia el pipeline manual paso a paso.
 
 ## Related files
