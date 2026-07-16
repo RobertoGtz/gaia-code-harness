@@ -121,6 +121,46 @@ git show HEAD
 
 ---
 
+## Intro — Presentar el proyecto, el código y la explicación (1 min)
+
+Antes de lanzar el pipeline, mostrá el contexto al público para que entiendan qué van a ver cambiar.
+
+**Qué decir:**
+
+> "Este es `rpp-cashflow-multiplatform-pyme`, el repo real de la app de cashflow. Dentro del repo hay un módulo llamado `bre_b` (Bre-B). Vamos a pedirle a GAIA que agregue una pequeña bandera booleana `isDemoBuild` en el core de ese módulo. Es un cambio de una línea, pero les va a permitir ver todo el pipeline: spec, aprobación, código, PR."
+
+**Mostrar en pantalla:**
+
+```bash
+# URL del repo en GitHub
+open https://github.com/rpp-co/rpp-cashflow-multiplatform-pyme
+
+# Estructura del módulo bre_b (desde el workspace clonado o el repo local)
+ls packages/features/bre_b/lib/src
+```
+
+También mostrá el archivo que se va a modificar **antes** del cambio:
+
+```bash
+# Si ya tenés el repo clonado en el workspace de un job anterior
+cat /tmp/gaia-workspace/<JOB_ID>/repo/packages/features/bre_b/lib/bre_b_core.dart
+# o abrilo en el IDE
+open packages/features/bre_b/lib/bre_b_core.dart
+```
+
+**Puntos clave a mencionar:**
+
+- **Proyecto:** app de cashflow multiplataforma; GAIA la trata como repo Flutter Web con estructura Melos/FVM.
+- **Código:** `bre_b_core.dart` es el entry point del core del módulo Bre-B; ahí agregaremos `const isDemoBuild = false;`.
+- **Explicación:** GAIA no toca `master`; creará una feature branch, hará commit y abrirá un PR.
+- **Por qué este cambio:** es lo suficientemente pequeño para terminar en ~1 minuto, pero representa el flujo completo.
+
+**Frase clave:**
+
+> "No estamos haciendo magia: estamos corriendo un proceso sobre un repo real. En un minuto van a ver el diff exacto que GAIA propone."
+
+---
+
 ## Diapositiva 1 — Intro y estructura de la demo (45 seg)
 
 **Qué decir:**
