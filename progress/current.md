@@ -249,10 +249,11 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
   - Resultado: `pubspec_overrides.yaml`, `build/`, `.dart_tool/`, cache dill, assets/fonts generados se quedaban en el commit/PR.
   - Se corrigió seteando `_baseDir` explícitamente en `initGit`.
   - `./init.sh` y `npx tsc --noEmit` pasan.
-- Demo validado exitosamente en `rpp-co/rpp-cashflow-multiplatform-pyme` (job `c77e9b4a-04a2-4384-b002-5098ad2a209f`):
-  - El commit del Implementer solo incluye los 2 archivos intencionales (`bre_b_core.dart` + test).
+- Demo más robusto validado en `rpp-co/rpp-cashflow-multiplatform-pyme` (job `127b35a5-a1e8-4da4-9924-936c8379c109`):
+  - El commit del Implementer modifica un solo archivo (`packages/features/bre_b/lib/bre_b_core.dart`) y agrega 4 constantes de demo (`gaiaDemoAppName`, `gaiaDemoVersion`, `gaiaDemoBuildNumber`, `gaiaDemoFlag`).
   - No aparecen `pubspec_overrides.yaml`, `build/`, cache dill ni assets/fonts generados en el commit.
-  - Se creó PR real: `https://github.com/rpp-co/rpp-cashflow-multiplatform-pyme/pull/18`.
+  - Se creó PR real: `https://github.com/rpp-co/rpp-cashflow-multiplatform-pyme/pull/20`.
+  - El job finalizó con status `done` y el LLM review aceptó el cambio pese a no tener tests (`requireTests: false`).
 - Fix en `src/agents/reviewer.ts`:
   - El LLM review penalizaba faltantes de tests aun cuando `requireTests=false`.
   - Se añadió "Testing context" al prompt para que no exija tests cuando están desactivados, haciendo demos predecibles sin debilitar el comportamiento con `requireTests=true`.

@@ -17,17 +17,18 @@
 cat > /tmp/demo-cashflow-job.json <<'JSON'
 {
   "initiativeId": "demo",
-  "title": "Demo: add isDemoBuild utility flag to bre_b core",
+  "title": "Demo: add GAIA demo constants to bre_b_core.dart",
   "platform": "flutter_web",
   "repo": "rpp-co/rpp-cashflow-multiplatform-pyme",
   "targetBranch": "master",
   "module": "bre_b",
-  "description": "Small demo change to verify GAIA pipeline on the cashflow repository. Adds a simple boolean utility and exports it from the core entry point.",
+  "description": "Presentation-only demo change: add four static constants to bre_b_core.dart for demo metadata (appName, version, buildNumber, isDemoFlag). No business logic changes and no unit tests are required for this demo-only addition.",
   "acceptanceCriteria": [
-    "WHEN the bre_b core library is imported THEN an isDemoBuild boolean constant is available",
-    "WHEN isDemoBuild is evaluated THEN it returns false"
+    "WHEN bre_b_core.dart is imported THEN it exposes gaiaDemoAppName, gaiaDemoVersion, gaiaDemoBuildNumber and gaiaDemoFlag",
+    "WHEN gaiaDemoVersion is read THEN it returns '1.0.0-demo'",
+    "WHEN gaiaDemoFlag is read THEN it returns true"
   ],
-  "maxFilesToTouch": 3,
+  "maxFilesToTouch": 2,
   "requireTests": false,
   "tddMode": false
 }
@@ -114,7 +115,7 @@ git show HEAD
 **Qué mostrar:**
 
 - Sólo los archivos que el spec autorizó.
-- Cómo la constante se exporta desde el core y su valor es `false`.
+- Cómo se agregan las constantes `gaiaDemoAppName`, `gaiaDemoVersion`, `gaiaDemoBuildNumber`, `gaiaDemoFlag` directamente en `bre_b_core.dart`.
 - Ausencia de cambios en CI/CD, secrets, o archivos de infraestructura.
 
 > **Tip:** Si querés resaltar que la IA no toca lo que no debe, corrés `git show --stat HEAD` y mostrás que los archivos modificados están dentro del módulo `bre_b`.
@@ -253,7 +254,7 @@ Flujo de la demo
 
 **Qué decir:**
 
-> "Vamos a pedirle a GAIA que agregue una bandera booleana de demo en el core del módulo `bre_b` de la app de cashflow. Es un cambio mínimo y seguro. El repo es real: `rpp-co/rpp-cashflow-multiplatform-pyme`."
+> "Vamos a pedirle a GAIA que agregue un conjunto de constantes de demo en el core del módulo `bre_b` de la app de cashflow. Es un cambio seguro, toca un solo archivo y genera más código que el ejemplo mínimo. El repo es real: `rpp-co/rpp-cashflow-multiplatform-pyme`."
 
 **Mostrar en pantalla:**
 
@@ -264,10 +265,9 @@ cat /tmp/demo-cashflow-job.json
 **Destacar mientras se ve el JSON:**
 
 - `"platform": "flutter_web"` — GAIA carga el skill de Flutter Web y conoce la estructura Melos + FVM del repo.
-- `"requireTests": false` — para la demo lo desactivamos; en producción se exigen tests verdes.
-- `"maxFilesToTouch": 3` — seguridad de scope.
+- `"maxFilesToTouch": 2` — seguridad de scope (solo un archivo).
 - `"module": "bre_b"` — restringe aún más el contexto.
-- `"requireTests": false` — acelera la demo; en producción se exigen tests.
+- `"requireTests": false` — para la demo lo desactivamos; en producción se exigen tests verdes.
 
 **Mencionar:**
 
@@ -380,7 +380,9 @@ git show --stat HEAD
 
 - Rama feature creada automáticamente.
 - Commit con mensaje descriptivo.
-- Sólo los archivos que el plan autorizó (core + test, aunque el test no se corra por `requireTests: false`).
+- Sólo los archivos que el plan autorizó: un solo archivo (`bre_b_core.dart`).
+- Las constantes tienen tipado y valores predecibles.
+- No se tocaron widgets, navegación ni infraestructura.
 
 **Luego, mostrá el diff:**
 
@@ -410,7 +412,7 @@ open <PR_URL>
 **En el navegador, mostrá:**
 
 - Título y descripción del PR.
-- Files changed: `bre_b_core.dart` + test, todo dentro del módulo `bre_b`.
+- Files changed: `bre_b_core.dart` (modificación con las constantes), todo dentro del módulo `bre_b`.
 - No hay cambios en `pubspec_overrides.yaml`, `build/`, `.dart_tool/`, ni CI/CD.
 
 **Si tenés tiempo, mostrá la trazabilidad:**
