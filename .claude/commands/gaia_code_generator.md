@@ -1,10 +1,10 @@
 ---
-name: review_gaia_code_generator
+name: gaia_code_generator
 description: Ejecuta un job de GAIA en modo CLI desde Claude Code. Usa los mismos agentes que src/cli/run.ts.
 tools: Read, Bash, Agent
 ---
 
-# `/review_gaia_code_generator` — Ejecuta GAIA en modo CLI desde Claude Code
+# `/gaia_code_generator` — Ejecuta GAIA en modo CLI desde Claude Code
 
 Este comando hace que `.claude` se comporte como el **CLI Mode**: toma una ficha de trabajo, corre el pipeline completo y entrega un PR. Usa los **mismos agentes** (los TypeScript de `src/agents/`, equivalentes a los de `.claude/agents/` según `docs/engineering/workflow.md`).
 

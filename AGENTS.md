@@ -8,7 +8,7 @@
 >
 > - **Modo A — HTTP + Postgres** (producción/demo): `npm run dev` → `POST /jobs`
 > - **Modo B — CLI + disco** (artesano/local): `npx ts-node src/cli/run.ts --job job.json`
-> - **Modo B (desde Claude Code)**: `.claude/commands/review_gaia_code_generator.md` → slash command `/review_gaia_code_generator` con el mismo pipeline y agentes
+> - **Modo B (desde Claude Code)**: `.claude/commands/gaia_code_generator.md` → slash command `/gaia_code_generator` con el mismo pipeline y agentes
 > - **Modo C — Webhook + Postgres** (integración CI): `POST /webhook/trigger`
 
 ---
@@ -44,7 +44,7 @@
 | `.claude/identity.json`                      | Preferencias de estilo y dominios técnicos para Claude Code                                     | Al arrancar Claude Code                 |
 | `.claude/package-manager.json`               | Gestor de paquetes del proyecto (`npm`)                                                         | Al instalar/actualizar dependencias     |
 | `.claude/agents/`                            | `craftsman_lead`, `spec_partner`, `gherkin_author`, `tdd_craftsman`, `judge`, `mutation_tester` | Si orquestas trabajo                    |
-| `.claude/commands/review_gaia_code_generator.md`                    | Slash command `/review_gaia_code_generator` para lanzar el Modo B (CLI) desde Claude Code con los mismos agentes       | Si quieres correr GAIA sin teclear CLI  |
+| `.claude/commands/gaia_code_generator.md`                    | Slash command `/gaia_code_generator` para lanzar el Modo B (CLI) desde Claude Code con los mismos agentes       | Si quieres correr GAIA sin teclear CLI  |
 | `.claude/rules/security-and-conventions.md`  | Guardrails de seguridad y convenciones del proyecto                                             | Siempre, antes de actuar                |
 | `.claude/skills/gaia/SKILL.md`               | Knowledge base del proyecto GAIA para Claude Code                                               | Cuando necesites contexto profundo      |
 | `.claude/team/gaia-team-config.json`         | Config compartida: skills, commands, rules y agentes activos                                    | Al configurar el equipo                 |

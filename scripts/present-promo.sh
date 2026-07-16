@@ -108,7 +108,7 @@ Press Enter to continue...")
 slides+=("${YELLOW}[SLIDE 5] Mode .claude step by step${NC}
 
 ${CYAN}Option A: one-shot via slash command${NC}
-  /review_gaia_code_generator --job /tmp/demo-promo-job.json --approve
+  /gaia_code_generator --job /tmp/demo-promo-job.json --approve
 
 ${CYAN}Option B: human-in-the-loop (canonical run_gaia.md example)${NC}
   Implementa la siguiente feature pendiente
@@ -130,7 +130,7 @@ slides+=("${YELLOW}[SLIDE 6] CLI vs .claude${NC}
 
 | Aspect          | CLI                          | .claude                         |
 | --------------- | ---------------------------- | ------------------------------- |
-| How it starts   | npx ts-node src/cli/run.ts   | Chat or /review_gaia_code_generator                    |
+| How it starts   | npx ts-node src/cli/run.ts   | Chat or /gaia_code_generator                    |
 | Orchestrator    | src/cli/run.ts + leader.ts   | craftsman_lead + subagents      |
 | Spec approval   | --approve (auto)             | Pause on Gherkin (human)        |
 | Speed           | Faster                       | Slower, more conversation       |

@@ -1,6 +1,6 @@
 # Modo `.claude` — Guía de uso
 
-> Cómo usar GAIA desde Claude Code: agentes conversacionales, aprobación humana y el slash command `/review_gaia_code_generator`.
+> Cómo usar GAIA desde Claude Code: agentes conversacionales, aprobación humana y el slash command `/gaia_code_generator`.
 
 ---
 
@@ -40,7 +40,7 @@ Es el modo más **artesanal** y con mayor control humano.
 │   ├── judge.md
 │   └── mutation_tester.md
 ├── commands/
-│   └── run.md                ← Slash command `/review_gaia_code_generator` para lanzar CLI Mode
+│   └── run.md                ← Slash command `/gaia_code_generator` para lanzar CLI Mode
 ├── rules/
 │   └── security-and-conventions.md  ← Guardrails de seguridad + convenciones
 ├── skills/gaia/
@@ -94,18 +94,18 @@ La **única puerta de aprobación humana** está después de los escenarios Gher
 | Review         | `judge`           | `ReviewerAgent`                        | `progress/judge_<name>.md`      |
 | Mutación       | `mutation_tester` | `MutationTesterAgent`                  | `progress/mutation_<name>.md`   |
 
-## Slash command `/review_gaia_code_generator`
+## Slash command `/gaia_code_generator`
 
 Si prefieres que el mismo pipeline corra de forma automática (como CLI Mode) pero sin salir de Claude Code, usa el slash command:
 
 ```
-/review_gaia_code_generator --job job.json --approve
+/gaia_code_generator --job job.json --approve
 ```
 
 o, para la siguiente feature pendiente:
 
 ```
-/review_gaia_code_generator
+/gaia_code_generator
 ```
 
 Este comando invoca `src/cli/run.ts`, por lo que **usa los mismos agentes TypeScript** de GAIA pero desde el chat. Es la forma de alternar entre control manual y ejecución automática sin cambiar de herramienta.

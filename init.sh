@@ -169,13 +169,19 @@ if [ -f ".env" ]; then
       ok "$VAR configurado"
     fi
   done
-  # LLM: al menos uno
+  # LLM: proxy LiteLLM (LLM_BASE_URL + LLM_API_KEY) o provider directo
+  LLM_BASE=$(grep -E "^LLM_BASE_URL=" .env 2>/dev/null | cut -d= -f2-)
+  LLM_KEY=$(grep -E "^LLM_API_KEY=" .env 2>/dev/null | cut -d= -f2-)
   OPENAI=$(grep -E "^OPENAI_API_KEY=" .env 2>/dev/null | cut -d= -f2-)
   ANTHROPIC=$(grep -E "^ANTHROPIC_API_KEY=" .env 2>/dev/null | cut -d= -f2-)
-  if [ -z "$OPENAI" ] && [ -z "$ANTHROPIC" ]; then
-    fail "Ninguna LLM key configurada (OPENAI_API_KEY o ANTHROPIC_API_KEY)"; EXIT_CODE=1
+  if [ -n "$LLM_BASE" ] && [ -n "$LLM_KEY" ]; then
+    ok "LLM configurado via proxy LiteLLM (LLM_BASE_URL + LLM_API_KEY)"
+  elif [ -n "$OPENAI" ]; then
+    ok "LLM key configurada (OPENAI_API_KEY)"
+  elif [ -n "$ANTHROPIC" ]; then
+    ok "LLM key configurada (ANTHROPIC_API_KEY)"
   else
-    ok "LLM key configurada"
+    fail "Ninguna LLM key configurada (LLM_BASE_URL+LLM_API_KEY, OPENAI_API_KEY o ANTHROPIC_API_KEY)"; EXIT_CODE=1
   fi
 else
   warn ".env no existe — copia .env.example y completa los valores"

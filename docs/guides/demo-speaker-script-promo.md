@@ -225,10 +225,10 @@ git -C /tmp/gaia-workspace/$JOB_ID/repo show --stat HEAD
 **Opción A: automática (igual que CLI, desde el chat)**
 
 ```text
-/review_gaia_code_generator --job /tmp/demo-promo-job.json --approve
+/gaia_code_generator --job /tmp/demo-promo-job.json --approve
 ```
 
-**Opción B: paso a paso con control humano (ejemplo típico de `.claude/commands/review_gaia_code_generator.md`)**
+**Opción B: paso a paso con control humano (ejemplo típico de `.claude/commands/gaia_code_generator.md`)**
 
 ```text
 Implementá la siguiente feature pendiente
@@ -283,7 +283,7 @@ open progress/mutation_agregar-banner-de-promociones.md
 ```text
 | Aspecto          | Modo CLI                        | Modo .claude                      |
 | ---------------- | ------------------------------- | --------------------------------- |
-| Cómo arranca     | `npx ts-node src/cli/run.ts ...`| Chat o `/review_gaia_code_generator`                     |
+| Cómo arranca     | `npx ts-node src/cli/run.ts ...`| Chat o `/gaia_code_generator`                     |
 | Orquestador      | `src/cli/run.ts` + `leader.ts`    | `craftsman_lead` + subagentes    |
 | Aprobación spec  | `--approve` (auto)              | Pausa humana en Gherkin           |
 | Velocidad        | Más rápido                      | Más lento, más conversación       |
@@ -401,7 +401,7 @@ npx ts-node src/cli/run.ts --job /tmp/demo-promo-job.json
 npx ts-node src/cli/run.ts --id <JOB_ID> --approve
 
 # Modo .claude
-# En Claude Code escribir: /review_gaia_code_generator --job /tmp/demo-promo-job.json --approve
+# En Claude Code escribir: /gaia_code_generator --job /tmp/demo-promo-job.json --approve
 # O para paso a paso: "Implementá la feature PROJ-123: Agregar banner de promociones"
 
 # Ver diff generado

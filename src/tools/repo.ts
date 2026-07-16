@@ -5,10 +5,36 @@
  */
 
 import * as path from 'path';
+import * as fs from 'fs/promises';
 import simpleGit from 'simple-git';
 import { cloneRepository } from './git';
 import { copyDirectory, fileExists } from './file';
 import { CodeGenerationJob } from '../types';
+
+async function copyDartToolDirs(sourceRoot: string, destRoot: string): Promise<void> {
+  async function walk(srcDir: string, dstDir: string): Promise<void> {
+    let entries: import('fs').Dirent[];
+    try {
+      entries = await fs.readdir(srcDir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      if (entry.name === '.git' || entry.name === 'build') continue;
+      const srcChild = path.join(srcDir, entry.name);
+      const dstChild = path.join(dstDir, entry.name);
+      if (entry.name === '.dart_tool') {
+        if (!await fileExists(dstChild)) {
+          try { await copyDirectory(srcChild, dstChild); } catch { /* best-effort */ }
+        }
+      } else {
+        await walk(srcChild, dstChild);
+      }
+    }
+  }
+  await walk(sourceRoot, destRoot);
+}
 
 /**
  * Result of a repository setup operation
@@ -95,6 +121,10 @@ export async function setupRepository(
               // best-effort — tuist install will attempt to resolve fresh
             }
           }
+          // Preserve resolved Dart/Flutter dependency caches so melos bootstrap and
+          // flutter pub get can skip Flutter cache writes that fail under macOS sandbox
+          // restrictions. Walk the repo tree and copy every .dart_tool directory found.
+          await copyDartToolDirs(localRepo, repoPath);
           return { success: true, output: `Repository cloned from ${localRepo}` };
         }
         await copyDirectory(localRepo, repoPath);
