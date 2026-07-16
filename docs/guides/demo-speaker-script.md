@@ -692,6 +692,46 @@ curl -s -X POST http://localhost:3000/jobs/<JOB_ID>/approve \
 
 > Abre un issue en el repo del harness adjuntando `progress/<JOB_ID>.md` y, si aplica, el diff del commit (`git show HEAD` desde el workspace del job).
 
+### ¿Cuánto cuesta usarlo?
+
+> El harness es código abierto. Pagás lo que consuman las llamadas a la API de OpenAI/Anthropic. En repos pequeños y features acotadas, un job completo suele costar centavos de dólar. Los jobs con `tddMode: true` o mutation testing hacen más llamadas, por lo que salen un poco más caros.
+
+### ¿Soporta otros lenguajes además de Dart/Flutter?
+
+> Sí. La arquitectura es extensible: cada plataforma tiene un skill en `src/plugins/<platform>/`. Hoy hay skills para `flutter`, `flutter_web`, `ios`, `android` y `backend`. Agregar uno nuevo implica implementar `Skill` (clone, context, apply, test, analyze) y registrarlo en `src/plugins/index.ts`.
+
+### ¿Qué pasa si la IA toca un archivo que no debe?
+
+> Hay tres salvaguardas:
+>
+> 1. El spec lista `affectedFiles` y `newFiles`; el Implementer se restringe a esos paths.
+> 2. `maxFilesToTouch` es un límite duro; si se excede, el Reviewer rechaza el PR.
+> 3. El diff es visible en el PR; cualquier desviación se detecta en revisión humana.
+
+### ¿Puede actualizar un PR existente o rehacer uno anterior?
+
+> Sí. Si un job falla en `test_error` o `review_error`, podés reintentarlo con `npx ts-node src/cli/run.ts --id <JOB_ID> --retry`. El Implementer usa la rama existente, aplica fixes y hace push. También podés pasar un nuevo job con el mismo `targetBranch` y título relacionado.
+
+### ¿Cómo veo el spec que generó la IA?
+
+> En Modo B (CLI) queda en `specs/<JOB_ID>/spec.json` y los escenarios Gherkin en `specs/<JOB_ID>/scenarios.feature`. Además, el body del PR incluye un enlace al `progress/<JOB_ID>.md` que resume el plan, los agentes ejecutados y el resultado.
+
+### ¿Respeta convenciones de commits y estilo de código?
+
+> Sí, si el repo se lo pedís. El skill de cada plataforma inyecta guías de estilo (`docs/RULES.md`, `docs/UNIT_TESTS.md`, linters) en los prompts. El Implementer genera commits descriptivos y el Reviewer valida que no se commiteen archivos prohibidos.
+
+### ¿Puede correr en CI/CD?
+
+> Sí. El Modo C (`POST /webhook/trigger`) está pensado para eso: un GitHub Action, Jira Automation o Slack slash command puede disparar un job. También podés correr el CLI en un runner si exportás las variables de entorno necesarias.
+
+### ¿En qué se diferencia de Copilot o Cursor?
+
+> Copilot/Cursor asisten mientras escribís código. GAIA orquesta un **proceso**: recibe un requerimiento, genera spec, permite aprobación humana, implementa, revisa, crea PR y mide robustez con mutation testing. Está diseñado para tareas completas, no para sugerencias inline.
+
+### ¿Qué tareas NO son adecuadas para GAIA?
+
+> Las que requieren juicio de producto profundo, diseño de arquitectura nueva sin precedentes en el repo, refactorings masivos sin tests de respaldo, o cambios en infraestructura crítica (secrets, CI/CD, permisos). GAIA funciona mejor con cambios bien acotados y documentados.
+
 ---
 
 ## Comandos rápidos
