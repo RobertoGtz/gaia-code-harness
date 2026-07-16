@@ -121,7 +121,72 @@ git show HEAD
 
 ---
 
-## Intro — Presentar el proyecto, el código y la explicación (1 min)
+## Intro 0 — Presentar el proyecto GAIA Code Harness (1 min)
+
+Antes de entrar al repo objetivo, presentá brevemente el propio sistema para que la audiencia entienda qué están viendo correr.
+
+**Qué decir:**
+
+> "Esto que tenemos abierto es el repo de **GAIA Code Harness**: el arnés que orquesta a varios agentes de IA para generar código de forma controlada. No es un chatbot que escribe a ciegas; es un pipeline con estados, persistencia y puntos de aprobación humana."
+
+**Mostrar en pantalla:**
+
+```bash
+# Estructura de alto nivel del proyecto
+tree -L 2 -I 'node_modules|.git' /Users/robertogutierrezgonzalez/Desktop/gaia-code-harness
+```
+
+O, si no tenés `tree`, usá:
+
+```bash
+ls -1 /Users/robertogutierrezgonzalez/Desktop/gaia-code-harness
+```
+
+**Archivos clave para mostrar y explicar:**
+
+```bash
+# Agentes del pipeline
+open /Users/robertogutierrezgonzalez/Desktop/gaia-code-harness/src/agents/reviewer.ts
+open /Users/robertogutierrezgonzalez/Desktop/gaia-code-harness/src/agents/implementer.ts
+open /Users/robertogutierrezgonzalez/Desktop/gaia-code-harness/src/agents/spec-author.ts
+
+# Orquestador (máquina de estados)
+open /Users/robertogutierrezgonzalez/Desktop/gaia-code-harness/src/harness/leader.ts
+
+# Plugins de plataforma
+open /Users/robertogutierrezgonzalez/Desktop/gaia-code-harness/src/plugins/index.ts
+
+# Documentación para humanos
+open /Users/robertogutierrezgonzalez/Desktop/gaia-code-harness/AGENTS.md
+open /Users/robertogutierrezgonzalez/Desktop/gaia-code-harness/docs/engineering/workflow.md
+```
+
+**Qué explicar mientras se ven los archivos:**
+
+- **`src/agents/`**: cada agente tiene un rol definido:
+  - `SpecAuthorAgent` → genera el spec técnico.
+  - `ImplementerAgent` → escribe el código a partir del spec.
+  - `ReviewerAgent` → valida y crea el PR.
+  - `MutationTesterAgent` → evalúa calidad de tests.
+- **`src/harness/leader.ts`**: la máquina de estados que mueve el job por `pending → spec_ready → implementing → reviewing → done`.
+- **`src/plugins/`**: skills de plataforma (`flutter_web`, `ios`, `android`, `backend`) que inyectan reglas específicas de cada repo.
+- **`src/state/`**: persistencia en Postgres (Modo A/C) o en disco (Modo B).
+- **`AGENTS.md`** y **`docs/engineering/workflow.md`**: mapa para agentes IA y el pipeline completo.
+- **`scripts/present.sh`**: si querés, también podés mostrar que ya existe un script de presentación con slides.
+
+**Puntos clave a mencionar:**
+
+- GAIA no es un solo prompt gigante; son agentes especializados que se llaman en cadena.
+- Cada agente lee y escribe handoffs en el workspace (`progress/`, `specs/`).
+- Los 3 modos (HTTP API, CLI, Webhook) usan los mismos agentes y la misma máquina de estados.
+
+**Frase clave:**
+
+> "La demo que siguen viendo no es un truco de presentación: es exactamente el mismo código que correría en producción."
+
+---
+
+## Intro — Presentar el proyecto objetivo, el código a cambiar y la explicación (1 min)
 
 Antes de lanzar el pipeline, mostrá el contexto al público para que entiendan qué van a ver cambiar.
 

@@ -267,3 +267,4 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
     - Plan B con manejo de errores en vivo (spec lento, test_error, PR no creado, archivos inesperados).
     - FAQ extensa para la audiencia (reemplazo devs, scope, seguridad, TDD, mutation testing, Jira/Slack, repos privados).
     - Comandos rápidos ampliados.
+  - Agregada sección "Intro 0 — Presentar el proyecto GAIA Code Harness" con qué decir, archivos clave a mostrar (`src/agents/`, `src/harness/leader.ts`, `src/plugins/`, `AGENTS.md`, `docs/engineering/workflow.md`) y explicación de cada componente.
