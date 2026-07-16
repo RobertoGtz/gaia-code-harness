@@ -433,7 +433,105 @@ open progress/<JOB_ID>.md
 
 ---
 
-## Diapositiva 8 — Cierre y preguntas (45 seg)
+## Diapositiva 8 — Modos de ejecución: CLI vs `.claude` (1 min)
+
+**Qué decir:**
+
+> "GAIA no impone una sola interfaz. Hoy vimos el modo **CLI**, pero existe también el modo **`.claude`**. Ambos corren exactamente el mismo pipeline y los mismos agentes; lo que cambia es dónde pones el control humano."
+
+**Mostrar en pantalla — comparación rápida:**
+
+```text
+| Modo        | Arranca con                  | Orquestador                  | Aprobación de spec              |
+| ----------- | ---------------------------- | ---------------------------- | ------------------------------- |
+| HTTP API    | POST /jobs                   | Servidor + src/harness/leader.ts | POST /jobs/:id/approve       |
+| CLI         | npx ts-node src/cli/run.ts   | src/cli/run.ts + leader.ts   | --approve flag                  |
+| Webhook     | POST /webhook/trigger        | Servidor + leader.ts         | Automática (Jira/Slack)         |
+| .claude     | Conversación o `/run`        | craftsman_lead + subagentes  | Pausa humana en Gherkin         |
+```
+
+### Bloque A — Modo CLI (rápido y predecible)
+
+**Qué decir:**
+
+> "El CLI es lo que acabamos de usar: le pasás un `job.json` y, si ponés `--approve`, el pipeline corre de punta a punta sin detenerse. Detrás está `src/cli/run.ts`, que invoca a los agentes TypeScript de `src/agents/`. Es ideal para demos, CI/CD o tareas bien definidas."
+
+**Mostrar en pantalla:**
+
+```bash
+cat /tmp/demo-cashflow-job.json | head -20
+npx ts-node src/cli/run.ts --job /tmp/demo-cashflow-job.json --approve
+```
+
+**Archivos del harness que mostrar:**
+
+- `src/cli/run.ts` — entry point del CLI.
+- `src/harness/leader.ts` — máquina de estados que avanza entre agentes.
+- `src/agents/implementer.ts` — agente que escribe el código.
+- `src/agents/reviewer.ts` — agente que revisa y crea el PR.
+
+**Frase clave:**
+
+> "CLI es velocidad y reproducibilidad: mismo pipeline, un solo comando."
+
+### Bloque B — Modo `.claude` (artesanal con control humano)
+
+**Qué decir:**
+
+> "El modo `.claude` corre dentro de Claude Code. En lugar de un comando, Claude actúa como `craftsman_lead` y coordina subagentes: `spec_partner`, `gherkin_author`, `tdd_craftsman`, `judge` y `mutation_tester`. La gran diferencia es que hay una pausa humana obligatoria después de los escenarios Gherkin."
+
+**Mostrar en pantalla:**
+
+```text
+/run --job /tmp/demo-cashflow-job.json --approve
+```
+
+o, para paso a paso:
+
+```text
+Implementá la siguiente feature pendiente
+```
+
+**Archivos de `.claude/` que mostrar:**
+
+- `.claude/agents/craftsman_lead.md` — rol del conductor del pipeline.
+- `.claude/agents/spec_partner.md` — conversa y escribe `project-spec.md`.
+- `.claude/agents/gherkin_author.md` — destila `features/<name>.feature`.
+- `.claude/commands/run.md` — slash command `/run` que usa el CLI por detrás.
+- `CLAUDE.md` — contexto que Claude lee al arrancar.
+
+**Frase clave:**
+
+> "`.claude` es transparencia: la IA propone, el humano aprueba cada escenario, y solo después se escribe código."
+
+### Bloque C — Cómo alternar entre ambos
+
+**Qué decir:**
+
+> "Ambos modos no se pelean; se complementan. Arrancás una idea en `.claude` para conversarla, aprobar los escenarios y validar TDD. Cuando la tarea es repetible y bien definida, la mandás por CLI o HTTP API. Si viene de Jira, un webhook la dispara automáticamente."
+
+**Mostrar en pantalla:**
+
+```text
+Claude Code → /run --job job.json --approve
+                     │
+                     ▼
+         src/cli/run.ts → leader.ts → Implementer → Reviewer → PR
+```
+
+**Puntos a destacar:**
+
+- El `/run` de `.claude` usa los **mismos agentes TypeScript** que el CLI.
+- La aprobación humana en `.claude` está en los `.feature`; en CLI se salta con `--approve`.
+- En producción se usa `--approve=false` o el endpoint `POST /jobs/:id/approve`.
+
+**Frase clave:**
+
+> "CLI es para velocidad; `.claude` es para colaboración. El mismo harness, distinta forma de conducir."
+
+---
+
+## Diapositiva 9 — Cierre y preguntas (45 seg)
 
 **Qué decir:**
 
