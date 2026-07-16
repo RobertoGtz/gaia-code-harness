@@ -244,3 +244,8 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
   - Import manual de `BackendSkill` y `ReviewerAgent` funciona.
   - `npm test` sigue bloqueado porque `CleanMyMac` borra directorios `build/` dentro de `node_modules` (`jest-util`, `jest-circus`, `jest-worker`, `jest-runtime`, etc.) durante la ejecución.
   - Commit de estos cambios realizado; el entorno Jest requiere pausar/ignorar `CleanMyMac` para test completo.
+- Fix: `src/tools/git.ts` `initGit` ahora guarda `_baseDir` en la instancia de `simple-git`.
+  - `commitAndPush` usaba `(git as any)._baseDir ?? process.cwd()`, pero `simpleGit(path)` no populaba `_baseDir`, así que `unstageNeverCommitFiles` buscaba archivos prohibidos en el directorio del harness en lugar del repo objetivo.
+  - Resultado: `pubspec_overrides.yaml`, `build/`, `.dart_tool/`, cache dill, assets/fonts generados se quedaban en el commit/PR.
+  - Se corrigió seteando `_baseDir` explícitamente en `initGit`.
+  - `./init.sh` y `npx tsc --noEmit` pasan.

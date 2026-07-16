@@ -127,7 +127,11 @@ export async function cloneRepository(
  * await git.status();
  */
 export function initGit(workspacePath: string): SimpleGit {
-  return simpleGit(workspacePath);
+  const git = simpleGit(workspacePath);
+  // Preserve the base directory so callers (e.g. commitAndPush) can resolve
+  // the repo root without relying on process.cwd().
+  (git as any)._baseDir = workspacePath;
+  return git;
 }
 
 /**
