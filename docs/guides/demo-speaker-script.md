@@ -732,6 +732,125 @@ curl -s -X POST http://localhost:3000/jobs/<JOB_ID>/approve \
 
 ---
 
+## Datos para generar diapositivas con IA
+
+Copiá este brief en un generador de slides (Gamma, Beautiful.ai, Canva Magic, ChatGPT, etc.) para crear una presentación visual automáticamente.
+
+### Estilo sugerido
+
+- **Tono:** técnico pero accesible; dirigido a ingeniería y producto.
+- **Paleta:** oscura (azul `#0B1220`, acento cian `#38BDF8`, verde `#4ADE80`, magenta `#F472B6` para `.claude`).
+- **Tipografía:** sans-serif moderna (Inter, SF Pro, Roboto).
+- **Elementos visuales:** diagramas de flujo, tarjetas de agente, tablas comparativas, capturas de terminal estilizadas.
+
+### Brief por diapositiva
+
+```json
+{
+  "slides": [
+    {
+      "number": 1,
+      "title": "GAIA Code Harness — Demo: DemoAnalyticsRepository",
+      "subtitle": "Modos CLI y .claude sobre el repo rpp-cashflow-multiplatform-pyme",
+      "key_points": [
+        "Demo de ~5 minutos",
+        "No requiere servidor ni Docker",
+        "Job: agregar DemoAnalyticsEvent + DemoAnalyticsRepository en bre_b core"
+      ],
+      "visual": "Título grande + logo concepto + dos badges: CLI y .claude"
+    },
+    {
+      "number": 2,
+      "title": "El job de demo",
+      "key_points": [
+        "platform: flutter_web",
+        "repo: rpp-co/rpp-cashflow-multiplatform-pyme",
+        "module: bre_b",
+        "maxFilesToTouch: 4",
+        "requireTests: false para velocidad de demo"
+      ],
+      "visual": "Tarjeta con el JSON del job resaltado; flechas señalando cada campo importante"
+    },
+    {
+      "number": 3,
+      "title": "Lanzar el pipeline (CLI)",
+      "key_points": [
+        "Comando: npx ts-node src/cli/run.ts --job job.json --approve",
+        "El pipeline arranca localmente",
+        "Se puede pausar en spec_ready para aprobación manual"
+      ],
+      "visual": "Terminal estilizada con el comando y un timeline de estados debajo"
+    },
+    {
+      "number": 4,
+      "title": "Fase 1: SpecAuthor",
+      "key_points": [
+        "Lee el repo y entiende convenciones",
+        "Genera TechnicalSpec: requerimientos, tareas, riesgos, archivos afectados",
+        "Produce escenarios Gherkin como contrato ejecutable"
+      ],
+      "visual": "Diagrama: Repo -> SpecAuthor -> spec.json + scenarios.feature"
+    },
+    {
+      "number": 5,
+      "title": "Fase 2: Aprobación humana",
+      "key_points": [
+        "Spec ready -> waiting for human approval",
+        "Sin aprobación no se toca código",
+        "En producción: POST /jobs/:id/approve o pausa en .claude"
+      ],
+      "visual": "Icono de mano/persona deteniendo/avanzando el flujo entre SpecAuthor e Implementer"
+    },
+    {
+      "number": 6,
+      "title": "Fase 3: Implementer",
+      "key_points": [
+        "Crea rama feature",
+        "Escribe solo archivos autorizados",
+        "Commit descriptivo"
+      ],
+      "visual": "Lista de archivos: demo_analytics_event.dart, demo_analytics_repository.dart, bre_b_core.dart"
+    },
+    {
+      "number": 7,
+      "title": "Fase 4: Reviewer y PR",
+      "key_points": [
+        "Valida scope y análisis estático",
+        "Crea el Pull Request en GitHub",
+        "Trazabilidad completa: PR -> spec -> ACs -> job log"
+      ],
+      "visual": "Mockup de un PR de GitHub con los files changed y el link al job"
+    },
+    {
+      "number": 8,
+      "title": "CLI vs .claude",
+      "key_points": [
+        "CLI: velocidad y reproducibilidad, --approve automático",
+        ".claude: control humano en Gherkin, slash command /run",
+        "Ambos usan los mismos agentes TypeScript por detrás"
+      ],
+      "visual": "Tabla comparativa de dos columnas con íconos de terminal y chat"
+    },
+    {
+      "number": 9,
+      "title": "Cierre",
+      "key_points": [
+        "El valor no es 'IA escribe código'",
+        "El valor es 'IA dentro de un proceso controlado'",
+        "Spec -> Aprobación -> Scope -> Review -> Mutation testing -> PR"
+      ],
+      "visual": "Diagrama de flujo final conectando todas las fases y una pregunta al público"
+    }
+  ]
+}
+```
+
+### Prompt listo para copiar
+
+> "Create a 9-slide technical presentation in dark mode using the following JSON brief. Each slide should have a title, 2-4 bullet points, and a visual suggestion. Use cyan and green accents. Keep the style clean and engineering-friendly."
+
+---
+
 ## Comandos rápidos
 
 ```bash

@@ -22,12 +22,31 @@ slides+=("${BLUE}${BOLD}
   ║     CLI + .claude modes                                  ║
   ╚══════════════════════════════════════════════════════════╝
 ${NC}
-Repo: rpp-co/rpp-cashflow-multiplatform-pyme
+Repo:   rpp-co/rpp-cashflow-multiplatform-pyme
 Module: bre_b
+Goal:   same job, two ways to run it
 
 Press Enter to continue...")
 
-slides+=("${YELLOW}[SLIDE 1] The Job${NC}
+slides+=("${YELLOW}[SLIDE 1] What we will see today${NC}
+
+1. Start with a real-ish Flutter Web repo and a small feature request.
+2. Show how GAIA turns that request into a TechnicalSpec + Gherkin scenarios.
+3. Pause at the human approval gate.
+4. Let the Implementer write code and the Reviewer open a Pull Request.
+5. Run the same flow two ways:
+   ${CYAN}CLI${NC}     -> one terminal command
+   ${MAGENTA}.claude${NC} -> conversational approval inside Claude Code
+
+Why this matters:
+  ${GREEN}*${NC} The pipeline is always the same.
+  ${GREEN}*${NC} The interface changes how much control the human keeps.
+
+Press Enter to continue...")
+
+slides+=("${YELLOW}[SLIDE 2] The demo job${NC}
+
+Input file: ${CYAN}/tmp/demo-cashflow-job.json${NC}
 
 {
   \"initiativeId\": \"demo\",
@@ -47,113 +66,203 @@ slides+=("${YELLOW}[SLIDE 1] The Job${NC}
   \"tddMode\": false
 }
 
-Press Enter to continue...")
-
-slides+=("${YELLOW}[SLIDE 2] Harness Engineering${NC}
-
-Spec-first -> Human approval -> Code -> Review -> PR
-
-${GREEN}*${NC} SpecAuthor creates the plan
-${GREEN}*${NC} Human approves before code is written
-${GREEN}*${NC} Implementer writes only authorized files
-${GREEN}*${NC} Reviewer validates and opens the PR
+What each field does:
+  ${CYAN}platform${NC}        -> load flutter_web skill
+  ${CYAN}module${NC}          -> restrict context to bre_b
+  ${CYAN}maxFilesToTouch${NC}  -> safety guard on scope
+  ${CYAN}requireTests${NC}     -> false only to keep the demo fast
 
 Press Enter to continue...")
 
-slides+=("${YELLOW}[SLIDE 3] The Agents${NC}
+slides+=("${YELLOW}[SLIDE 3] Harness Engineering in one picture${NC}
 
-${CYAN}CLI mode (TypeScript)${NC}
-  SpecAuthor      -> TechnicalSpec + Gherkin
-  Implementer     -> code in feature branch
-  Reviewer        -> validate + PR
-  MutationTester  -> test quality
+```text
+Requirement
+     │
+     ▼
+┌─────────────┐
+│  SpecAuthor │  reads repo, writes TechnicalSpec + .feature
+└─────────────┘
+     │
+     ▼
+┌─────────────┐
+│   Human     │  approves/rejects the spec
+└─────────────┘
+     │
+     ▼
+┌─────────────┐
+│  Implementer│  writes code in a feature branch
+└─────────────┘
+     │
+     ▼
+┌─────────────┐
+│   Reviewer  │  validates scope, opens PR
+└─────────────┘
+     │
+     ▼
+┌─────────────┐
+│ MutationTester│ measures test quality
+└─────────────┘
+```
 
-${MAGENTA}.claude mode (conversational)${NC}
-  craftsman_lead  -> orchestrates
-  spec_partner    -> project-spec.md
-  gherkin_author  -> features/<name>.feature
-  tdd_craftsman   -> implements
-  judge           -> reviews
-  mutation_tester -> measures robustness
+Key rules:
+  ${GREEN}*${NC} No code before spec.
+  ${GREEN}*${NC} No repo changes before human approval.
+  ${GREEN}*${NC} No direct push to master; always a feature branch.
 
 Press Enter to continue...")
 
-slides+=("${YELLOW}[SLIDE 4] CLI mode${NC}
+slides+=("${YELLOW}[SLIDE 4] The agents${NC}
 
-Generate spec (stops for approval):
+${CYAN}CLI / HTTP pipeline (TypeScript agents)${NC}
+  ${BOLD}SpecAuthorAgent${NC}
+    - explores the repo
+    - derives technical requirements from ACs
+    - outputs spec.json + scenarios.feature
+
+  ${BOLD}ImplementerAgent${NC}
+    - reads the spec
+    - creates/modifies only authorized files
+    - runs tests when requireTests is true
+
+  ${BOLD}ReviewerAgent${NC}
+    - file-count guard
+    - static checks
+    - creates the GitHub PR
+
+  ${BOLD}MutationTesterAgent${NC}
+    - mutates code (true->false, +->-, etc.)
+    - fails if tests do not catch the change
+
+Press Enter to continue...")
+
+slides+=("${YELLOW}[SLIDE 5] The agents in .claude mode${NC}
+
+${MAGENTA}.claude pipeline (conversational subagents)${NC}
+  ${BOLD}craftsman_lead${NC}
+    - conductor; reads AGENTS.md, feature_list.json, progress/current.md
+    - runs ./init.sh and picks the next pending feature
+
+  ${BOLD}spec_partner${NC}
+    - talks to the human to clarify the feature
+    - writes project-spec.md
+
+  ${BOLD}gherkin_author${NC}
+    - turns ACs into features/<name>.feature
+
+  ${BOLD}tdd_craftsman${NC}
+    - implements the code; Red-Green-Refactor if tddMode=true
+
+  ${BOLD}judge${NC}
+    - reviews code quality
+
+  ${BOLD}mutation_tester${NC}
+    - runs mutation testing and reports score
+
+Press Enter to continue...")
+
+slides+=("${YELLOW}[SLIDE 6] Mode A: CLI step by step${NC}
+
+${CYAN}Step 1 - generate the spec (it stops at spec_ready)${NC}
+  cd ~/Desktop/gaia-code-harness
   npx ts-node src/cli/run.ts --job /tmp/demo-cashflow-job.json
 
-Review spec:
-  cat /tmp/gaia-workspace/<JOB_ID>/specs/<JOB_ID>/spec.json | jq .
-  cat /tmp/gaia-workspace/<JOB_ID>/specs/<JOB_ID>/scenarios.feature
+What to say while it runs:
+  \"SpecAuthor is reading the repo and building a plan. No code is written yet.\"
 
-Approve and run:
-  npx ts-node src/cli/run.ts --id <JOB_ID> --approve
+${CYAN}Step 2 - inspect the spec${NC}
+  JOB_ID=<id>
+  cat /tmp/gaia-workspace/$JOB_ID/specs/$JOB_ID/spec.json | jq '.requirements, .design'
+  cat /tmp/gaia-workspace/$JOB_ID/specs/$JOB_ID/scenarios.feature
 
-What to say:
+${CYAN}Step 3 - approve and run the rest${NC}
+  npx ts-node src/cli/run.ts --id $JOB_ID --approve
+
+Key phrase:
   \"CLI is speed and reproducibility: same pipeline, one command.\"
 
 Press Enter to continue...")
 
-slides+=("${YELLOW}[SLIDE 5] .claude mode${NC}
+slides+=("${YELLOW}[SLIDE 7] Mode B: .claude step by step${NC}
 
-One-shot:
+${MAGENTA}Option 1 - one shot${NC}
   /run --job /tmp/demo-cashflow-job.json --approve
 
-Human-in-the-loop (from .claude/commands/run.md):
+${MAGENTA}Option 2 - human-in-the-loop${NC}
   Implementa la siguiente feature pendiente
 
-What happens:
-  craftsman_lead reads AGENTS.md + feature_list.json + progress/current.md
-  spec_partner  -> project-spec.md
-  gherkin_author -> features/<name>.feature
-  Human approves
-  tdd_craftsman -> code
-  judge         -> review
-  mutation_tester -> quality gate
+What happens in Option 2:
+  1. craftsman_lead reads AGENTS.md + feature_list.json + progress/current.md
+  2. spec_partner writes project-spec.md
+  3. gherkin_author writes features/<name>.feature
+  4. ${YELLOW}Human reads the .feature and approves${NC}
+  5. tdd_craftsman writes code
+  6. judge reviews quality
+  7. mutation_tester validates robustness
 
-What to say:
+Key phrase:
   \".claude is transparency: AI proposes, human approves each scenario.\"
 
 Press Enter to continue...")
 
-slides+=("${YELLOW}[SLIDE 6] CLI vs .claude${NC}
+slides+=("${YELLOW}[SLIDE 8] CLI vs .claude side by side${NC}
 
-| Aspect          | CLI                         | .claude                       |
-| --------------- | --------------------------- | ----------------------------- |
-| Start           | npx ts-node src/cli/run.ts  | Chat or /run                  |
-| Orchestrator    | src/cli/run.ts + leader.ts  | craftsman_lead + subagents    |
-| Spec approval   | --approve flag              | Pause on Gherkin              |
-| Speed           | Faster                      | Slower, more conversation     |
-| Best for        | Demos, defined tasks        | Ambiguous features, TDD       |
-| Same pipeline?  | Yes                         | Yes                           |
+| Aspect            | CLI                           | .claude                         |
+| ----------------- | ----------------------------- | ------------------------------- |
+| How you start     | npx ts-node src/cli/run.ts    | /run or chat message            |
+| Orchestrator      | src/cli/run.ts + leader.ts    | craftsman_lead + subagents      |
+| Spec approval     | --approve flag (auto)          | Pause on Gherkin (human)        |
+| Best for          | demos, fast iterations, CI    | ambiguous features, TDD, teaching |
+| Conversation      | None                          | Full, turn-by-turn                |
+| Same agents?      | Yes                           | Yes                               |
+| Same output?      | PR + spec + progress log      | PR + spec + progress log        |
+
+Visual to show:
+  Claude Code -> /run --job job.json --approve
+                     │
+                     ▼
+         src/cli/run.ts -> leader.ts -> Implementer -> Reviewer -> PR
 
 Press Enter to continue...")
 
-slides+=("${YELLOW}[SLIDE 7] What to show in the generated PR${NC}
+slides+=("${YELLOW}[SLIDE 9] What to show from the generated PR${NC}
 
+${CYAN}In the workspace:${NC}
   cd /tmp/gaia-workspace/<JOB_ID>/repo
   git branch --show-current
   git log --oneline -3
   git show --stat HEAD
 
-Highlight:
-  ${GREEN}*${NC} demo_analytics_event.dart (model)
-  ${GREEN}*${NC} demo_analytics_repository.dart (repository)
-  ${GREEN}*${NC} bre_b_core.dart (exports)
-  ${GREEN}*${NC} No CI/CD, secrets or build files touched
+${CYAN}Files you should see:${NC}
+  ${GREEN}*${NC} demo_analytics_event.dart      (model with typed fields)
+  ${GREEN}*${NC} demo_analytics_repository.dart (repository with logEvent)
+  ${GREEN}*${NC} bre_b_core.dart               (exports both)
+
+${CYAN}Files you should NOT see:${NC}
+  ${GREEN}*${NC} pubspec_overrides.yaml
+  ${GREEN}*${NC} build/ or .dart_tool/
+  ${GREEN}*${NC} CI/CD or secrets changes
+
+${CYAN}In the browser:${NC}
+  open <PR_URL>
+  - title and description
+  - files changed inside packages/features/bre_b/
+  - link to progress/<JOB_ID>.md
 
 Press Enter to continue...")
 
-slides+=("${YELLOW}[SLIDE 8] Closing${NC}
+slides+=("${YELLOW}[SLIDE 10] Closing${NC}
 
 The value is not \"AI writes code.\"
 The value is \"AI writes code inside a process we control.\"
 
+Pipeline recap:
+  Spec -> Human approval -> Scope limits -> Code -> Review -> PR -> Mutation testing
+
 Discussion questions:
-  * Which mode fits us best: CLI or .claude?
-  * Which repo/feature should we pilot first?
-  * Do we need Jira/Slack/GitHub Checks integration?
+  ${GREEN}*${NC} Which mode fits our team better: CLI or .claude?
+  ${GREEN}*${NC} Which repo/feature should we pilot first?
+  ${GREEN}*${NC} Do we need Jira/Slack/GitHub Checks integration?
 
 Resources:
   docs/guides/demo-speaker-script.md
