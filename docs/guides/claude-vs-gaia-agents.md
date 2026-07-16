@@ -8,7 +8,7 @@
 
 No son excluyentes. **GAIA agents** (`src/agents/` + `src/harness/leader.ts`) son mejores para trabajo repetible, automático y trazable. **`.claude/agents/`** son mejores para exploración, especificaciones ambiguas y control humano paso a paso.
 
-La forma más práctica de combinarlos es el slash command `/run_gaia` (`.claude/commands/run_gaia.md`), que lanza el pipeline de GAIA desde Claude Code.
+La forma más práctica de combinarlos es el slash command `/review_gaia_code_generator` (`.claude/commands/review_gaia_code_generator.md`), que lanza el pipeline de GAIA desde Claude Code.
 
 ---
 
@@ -70,7 +70,7 @@ La configuración ideal es híbrida:
 
 1. **Explora y define** con `.claude/agents/` (`spec_partner` + `gherkin_author`) cuando la feature es confusa.
 2. **Automatiza** con GAIA agents una vez que el contrato Gherkin está firme.
-3. **LanGAIA desde Claude Code** con el slash command `/run_gaia` (`.claude/commands/run_gaia.md`) para no tener que cambiar de ventana.
+3. **LanGAIA desde Claude Code** con el slash command `/review_gaia_code_generator` (`.claude/commands/review_gaia_code_generator.md`) para no tener que cambiar de ventana.
 
 Así aprovechas lo mejor de los dos mundos: la conversación para entender el problema y la máquina de estados para ejecutarlo sin errores.
 
@@ -93,5 +93,5 @@ npx ts-node src/cli/run.ts --job job.json --approve
 ### Desde Claude Code usando GAIA agents
 
 ```
-/run_gaia --job job.json --approve
+/review_gaia_code_generator --job job.json --approve
 ```
