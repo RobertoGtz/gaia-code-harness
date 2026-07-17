@@ -13,6 +13,14 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
 
 ## Notas de sesión
 
+### Comando `/gaia_code_generator`
+
+- Después de `spec_ready`, muestra `npm run gaia -- --id <JOB_ID> --approve` con el ID real en un bloque ejecutable. Tras la aprobación textual, lo ejecuta mediante `Bash` bloqueante para capturar la salida y continuar.
+- Antes de pedir aprobación, muestra completos y sin resumir los artefactos del SpecAuthor: `requirements.json`, `design.json`, `tasks.json`, `scenarios.feature` y `handoff.md`. Incluso con auto-aprobación, fuerza la parada en `spec_ready` para enseñar primero todo el Gherkin y el spec.
+- Todo comando accionable se presenta en un bloque `bash` independiente de una sola línea, para que Claude Code muestre el botón **Ejecutar en terminal**; la continuación tras aprobación usa el `JOB_ID` real.
+- Corregido bloqueo tras usar **Ejecutar en terminal**: Claude no observa la finalización del terminal externo. Ahora muestra el botón como alternativa, pero ejecuta autoritativamente mediante `Bash` bloqueante para capturar la salida y continuar; si el usuario ya ejecutó el comando, recupera el job existente sin duplicarlo.
+- Las rutas de artefactos se toman de `Spec saved to ...`/`Gherkin saved to ...` en la salida real; no se asume `/tmp/gaia-workspace`, ya que Claude puede usar `/private/tmp/claude/...`.
+
 ### Revisión de consistencia previa (commit 647088b)
 
 - Se identificaron y corrigieron referencias obsoletas a `src/skills/` → `src/plugins/` en `project-spec.md`, `CHECKPOINTS.md`, `src/agents/registry.ts` y comentarios de tests.

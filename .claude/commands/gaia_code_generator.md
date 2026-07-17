@@ -16,28 +16,60 @@ Este comando hace que `.claude` se comporte como el **CLI Mode**: toma una ficha
    - Si el usuario te dio un path a un `job.json`, úsalo.
    - Si no, lee `feature_list.json`, elige la primera feature con `"sdd": true` y `status` distinto de `done`/`blocked`, y genera un `job.json` temporal con los campos requeridos.
 4. Pregunta al humano si quiere ejecutar con `--approve` (auto-aprobar) o pausar después del spec, como el CLI normal.
-5. Corre el comando equivalente:
-   - `npm run gaia -- <job.json> --approve`
-   - o sin `--approve` si el humano quiere revisar el spec primero.
-6. Si el job se detuvo en `spec_ready`, espera la aprobación humana y luego corre:
-   - `npm run gaia -- --id <job-id> --approve`
-7. Reporta el resultado final, el URL del PR y el próximo paso.
-8. Actualiza `progress/current.md` si aplica.
-9. Al finalizar, entregá un bloque listo para copiar y pegar en la terminal (handoff):
+5. Para generar el spec y detenerte en la puerta humana:
+   - Muestra primero el comando con la ruta real en su propio bloque ejecutable, para ofrecer **Ejecutar en terminal**:
+     ```bash
+     npm run gaia -- <RUTA_JOB_JSON_REAL>
+     ```
+   - Inmediatamente después, ejecuta tú mismo exactamente ese comando mediante `Bash`, en modo bloqueante, y espera su salida. **No esperes a que el humano pulse el botón**: Claude no puede observar cuándo termina un comando iniciado desde ese botón y el flujo quedaría detenido. El botón es una alternativa manual visible; la llamada `Bash` es la ejecución autoritativa del flujo.
+   - Si detectas que el humano ya lo ejecutó y el job está en `spec_ready`, no lo ejecutes otra vez: recupera el job existente con `--list` y continúa leyendo sus artefactos.
+6. Cuando el SpecAuthor termine, obtén de la salida real del CLI:
+   - El `JOB_ID`.
+   - La ruta absoluta indicada por `Spec saved to ...` o `Gherkin saved to ...`.
+     Luego muestra en Claude, **completos, sin truncar ni resumir**, todos sus artefactos en este orden:
+   - `requirements.json`: requisitos derivados y criterios de aceptación.
+   - `design.json`: diseño técnico y archivos afectados.
+   - `tasks.json`: plan completo de implementación.
+   - `scenarios.feature`: todos los escenarios Gherkin, incluyendo `Feature`, `Background`, tags, `Scenario`/`Scenario Outline`, `Examples` y cada paso `Given/When/Then`.
+   - `handoff.md`: handoff del SpecAuthor, si existe.
+7. Usa `Read` con las **rutas absolutas reales reportadas por el CLI**; no asumas que el workspace está en `/tmp/gaia-workspace`, porque puede estar bajo `/private/tmp/claude/...` u otra raíz configurada. `requirements.json`, `design.json`, `tasks.json` y `scenarios.feature` viven en el directorio reportado por `Spec saved to`. Para localizar `handoff.md`, parte del workspace padre mostrado en la misma salida. Si un archivo no existe, indícalo explícitamente; no lo omitas silenciosamente. No uses `head`, `tail`, límites de líneas ni una explicación que sustituya el contenido original.
+8. Presenta los artefactos con encabezados separados y bloques de código apropiados (`json`, `gherkin` o `markdown`). Los escenarios Gherkin completos deben quedar visibles en el chat de Claude **siempre**, incluso cuando se solicitó `--approve` desde el inicio.
+9. Si el job se detuvo en `spec_ready`, solo después de mostrar todo lo anterior pide al humano que acepte explícitamente la implementación.
+10. En la puerta de aprobación, **siempre** muestra el comando de continuación como un bloque `bash` independiente, de una sola línea y con el `JOB_ID` real. Este formato es obligatorio para que Claude Code muestre el botón **Ejecutar en terminal**:
+    ```bash
+    npm run gaia -- --id <JOB_ID_REAL> --approve
+    ```
+    No uses un bloque `text`, una lista, código inline, placeholders sin reemplazar ni varios comandos dentro del mismo bloque. Antes del bloque pregunta: "¿Aprobás este spec para continuar con la implementación?".
+11. Después de mostrar el bloque ejecutable, espera la aprobación textual del humano. Al recibirla, ejecuta tú mismo ese comando mediante `Bash` en modo bloqueante y continúa automáticamente con la salida completa del CLI durante Implementer, Reviewer, MutationTester y creación del PR. No esperes a detectar el clic en **Ejecutar en terminal**, porque ese terminal es externo al flujo del agente. Si el humano informa que ya usó el botón, verifica el estado con `npm run gaia -- --list` y continúa sin duplicar la ejecución.
+12. Todo comando accionable que entregues durante este flujo debe aparecer además en su propio bloque cercado `bash`, con una sola línea ejecutable, para obtener el botón **Ejecutar en terminal**. No agrupes comandos distintos en un único bloque. Mostrar el botón nunca reemplaza la ejecución autoritativa mediante `Bash` cuando el agente necesita leer la salida y continuar.
+13. Si el humano pidió auto-aprobación desde el inicio, también ejecuta primero `npm run gaia -- <job.json>` **sin** `--approve` para que el CLI se detenga en `spec_ready`. Muestra completos los artefactos según los pasos 6–8 y luego muestra el bloque ejecutable con `npm run gaia -- --id <JOB_ID_REAL> --approve`. Nunca ejecutes el pipeline completo en una sola llamada porque ocultaría los artefactos del SpecAuthor hasta el final.
+14. Reporta el resultado final, el URL del PR y el próximo paso.
+15. Actualiza `progress/current.md` si aplica.
+16. Al finalizar, entrega cada acción del handoff por separado con su propio botón **Ejecutar en terminal**:
 
-   ```text
-   # Listar jobs recientes
-   cd ~/Desktop/gaia-code-harness && npm run gaia -- --list
+    **Listar jobs recientes**
 
-   # Reanudar/reintentar el mismo job desde la terminal
-   cd ~/Desktop/gaia-code-harness && npm run gaia -- --id <JOB_ID> --retry
+    ```bash
+    npm run gaia -- --list
+    ```
 
-   # Inspeccionar el repo generado
-   cd /tmp/gaia-workspace/<JOB_ID>/repo && git log --oneline -3 && git show --stat HEAD
+    **Reanudar o reintentar el mismo job**
 
-   # Si por alguna razón la rama no se empujó, hacelo manualmente
-   cd /tmp/gaia-workspace/<JOB_ID>/repo && git push -u origin <branch>
-   ```
+    ```bash
+    npm run gaia -- --id <JOB_ID_REAL> --retry
+    ```
+
+    **Inspeccionar el repo generado**
+
+    ```bash
+    git -C /tmp/gaia-workspace/<JOB_ID_REAL>/repo log --oneline -3
+    ```
+
+    **Empujar manualmente la rama si fuera necesario**
+
+    ```bash
+    git -C /tmp/gaia-workspace/<JOB_ID_REAL>/repo push -u origin <BRANCH_REAL>
+    ```
 
 ## Reglas importantes
 
