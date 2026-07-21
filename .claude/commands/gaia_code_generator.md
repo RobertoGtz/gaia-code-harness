@@ -34,13 +34,26 @@ Este comando hace que `.claude` se comporte como el **CLI Mode**: toma una ficha
    - `handoff.md`: handoff del SpecAuthor, si existe.
 7. Usa `Read` con las **rutas absolutas reales reportadas por el CLI**; no asumas que el workspace está en `/tmp/gaia-workspace`, porque puede estar bajo `/private/tmp/claude/...` u otra raíz configurada. `requirements.json`, `design.json`, `tasks.json` y `scenarios.feature` viven en el directorio reportado por `Spec saved to`. Para localizar `handoff.md`, parte del workspace padre mostrado en la misma salida. Si un archivo no existe, indícalo explícitamente; no lo omitas silenciosamente. No uses `head`, `tail`, límites de líneas ni una explicación que sustituya el contenido original.
 8. Presenta los artefactos con encabezados separados y bloques de código apropiados (`json`, `gherkin` o `markdown`). Los escenarios Gherkin completos deben quedar visibles en el chat de Claude **siempre**, incluso cuando se solicitó `--approve` desde el inicio.
-9. Si el job se detuvo en `spec_ready`, solo después de mostrar todo lo anterior pide al humano que acepte explícitamente la implementación.
-10. En la puerta de aprobación, **siempre** muestra el comando de continuación como un bloque `bash` independiente, de una sola línea y con el `JOB_ID` real. Este formato es obligatorio para que Claude Code muestre el botón **Ejecutar en terminal**:
+9. Si el job se detuvo en `spec_ready`, solo después de mostrar todo lo anterior pide al humano que acepte o rechace explícitamente el spec.
+10. En la puerta de aprobación, **siempre** muestra las dos opciones como bloques `bash` independientes, de una sola línea y con el `JOB_ID` real. Este formato es obligatorio para que Claude Code muestre el botón **Ejecutar en terminal**. Antes de los bloques pregunta: "¿Aprobás este spec para continuar con la implementación, o lo rechazás con feedback para regenerarlo? (máximo 5 reintentos)".
+
+    **Aprobar y continuar**
+
     ```bash
     npm run gaia -- --id <JOB_ID_REAL> --approve
     ```
-    No uses un bloque `text`, una lista, código inline, placeholders sin reemplazar ni varios comandos dentro del mismo bloque. Antes del bloque pregunta: "¿Aprobás este spec para continuar con la implementación?".
-11. Después de mostrar el bloque ejecutable, espera la aprobación textual del humano. Al recibirla, ejecuta tú mismo ese comando mediante `Bash` en modo bloqueante y continúa automáticamente con la salida completa del CLI durante Implementer, Reviewer, MutationTester y creación del PR. No esperes a detectar el clic en **Ejecutar en terminal**, porque ese terminal es externo al flujo del agente. Si el humano informa que ya usó el botón, verifica el estado con `npm run gaia -- --list` y continúa sin duplicar la ejecución.
+
+    **Rechazar con feedback**
+
+    ```bash
+    npm run gaia -- --id <JOB_ID_REAL> --reject "<FEEDBACK_REAL_DEL_HUMANO>"
+    ```
+
+    No uses un bloque `text`, una lista, código inline, placeholders sin reemplazar ni varios comandos dentro del mismo bloque.
+11. Espera la respuesta textual del humano:
+    - Si aprueba, ejecuta tú mismo el comando `--approve` mediante `Bash` en modo bloqueante y continúa automáticamente con la salida completa del CLI durante Implementer, Reviewer, MutationTester y creación del PR.
+    - Si rechaza, pide el feedback, ejecuta tú mismo el comando `--reject` con ese feedback mediante `Bash` en modo bloqueante. El CLI regenerará el spec y volverá a detenerse en `spec_ready`. Lee los nuevos artefactos del spec (pasos 6–8) y vuelve a presentar la puerta de aprobación. Si se alcanzan 5 reintentos, informa al humano y no intentes más rechazos automáticos.
+    - No esperes a detectar el clic en **Ejecutar en terminal**, porque ese terminal es externo al flujo del agente. Si el humano informa que ya usó el botón, verifica el estado con `npm run gaia -- --list` y continúa sin duplicar la ejecución.
 12. Todo comando accionable que entregues durante este flujo debe aparecer además en su propio bloque cercado `bash`, con una sola línea ejecutable, para obtener el botón **Ejecutar en terminal**. No agrupes comandos distintos en un único bloque. Mostrar el botón nunca reemplaza la ejecución autoritativa mediante `Bash` cuando el agente necesita leer la salida y continuar.
 13. Si el humano pidió auto-aprobación desde el inicio, también ejecuta primero `npm run gaia -- <job.json>` **sin** `--approve` para que el CLI se detenga en `spec_ready`. Muestra completos los artefactos según los pasos 6–8 y luego muestra el bloque ejecutable con `npm run gaia -- --id <JOB_ID_REAL> --approve`. Nunca ejecutes el pipeline completo en una sola llamada porque ocultaría los artefactos del SpecAuthor hasta el final.
 14. Reporta el resultado final, el URL del PR y el próximo paso.
