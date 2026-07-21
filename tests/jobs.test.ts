@@ -112,7 +112,7 @@ describe('Job API routes', () => {
 
     it('returns 400 when spec retry limit is reached', async () => {
       const app = makeApp();
-      mockGetJob.mockResolvedValue(makeJob({ specRetryCount: 3 }));
+      mockGetJob.mockResolvedValue(makeJob({ specRetryCount: 5 }));
 
       const res = await app.inject({
         method: 'POST',

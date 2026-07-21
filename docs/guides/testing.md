@@ -116,7 +116,7 @@ curl -s -X POST http://localhost:3000/jobs/$JOB_ID/approve \
   -H "Content-Type: application/json" \
   -d '{"approved": true}'
 
-# Rechazar con feedback (máximo 3 reintentos; superado el límite, crea un nuevo job)
+# Rechazar con feedback (máximo 5 reintentos; superado el límite, crea un nuevo job)
 curl -s -X POST http://localhost:3000/jobs/$JOB_ID/approve \
   -H "Content-Type: application/json" \
   -d '{"approved": false, "feedback": "Necesita más detalle en el caso de error"}'
@@ -200,7 +200,7 @@ npx ts-node src/cli/run.ts --list
 # Reanudar job existente
 npx ts-node src/cli/run.ts --id <JOB_ID>
 
-# Rechazar spec con feedback (máximo 3 reintentos)
+# Rechazar spec con feedback (máximo 5 reintentos)
 npx ts-node src/cli/run.ts --id <JOB_ID> --reject "Necesita más detalle en el caso de error"
 
 # Demo completo con script

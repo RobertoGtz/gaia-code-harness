@@ -79,7 +79,7 @@ export async function approveAndResume(jobId: string, backend: DiskBackend): Pro
   }
 }
 
-const MAX_SPEC_RETRIES = 3;
+const MAX_SPEC_RETRIES = 5;
 
 export async function rejectAndResume(jobId: string, feedback: string, backend: DiskBackend): Promise<void> {
   const job = await backend.getJob(jobId);

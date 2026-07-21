@@ -128,7 +128,7 @@ describe('CLI Mode B', () => {
         getJob: jest.fn().mockResolvedValue({
           id: 'job-123',
           status: 'spec_ready',
-          specRetryCount: 3,
+          specRetryCount: 5,
         }),
       });
       const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});

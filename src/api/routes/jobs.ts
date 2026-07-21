@@ -254,7 +254,7 @@ export async function setupJobRoutes(app: FastifyInstance) {
     }
     
     if (body.approved === false) {
-      const MAX_SPEC_RETRIES = 3;
+      const MAX_SPEC_RETRIES = 5;
       const retryCount = job.specRetryCount ?? 0;
       if (retryCount >= MAX_SPEC_RETRIES) {
         return reply.status(400).send({

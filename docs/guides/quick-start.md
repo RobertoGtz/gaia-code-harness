@@ -198,12 +198,12 @@ curl -s -X POST http://localhost:3000/jobs/TU_JOB_ID/approve \
   -H "Content-Type: application/json" \
   -d '{"approved": true}' | python3 -m json.tool
 
-# Rechazar con feedback (el sistema regenera el plan; máximo 3 reintentos)
+# Rechazar con feedback (el sistema regenera el plan; máximo 5 reintentos)
 curl -s -X POST http://localhost:3000/jobs/TU_JOB_ID/approve \
   -H "Content-Type: application/json" \
   -d '{"approved": false, "feedback": "Necesita incluir analytics"}' | python3 -m json.tool
 
-# Si se superan los 3 reintentos, crea un nuevo job o usa POST /jobs/TU_JOB_ID/retry
+# Si se superan los 5 reintentos, crea un nuevo job o usa POST /jobs/TU_JOB_ID/retry
 ```
 
 ### Paso 6: Ver el resultado
@@ -297,7 +297,7 @@ El CLI imprime el progreso en la terminal en tiempo real:
 # Aprobar
 npx ts-node src/cli/run.ts --id TU_JOB_ID --approve
 
-# Rechazar con feedback (máximo 3 reintentos)
+# Rechazar con feedback (máximo 5 reintentos)
 npx ts-node src/cli/run.ts --id TU_JOB_ID --reject "Necesita incluir analytics"
 ```
 
