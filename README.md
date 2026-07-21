@@ -28,7 +28,7 @@ PM escribe ACs
       ▼
  MutationTester  → valida que los tests detecten bugs reales (≥ 80%)
       │
-      └─ ¿falló? → feedback vuelve al Implementer (hasta 2 retries)
+      └─ ¿falló? → feedback vuelve al Implementer (hasta 2 retries; todos los modos)
            ✅  Pull Request listo  (~60 segundos)
 ```
 
@@ -41,8 +41,8 @@ PM escribe ACs
 | Modo             | Cómo arranca                                          | Aprobación de spec       | TDD              | Cuándo usarlo                   |
 | ---------------- | ----------------------------------------------------- | ------------------------ | ---------------- | ------------------------------- |
 | **A — HTTP API** | `POST /jobs` (curl, Postman, CI/CD)                   | `POST /jobs/:id/approve` | `"tddMode":true` | Integraciones, automatización   |
-| **B — CLI**      | `npx ts-node src/cli/run.ts --job mi-job.json`        | flag `--approve`         | flag `--tdd`     | Desarrollo local, demos rápidos |
-| **C — Webhook**  | `POST /webhook/trigger` (Jira, Slack, GitHub Actions) | Automática (sin pausa)   | label `tdd`      | Producción, trigger automático  |
+| **B — CLI**      | `npx ts-node src/cli/run.ts --job mi-job.json`        | `--approve` / `--reject "feedback"`         | flag `--tdd`     | Desarrollo local, demos rápidos |
+| **C — Webhook**  | `POST /webhook/trigger` (Jira, Slack, GitHub Actions) | Pausa en `spec_ready`; `POST /jobs/:id/approve`   | label `tdd`      | Producción, trigger automático  |
 
 → Guía completa con ejemplos: **[`docs/guides/quick-start.md`](docs/guides/quick-start.md)**
 
@@ -146,6 +146,7 @@ curl -X POST http://localhost:3000/jobs/<JOB_ID>/approve \
 
 ```bash
 npx ts-node src/cli/run.ts --job mi-job.json --approve
+npx ts-node src/cli/run.ts --job mi-job.json --reject "Necesita incluir analytics"  # regenerar spec
 npx ts-node src/cli/run.ts --job mi-job.json --tdd --approve   # con TDD
 npx ts-node src/cli/run.ts --jira PROJ-1234 --approve          # desde Jira
 ```

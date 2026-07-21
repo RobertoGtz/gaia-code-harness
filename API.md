@@ -214,7 +214,7 @@ GET /jobs
 
 ---
 
-### Aprobar Spec
+### Aprobar o rechazar Spec
 
 ```http
 POST /jobs/:id/approve
@@ -242,17 +242,20 @@ Content-Type: application/json
 }
 ```
 
-**Response (Rechazado):**
+**Response (Rechazado con feedback):**
 
 ```json
 {
   "job": {
     "id": "550e8400-e29b-41d4-a716-446655440000",
-    "status": "pending",
+    "status": "spec_generating",
+    "specFeedback": "Necesita incluir analytics",
     "title": "Agregar banner de promociones"
   }
 }
 ```
+
+> Si `approved: false`, el spec se regenera usando `feedback`. Máximo 5 reintentos; superado el límite devuelve `400`.
 
 ---
 
@@ -515,6 +518,9 @@ npx ts-node src/cli/run.ts --job job.json
 # Crear y aprobar spec automáticamente (sin pausa)
 npx ts-node src/cli/run.ts --job job.json --approve
 
+# Crear y rechazar spec con feedback para regenerarlo
+npx ts-node src/cli/run.ts --job job.json --reject "Necesita incluir analytics"
+
 # Activar TDD (Red-Green-Refactor)
 npx ts-node src/cli/run.ts --job job.json --tdd --approve
 
@@ -524,6 +530,9 @@ npx ts-node src/cli/run.ts --jira PROJ-123 --tdd --approve
 
 # Retomar job existente
 npx ts-node src/cli/run.ts --id <uuid>
+
+# Rechazar spec de un job existente (máximo 5 reintentos)
+npx ts-node src/cli/run.ts --id <uuid> --reject "Necesita más detalle en el caso de error"
 ```
 
 El `job.json` acepta los mismos campos que `POST /jobs` body flat (incluido `tddMode` y `buildStrategy`).

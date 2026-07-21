@@ -369,9 +369,9 @@ progress/
 
 **Ideal para:** integraciones con Jira, Slack o cualquier sistema externo que envíe eventos.
 
-En este modo, un sistema externo llama al endpoint `POST /webhook/trigger` y el job arranca automáticamente sin que nadie tenga que intervenir manualmente.
+En este modo, un sistema externo llama al endpoint `POST /webhook/trigger` y el job arranca automáticamente.
 
-> **Diferencia clave vs. Modo A:** En el webhook no hay paso de aprobación del spec — el pipeline corre completo de forma autónoma. Es para automatización total.
+> **Diferencia clave vs. Modo A:** El webhook inicia el job, pero el pipeline se detiene en `spec_ready` igual que en Modo A; se aprueba/rechaza con `POST /jobs/:id/approve`. El webhook solo automatiza el *disparo*, no la aprobación del spec.
 
 ### Paso 1: Levantar el servidor (mismo que Modo A)
 

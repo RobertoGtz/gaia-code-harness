@@ -9,8 +9,8 @@
 | Modo             | Cómo arranca                 | Backend    | Aprobación de spec         | `tddMode` soportado                |
 | ---------------- | ---------------------------- | ---------- | -------------------------- | ---------------------------------- |
 | **A — HTTP API** | `POST /jobs`                 | PostgreSQL | `POST /jobs/:id/approve`   | ✅ `"tddMode": true`               |
-| **B — CLI**      | `npx ts-node src/cli/run.ts` | Disk JSON  | `--approve` flag (o pausa) | ✅ `--tdd` flag                    |
-| **C — Webhook**  | `POST /webhook/trigger`      | PostgreSQL | Automática (sin pausa)     | ✅ `"tddMode": true` / label `tdd` |
+| **B — CLI**      | `npx ts-node src/cli/run.ts` | Disk JSON  | `--approve` / `--reject "feedback"` | ✅ `--tdd` flag                    |
+| **C — Webhook**  | `POST /webhook/trigger`      | PostgreSQL | Pausa en `spec_ready`; `POST /jobs/:id/approve` | ✅ `"tddMode": true` / label `tdd` |
 
 Los tres modos comparten el mismo `leader.ts` (máquina de estados) y los mismos agentes.  
 La diferencia es en cómo entra el job, dónde persiste el estado y si la aprobación del spec es manual o automática.

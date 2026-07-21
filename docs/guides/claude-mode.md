@@ -14,10 +14,10 @@ Es el modo más **artesanal** y con mayor control humano.
 
 | Modo          | ¿Cómo arranca?                              | Orquestador                    | Aprobación de spec               |
 | ------------- | ------------------------------------------- | ------------------------------ | -------------------------------- |
-| **HTTP API**  | `POST /jobs`                                | Servidor + `leader.ts`         | `POST /jobs/:id/approve`         |
-| **CLI**       | `npx ts-node src/cli/run.ts --job job.json` | `src/cli/run.ts` + `leader.ts` | `--approve` flag                 |
-| **Webhook**   | `POST /webhook/trigger`                     | Servidor + `leader.ts`         | Automática                       |
-| **`.claude`** | Conversación con Claude Code                | `craftsman_lead` + subagentes  | Siempre pausa después de Gherkin |
+| **HTTP API**  | `POST /jobs`                                | Servidor + `leader.ts`         | `POST /jobs/:id/approve`                              |
+| **CLI**       | `npx ts-node src/cli/run.ts --job job.json` | `src/cli/run.ts` + `leader.ts` | `--approve` o `--reject "feedback"`                 |
+| **Webhook**   | `POST /webhook/trigger`                     | Servidor + `leader.ts`         | Pausa en `spec_ready`; `POST /jobs/:id/approve`       |
+| **`.claude`** | Conversación con Claude Code                | `craftsman_lead` + subagentes  | Siempre pausa después de Gherkin                    |
 
 ## ¿Cuándo usar `.claude`?
 
@@ -40,7 +40,7 @@ Es el modo más **artesanal** y con mayor control humano.
 │   ├── judge.md
 │   └── mutation_tester.md
 ├── commands/
-│   └── run.md                ← Slash command `/gaia_code_generator` para lanzar CLI Mode
+│   └── gaia_code_generator.md ← Slash command `/gaia_code_generator` para lanzar CLI Mode
 ├── rules/
 │   └── security-and-conventions.md  ← Guardrails de seguridad + convenciones
 ├── skills/gaia/

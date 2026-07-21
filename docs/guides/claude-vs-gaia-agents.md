@@ -19,8 +19,8 @@ La forma más práctica de combinarlos es el slash command `/gaia_code_generator
 | **Orquestación** | Automática vía `src/harness/leader.ts` | Manual; el humano actúa como `craftsman_lead` |
 | **Backend de estado** | `DiskBackend` / `PostgresBackend` | Ninguno estructurado; solo `feature_list.json` + markdown |
 | **Persistencia** | El job sobrevive a reinicios y caídas | El estado vive en el chat y en archivos sueltos |
-| **Aprobación humana** | `--approve` puede saltar la puerta | Siempre se respeta la pausa después de Gherkin |
-| **Retry / loop cerrado** | Automático: `ReviewerAgent` → `ImplementerAgent` | Manual; el humano relanza agentes |
+| **Aprobación humana** | `--approve` / `--reject "feedback"` puede saltar o regenerar la puerta | Siempre se respeta la pausa después de Gherkin |
+| **Retry / loop cerrado** | Automático en todos los modos: `ReviewerAgent` → `ImplementerAgent` | Manual; el humano relanza agentes |
 | **Repetibilidad** | Alta: mismo `job.json` → mismo resultado | Baja; depende del hilo conversacional |
 | **Control de calidad** | Mutation testing integrado, score ≥ 80% | Depende de que el humano lo pida |
 | **Ambigüedad** | Necesita un spec claro para no fallar | Excelente para explorar y pivotear |
