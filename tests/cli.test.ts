@@ -1,4 +1,4 @@
-import { main, parseArgs, approveAndResume } from '../src/cli/run';
+import { main, parseArgs, approveAndResume, rejectAndResume } from '../src/cli/run';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -80,6 +80,72 @@ describe('CLI Mode B', () => {
       });
 
       await approveAndResume('job-123', backend);
+
+      expect(backend.updateJobStatus).not.toHaveBeenCalled();
+      expect(mockOrchestrateJob).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('rejectAndResume', () => {
+    it('rejects spec_ready job and re-orchestrates with feedback', async () => {
+      const backend = makeBackend({
+        getJob: jest.fn().mockResolvedValue({
+          id: 'job-123',
+          status: 'spec_ready',
+          specRetryCount: 0,
+        }),
+      });
+
+      await rejectAndResume('job-123', 'Add analytics', backend);
+
+      expect(backend.updateJobStatus).toHaveBeenCalledWith('job-123', 'spec_generating', {
+        specFeedback: 'Add analytics',
+        specRetryCount: 1,
+      });
+      expect(mockOrchestrateJob).toHaveBeenCalledWith('job-123');
+    });
+
+    it('increments specRetryCount on repeated rejections', async () => {
+      const backend = makeBackend({
+        getJob: jest.fn().mockResolvedValue({
+          id: 'job-123',
+          status: 'spec_ready',
+          specRetryCount: 2,
+        }),
+      });
+
+      await rejectAndResume('job-123', 'More detail', backend);
+
+      expect(backend.updateJobStatus).toHaveBeenCalledWith('job-123', 'spec_generating', {
+        specFeedback: 'More detail',
+        specRetryCount: 3,
+      });
+      expect(mockOrchestrateJob).toHaveBeenCalledWith('job-123');
+    });
+
+    it('does not reject when max retries reached', async () => {
+      const backend = makeBackend({
+        getJob: jest.fn().mockResolvedValue({
+          id: 'job-123',
+          status: 'spec_ready',
+          specRetryCount: 3,
+        }),
+      });
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      await rejectAndResume('job-123', 'Again', backend);
+
+      expect(backend.updateJobStatus).not.toHaveBeenCalled();
+      expect(mockOrchestrateJob).not.toHaveBeenCalled();
+      errorSpy.mockRestore();
+    });
+
+    it('does nothing if job is not spec_ready', async () => {
+      const backend = makeBackend({
+        getJob: jest.fn().mockResolvedValue({ id: 'job-123', status: 'implementing' }),
+      });
+
+      await rejectAndResume('job-123', 'feedback', backend);
 
       expect(backend.updateJobStatus).not.toHaveBeenCalled();
       expect(mockOrchestrateJob).not.toHaveBeenCalled();
@@ -189,6 +255,24 @@ describe('CLI Mode B', () => {
 
       await main(['--id', 'job-123'], { backend });
 
+      expect(mockOrchestrateJob).toHaveBeenCalledWith('job-123');
+    });
+
+    it('rejects spec with --id --reject "feedback"', async () => {
+      const backend = makeBackend({
+        getJob: jest.fn().mockResolvedValue({
+          id: 'job-123',
+          status: 'spec_ready',
+          specRetryCount: 0,
+        }),
+      });
+
+      await main(['--id', 'job-123', '--reject', 'Add analytics'], { backend });
+
+      expect(backend.updateJobStatus).toHaveBeenCalledWith('job-123', 'spec_generating', {
+        specFeedback: 'Add analytics',
+        specRetryCount: 1,
+      });
       expect(mockOrchestrateJob).toHaveBeenCalledWith('job-123');
     });
 

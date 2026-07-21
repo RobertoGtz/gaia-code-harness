@@ -294,7 +294,11 @@ El CLI imprime el progreso en la terminal en tiempo real:
 **Opción manual:** el CLI pausa y espera. Corre en otra terminal:
 
 ```bash
+# Aprobar
 npx ts-node src/cli/run.ts --id TU_JOB_ID --approve
+
+# Rechazar con feedback (máximo 3 reintentos)
+npx ts-node src/cli/run.ts --id TU_JOB_ID --reject "Necesita incluir analytics"
 ```
 
 **Opción auto-aprobación (ideal para demos):** agrega `--approve` al comando original y el spec se aprueba automáticamente:

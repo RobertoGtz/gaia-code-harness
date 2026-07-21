@@ -200,6 +200,9 @@ npx ts-node src/cli/run.ts --list
 # Reanudar job existente
 npx ts-node src/cli/run.ts --id <JOB_ID>
 
+# Rechazar spec con feedback (máximo 3 reintentos)
+npx ts-node src/cli/run.ts --id <JOB_ID> --reject "Necesita más detalle en el caso de error"
+
 # Demo completo con script
 ./scripts/demo.sh flutter b   # Flutter
 ./scripts/demo.sh ios b       # iOS

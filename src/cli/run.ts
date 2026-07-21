@@ -10,6 +10,7 @@
  *   npx ts-node src/cli/run.ts '{"title":"...", "platform":"ios", ...}'
  *   npx ts-node src/cli/run.ts job.json --approve      # auto-approve spec and run full pipeline
  *   npx ts-node src/cli/run.ts job.json --tdd --approve # Red-Green-Refactor mode
+ *   npx ts-node src/cli/run.ts --id <job-id> --reject "feedback" # reject spec and regenerate with feedback
  *   npx ts-node src/cli/run.ts --jira PROJ-123 --approve      # fetch from Jira and run full pipeline
  *   npx ts-node src/cli/run.ts --id <existing-job-id>         # resume
  *   npx ts-node src/cli/run.ts --id <existing-job-id> --retry # retry from review_error/test_error/failed
@@ -78,6 +79,31 @@ export async function approveAndResume(jobId: string, backend: DiskBackend): Pro
   }
 }
 
+const MAX_SPEC_RETRIES = 3;
+
+export async function rejectAndResume(jobId: string, feedback: string, backend: DiskBackend): Promise<void> {
+  const job = await backend.getJob(jobId);
+  if (!job) {
+    console.error(`Job ${jobId} not found`);
+    return;
+  }
+  if (job.status !== 'spec_ready') {
+    console.log(`Job status is ${job.status}, not spec_ready. Cannot reject spec.`);
+    return;
+  }
+  const retryCount = job.specRetryCount ?? 0;
+  if (retryCount >= MAX_SPEC_RETRIES) {
+    console.error(`Maximum spec retry attempts (${MAX_SPEC_RETRIES}) reached. Create a new job or use --retry.`);
+    return;
+  }
+  console.log(`Rejecting spec (retry ${retryCount + 1}/${MAX_SPEC_RETRIES}) with feedback: ${feedback}`);
+  await backend.updateJobStatus(jobId, 'spec_generating', {
+    specFeedback: feedback,
+    specRetryCount: retryCount + 1,
+  });
+  await orchestrateJob(jobId);
+}
+
 export async function main(
   argv: string[] = process.argv.slice(2),
   deps: { backend?: DiskBackend } = {}
@@ -99,8 +125,11 @@ export async function main(
   // Resume existing job
   const existingId = flag('--id');
   if (existingId) {
+    const rejectFeedback = flag('--reject');
     if (has('--retry')) {
       await retryJob(existingId, backend);
+    } else if (has('--reject') || rejectFeedback) {
+      await rejectAndResume(existingId, rejectFeedback ?? '', backend);
     } else {
       console.log(`Resuming job ${existingId}…`);
       await orchestrateJob(existingId);
@@ -152,7 +181,7 @@ export async function main(
   // Create new job from --job flag or a positional argument (file path / inline JSON)
   const jobArg = flag('--job') ?? argv.find(a => !a.startsWith('-') && (a.startsWith('{') || a.endsWith('.json')));
   if (!jobArg) {
-    console.error('Usage: run.ts <json-file-or-inline-json> [--approve]  |  --job <json-file-or-inline-json> [--approve]  |  --jira <PROJ-123> [--approve]  |  --id <job-id> [--approve|--retry]  |  --list');
+    console.error('Usage: run.ts <json-file-or-inline-json> [--approve|--reject "feedback"]  |  --job <json-file-or-inline-json> [--approve|--reject "feedback"]  |  --jira <PROJ-123> [--approve]  |  --id <job-id> [--approve|--reject "feedback"|--retry]  |  --list');
     process.exit(1);
   }
 
@@ -211,8 +240,11 @@ export async function main(
   console.log(`Progress log: progress/${job.id}.md\n`);
 
   await orchestrateJob(job.id);
+  const rejectFeedback = flag('--reject');
   if (has('--approve')) {
     await approveAndResume(job.id, backend);
+  } else if (has('--reject') || rejectFeedback) {
+    await rejectAndResume(job.id, rejectFeedback ?? '', backend);
   }
 }
 
