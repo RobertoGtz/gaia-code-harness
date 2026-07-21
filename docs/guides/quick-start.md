@@ -232,7 +232,7 @@ curl -s -X POST http://localhost:3000/jobs/TU_JOB_ID/retry | python3 -m json.too
 npx ts-node src/cli/run.ts --id TU_JOB_ID --retry
 ```
 
-> En el CLI, `--retry` solo actúa sobre estados `review_error`, `test_error` o `failed`, devolviendo el job a `implementing` para que el `ImplementerAgent` lea el `reviewFeedback` persistido.
+> En Modo B los loops de feedback son automáticos igual que en Modo A/C. El flag `--retry` sirve para reintentar manualmente después de agotar los reintentos automáticos o para forzar un nuevo intento desde `review_error`, `test_error` o `failed`.
 
 ### Usando el script de demo automático
 

@@ -67,11 +67,11 @@ const RETRYABLE_ERROR_STATUSES = new Set<JobStatus>([
 
 /**
  * Returns true if the job's request source allows closed-loop automatic retries.
- * In Mode B (CLI), the human is the feedback loop, so auto-retry stops after
- * the first ImplementerAgent attempt.
+ * All modes (HTTP, Webhook, CLI) now use automatic retries with feedback
+ * to close the loop without human intervention, subject to per-stage limits.
  */
-function supportsAutoRetry(job: CodeGenerationJob): boolean {
-  return job.requestSource !== 'cli';
+function supportsAutoRetry(): boolean {
+  return true;
 }
 
 function ts(): string {
@@ -418,9 +418,8 @@ async function handleImplementing(job: CodeGenerationJob): Promise<void> {
     };
     await setErrorContext(job.id, ctx);
 
-    // test_error and unknown/failed can retry up to 3 times automatically,
-    // unless the job was created from the CLI, where the human closes the loop.
-    if (supportsAutoRetry(job) && RETRYABLE_ERROR_STATUSES.has(errorStatus) && retryCount < 3) {
+    // test_error and unknown/failed can retry up to 3 times automatically.
+    if (supportsAutoRetry() && RETRYABLE_ERROR_STATUSES.has(errorStatus) && retryCount < 3) {
       await addProgressLog(job.id, `Implementation retry ${retryCount + 1}/3 [${errorCode}]`);
       await addProgressLog(job.id, `Error: ${result.error}`);
       // Closed-loop: surface the error to ImplementerAgent in the next iteration

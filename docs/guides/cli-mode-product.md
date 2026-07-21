@@ -200,8 +200,8 @@ flowchart TD
 | `reviewing`       | GAIA revisa el código y crea el PR.                                             | ReviewerAgent       |
 | `pr_created`      | El PR ya existe en GitHub; GAIA valida tests con mutación.                      | MutationTesterAgent |
 | `done`            | Todo listo. Se entrega el URL del PR.                                           | —                   |
-| `test_error`      | Los tests fallaron después de 3 intentos. Se puede reintentar.                  | Humano (`--retry`)  |
-| `review_error`    | El reviewer encontró problemas serios. Se puede reintentar.                     | Humano (`--retry`)  |
+| `test_error`      | Los tests fallaron después de 3 intentos automáticos. Se puede reintentar.      | Humano (`--retry`)  |
+| `review_error`    | El reviewer encontró problemas serios después de 5 intentos. Se puede reintentar. | Humano (`--retry`)  |
 | `failed`          | Error irrecuperable (por ejemplo, el repo no responde o la spec fue rechazada). | Humano              |
 
 ---
