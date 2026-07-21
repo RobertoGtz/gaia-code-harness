@@ -577,7 +577,7 @@ npx ts-node src/cli/run.ts --job mi-job.json --tdd --approve
 | ---------------------------- | -------------------- | ------------------------- | ------------------------------------ |
 | **Requiere servidor**        | Sí                   | No                        | Sí                                   |
 | **Requiere Postgres/Docker** | Sí                   | No (usa disco)            | Sí                                   |
-| **Aprobación de spec**       | Manual via API       | Manual o `--approve`      | Automática (sin pausa)               |
+| **Aprobación de spec**       | Manual via API       | Manual, `--approve` o `--reject` | Pausa en `spec_ready`; `POST /jobs/:id/approve` |
 | **Integra con Jira/Slack**   | Manual               | `--jira PROJ-123`         | Automático                           |
 | **Ideal para**               | CI/CD, APIs, Postman | Dev local, demos rápidos  | Producción, automatización           |
 | **Logs**                     | API REST + Postgres  | Terminal + archivos `.md` | API REST + Postgres + notificaciones |
