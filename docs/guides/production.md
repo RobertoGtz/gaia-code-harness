@@ -27,6 +27,11 @@
 - [ ] `DEFAULT_PLATFORM` — plataforma por defecto si el ticket no tiene label (`flutter`)
 - [ ] `DEFAULT_REPO` — repo por defecto si el ticket no tiene label `repo:org/nombre`
 
+### Figma (opcional, para enriquecer specs con diseño)
+
+- [ ] `FIGMA_ACCESS_TOKEN` — obtener en https://help.figma.com/hc/en-us/articles/8085703771159-Manage-personal-access-tokens (scope `file_read`)
+- [ ] Incluir `figmaUrl` en el job o que Jira lo extraiga del ticket
+
 ---
 
 ## 2. Base de datos

@@ -28,44 +28,45 @@
 
 ### Archivos de orquestación (Claude Code mode)
 
-| Archivo / carpeta                            | Qué contiene                                                                                    | Cuándo leerlo                           |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------- |
-| `feature_list.json`                          | Lista de tareas con estado (`pending / spec_ready / in_progress / done / blocked`)              | Siempre, al empezar                     |
-| `progress/current.md`                        | Estado de la sesión actual                                                                      | Siempre, al empezar                     |
-| `progress/history.md`                        | Bitácora append-only de sesiones anteriores                                                     | Si necesitas contexto histórico         |
-| `project-spec.md`                            | Spec conversada: propósito, contrato y decisiones por feature                                   | Antes de destilar Gherkin o implementar |
-| `features/<name>.feature`                    | Escenarios Gherkin (el contrato ejecutable que el humano aprueba)                               | Antes de empezar el ciclo TDD           |
-| `docs/engineering/workflow.md`               | El pipeline completo y los insights de cada fase                                                | Antes de coordinar                      |
-| `docs/engineering/tdd.md`                    | Las Tres Leyes del TDD; el ciclo Rojo-Verde-Refactor                                            | Antes de escribir código                |
-| `docs/engineering/gherkin.md`                | Cómo escribir `.feature`; de Gherkin a test                                                     | Antes de redactar/leer escenarios       |
-| `docs/engineering/mutation-testing.md`       | Por qué y cómo; umbral; uso de `tools/mutate.py`                                                | Antes de validar la suite               |
-| `CHECKPOINTS.md`                             | Criterios objetivos de "estado final correcto"                                                  | Para auto-evaluarte                     |
-| `tools/mutate.py`                            | Mutador determinístico sin dependencias (Python, TS, Swift, Kotlin)                             | Fase de mutación                        |
-| `.claude/identity.json`                      | Preferencias de estilo y dominios técnicos para Claude Code                                     | Al arrancar Claude Code                 |
-| `.claude/package-manager.json`               | Gestor de paquetes del proyecto (`npm`)                                                         | Al instalar/actualizar dependencias     |
-| `.claude/agents/`                            | `craftsman_lead`, `spec_partner`, `gherkin_author`, `tdd_craftsman`, `judge`, `mutation_tester` | Si orquestas trabajo                    |
-| `.claude/commands/gaia_code_generator.md`                    | Slash command `/gaia_code_generator` para lanzar el Modo B (CLI) desde Claude Code con los mismos agentes       | Si quieres correr GAIA sin teclear CLI  |
-| `.claude/rules/security-and-conventions.md`  | Guardrails de seguridad y convenciones del proyecto                                             | Siempre, antes de actuar                |
-| `.claude/skills/gaia/SKILL.md`               | Knowledge base del proyecto GAIA para Claude Code                                               | Cuando necesites contexto profundo      |
-| `.claude/team/gaia-team-config.json`         | Config compartida: skills, commands, rules y agentes activos                                    | Al configurar el equipo                 |
-| `.claude/workflows/`                         | Procedimientos multi-paso (security review, release, add platform)                              | Cuando aplique el workflow              |
-| `.claude/research/gaia-research-playbook.md` | Guía de investigación estructurada antes de escribir specs                                      | Antes de specs ambiguas                 |
-| `docs/guides/claude-mode.md`                 | Cómo usar GAIA en modo `.claude` (Claude Code)                                                  | Para aprender el modo manual/chat       |
-| `docs/guides/claude-vs-gaia-agents.md`       | Cuándo usar GAIA agents vs `.claude/agents`                                                     | Para decidir modo de ejecución          |
+| Archivo / carpeta                            | Qué contiene                                                                                              | Cuándo leerlo                           |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `feature_list.json`                          | Lista de tareas con estado (`pending / spec_ready / in_progress / done / blocked`)                        | Siempre, al empezar                     |
+| `progress/current.md`                        | Estado de la sesión actual                                                                                | Siempre, al empezar                     |
+| `progress/history.md`                        | Bitácora append-only de sesiones anteriores                                                               | Si necesitas contexto histórico         |
+| `project-spec.md`                            | Spec conversada: propósito, contrato y decisiones por feature                                             | Antes de destilar Gherkin o implementar |
+| `features/<name>.feature`                    | Escenarios Gherkin (el contrato ejecutable que el humano aprueba)                                         | Antes de empezar el ciclo TDD           |
+| `docs/engineering/workflow.md`               | El pipeline completo y los insights de cada fase                                                          | Antes de coordinar                      |
+| `docs/engineering/tdd.md`                    | Las Tres Leyes del TDD; el ciclo Rojo-Verde-Refactor                                                      | Antes de escribir código                |
+| `docs/engineering/gherkin.md`                | Cómo escribir `.feature`; de Gherkin a test                                                               | Antes de redactar/leer escenarios       |
+| `docs/engineering/mutation-testing.md`       | Por qué y cómo; umbral; uso de `tools/mutate.py`                                                          | Antes de validar la suite               |
+| `CHECKPOINTS.md`                             | Criterios objetivos de "estado final correcto"                                                            | Para auto-evaluarte                     |
+| `tools/mutate.py`                            | Mutador determinístico sin dependencias (Python, TS, Swift, Kotlin)                                       | Fase de mutación                        |
+| `.claude/identity.json`                      | Preferencias de estilo y dominios técnicos para Claude Code                                               | Al arrancar Claude Code                 |
+| `.claude/package-manager.json`               | Gestor de paquetes del proyecto (`npm`)                                                                   | Al instalar/actualizar dependencias     |
+| `.claude/agents/`                            | `craftsman_lead`, `spec_partner`, `gherkin_author`, `tdd_craftsman`, `judge`, `mutation_tester`           | Si orquestas trabajo                    |
+| `.claude/commands/gaia_code_generator.md`    | Slash command `/gaia_code_generator` para lanzar el Modo B (CLI) desde Claude Code con los mismos agentes | Si quieres correr GAIA sin teclear CLI  |
+| `.claude/rules/security-and-conventions.md`  | Guardrails de seguridad y convenciones del proyecto                                                       | Siempre, antes de actuar                |
+| `.claude/skills/gaia/SKILL.md`               | Knowledge base del proyecto GAIA para Claude Code                                                         | Cuando necesites contexto profundo      |
+| `.claude/team/gaia-team-config.json`         | Config compartida: skills, commands, rules y agentes activos                                              | Al configurar el equipo                 |
+| `.claude/workflows/`                         | Procedimientos multi-paso (security review, release, add platform)                                        | Cuando aplique el workflow              |
+| `.claude/research/gaia-research-playbook.md` | Guía de investigación estructurada antes de escribir specs                                                | Antes de specs ambiguas                 |
+| `docs/guides/claude-mode.md`                 | Cómo usar GAIA en modo `.claude` (Claude Code)                                                            | Para aprender el modo manual/chat       |
+| `docs/guides/claude-vs-gaia-agents.md`       | Cuándo usar GAIA agents vs `.claude/agents`                                                               | Para decidir modo de ejecución          |
 
 ### Archivos del harness TypeScript (HTTP mode)
 
-| Archivo / carpeta                  | Qué contiene                                                                                     | Cuándo leerlo                  |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------ |
-| `src/agents/`                      | `SpecAuthorAgent`, `ImplementerAgent` (+ `executeTDD()`), `ReviewerAgent`, `MutationTesterAgent` | Si modificas agentes TS        |
-| `src/state/`                       | `StateBackend` interface + `PostgresBackend` + `DiskBackend`                                     | Si modificas persistencia      |
-| `src/harness/leader.ts`            | Máquina de estados — orquesta los 4 agentes TS                                                   | Si modificas el flujo HTTP     |
-| `src/api/routes/jobs.ts`           | `POST /jobs` con `tddMode` flag                                                                  | Si modificas la API REST       |
-| `src/cli/run.ts`                   | CLI entry point para Claude Code mode con DiskBackend                                            | Si modificas el CLI TS         |
-| `src/db/index.ts`                  | Postgres schema + `tdd_mode` column                                                              | Si modificas la DB             |
-| `src/types/index.ts`               | `CodeGenerationJob`, `CreateJobRequest` con `tddMode`                                            | Si modificas tipos             |
-| `docs/engineering/architecture.md` | Arquitectura técnica profunda (dual-mode, agents, state machine)                                 | Antes de cambios estructurales |
-| `API.md`                           | Referencia completa REST API                                                                     | Antes de integrar HTTP mode    |
+| Archivo / carpeta                  | Qué contiene                                                                                     | Cuándo leerlo                       |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------- |
+| `src/agents/`                      | `SpecAuthorAgent`, `ImplementerAgent` (+ `executeTDD()`), `ReviewerAgent`, `MutationTesterAgent` | Si modificas agentes TS             |
+| `src/tools/`                       | `jira.ts`, `figma.ts`, `llm.ts`, `repo.ts`, `git.ts`, test runners                               | Si modificas integraciones externas |
+| `src/state/`                       | `StateBackend` interface + `PostgresBackend` + `DiskBackend`                                     | Si modificas persistencia           |
+| `src/harness/leader.ts`            | Máquina de estados — orquesta los 4 agentes TS                                                   | Si modificas el flujo HTTP          |
+| `src/api/routes/jobs.ts`           | `POST /jobs` con `tddMode` flag                                                                  | Si modificas la API REST            |
+| `src/cli/run.ts`                   | CLI entry point para Claude Code mode con DiskBackend                                            | Si modificas el CLI TS              |
+| `src/db/index.ts`                  | Postgres schema + `tdd_mode` column                                                              | Si modificas la DB                  |
+| `src/types/index.ts`               | `CodeGenerationJob`, `CreateJobRequest` con `tddMode`                                            | Si modificas tipos                  |
+| `docs/engineering/architecture.md` | Arquitectura técnica profunda (dual-mode, agents, state machine)                                 | Antes de cambios estructurales      |
+| `API.md`                           | Referencia completa REST API                                                                     | Antes de integrar HTTP mode         |
 
 ---
 
@@ -104,14 +105,14 @@ pending
 
 ### Mapeo Claude Code ↔ HTTP mode (TypeScript)
 
-| Agente Claude Code | Equivalente TypeScript          | Diferencia clave                                                                 |
-| ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| `spec_partner`     | `SpecAuthorAgent`               | Conversacional (Claude) vs bulk (TS)                                             |
-| `gherkin_author`   | _(parte de SpecAuthorAgent)_    | Separado en Claude mode                                                          |
-| `tdd_craftsman`    | `ImplementerAgent.executeTDD()` | Activo cuando `tddMode: true`                                                    |
-| _(bulk)_           | `ImplementerAgent.execute()`    | `tddMode: false` (default)                                                       |
-| `judge`            | `ReviewerAgent`                 | Judge bloquea; reviewer no bloquea lint                                          |
-| `mutation_tester`  | `MutationTesterAgent.ts`        | Claude mode bloquea; HTTP/Webhook closed-loop feedback → ImplementerAgent (≤ 2×) |
+| Agente Claude Code | Equivalente TypeScript                                       | Diferencia clave                                                                     |
+| ------------------ | ------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `spec_partner`     | `SpecAuthorAgent` (+ `src/tools/figma.ts` si `job.figmaUrl`) | Conversacional (Claude) vs bulk (TS); el modo TS lee diseño de Figma automáticamente |
+| `gherkin_author`   | _(parte de SpecAuthorAgent)_                                 | Separado en Claude mode                                                              |
+| `tdd_craftsman`    | `ImplementerAgent.executeTDD()`                              | Activo cuando `tddMode: true`                                                        |
+| _(bulk)_           | `ImplementerAgent.execute()`                                 | `tddMode: false` (default)                                                           |
+| `judge`            | `ReviewerAgent`                                              | Judge bloquea; reviewer no bloquea lint                                              |
+| `mutation_tester`  | `MutationTesterAgent.ts`                                     | Claude mode bloquea; HTTP/Webhook closed-loop feedback → ImplementerAgent (≤ 2×)     |
 
 ---
 

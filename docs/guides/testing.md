@@ -19,29 +19,33 @@
 Tests unitarios internos que no requieren servidor ni Postgres ni LLM:
 
 ```bash
-npm test                  # corre toda la suite Jest (~148 tests, 14 suites)
+npm test                  # corre toda la suite Jest (~283 tests, 22 suites)
 npm test -- --watch       # modo watch durante desarrollo
 npm test -- webhook       # filtra por nombre de suite
 npm test -- ios-skill     # solo el skill de iOS
 npm test -- xcode-runner  # solo el runner de Xcode
+npm test -- figma         # solo el lector de Figma
 ```
 
-| Suite                      | Qué cubre                                                                            |
-| -------------------------- | ------------------------------------------------------------------------------------ |
-| `webhook-parsers.test.ts`  | `parseGenericBody` + `parseJiraWebhook` (Modo C)                                     |
-| `jira-errors.test.ts`      | Clases de error Jira (`JiraAuthError`, etc.)                                         |
-| `jira-parsers.test.ts`     | `extractTextFromADF` + `parseACFromText`                                             |
-| `disk-backend.test.ts`     | `DiskBackend` completo — CRUD, persistencia (Modo B)                                 |
-| `state-backend.test.ts`    | Singleton `StateBackend` + wrappers de conveniencia                                  |
-| `git-errors.test.ts`       | Clases de error Git/GitHub (`GitHubAuthError`, etc.)                                 |
-| `llm-utils.test.ts`        | `extractJSON` — parseo de JSON de respuestas LLM                                     |
-| `repo-setup.test.ts`       | `setupRepository` — local clone, GitHub clone, errores                               |
-| `agent-registry.test.ts`   | `getAgentsForPlatform` — plataformas soportadas, singleton, error                    |
-| `notifier-factory.test.ts` | `buildNotifier` — NullNotifier, Slack, Webhook, Jira, composite                      |
-| `generic-notifier.test.ts` | `GenericWebhookNotifier` — POST, HMAC signing, error resilience                      |
-| `plugin-loader.test.ts`    | `PluginLoader` — gaia.json, RULES.md, UNIT_TESTS.md, getRulesAsContext               |
-| `xcode-runner.test.ts`     | `runSwiftTests`, `runXcodeBuild`, `runSwiftLint`, `verifyIosEnvironment` — mockeados |
-| `ios-skill.test.ts`        | `IosSkill` — `verifyEnvironment`, `build`, `test`, `analyze`, `getPromptContext`     |
+| Suite                       | Qué cubre                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------------ |
+| `webhook-parsers.test.ts`   | `parseGenericBody` + `parseJiraWebhook` (Modo C)                                     |
+| `jira-errors.test.ts`       | Clases de error Jira (`JiraAuthError`, etc.)                                         |
+| `jira-parsers.test.ts`      | `extractTextFromADF` + `parseACFromText`                                             |
+| `figma.test.ts`             | `extractFigmaIds`, `formatFigmaNode`, `fetchFigmaDesignContext`, errores             |
+| `spec-author.test.ts`       | `SpecAuthorAgent` — generación de spec, handoff, Figma context                       |
+| `disk-backend.test.ts`      | `DiskBackend` completo — CRUD, persistencia (Modo B)                                 |
+| `state-backend.test.ts`     | Singleton `StateBackend` + wrappers de conveniencia                                  |
+| `git-errors.test.ts`        | Clases de error Git/GitHub (`GitHubAuthError`, etc.)                                 |
+| `llm-utils.test.ts`         | `extractJSON` — parseo de JSON de respuestas LLM                                     |
+| `repo-setup.test.ts`        | `setupRepository` — local clone, GitHub clone, errores                               |
+| `agent-registry.test.ts`    | `getAgentsForPlatform` — plataformas soportadas, singleton, error                    |
+| `notifier-factory.test.ts`  | `buildNotifier` — NullNotifier, Slack, Webhook, Jira, composite                      |
+| `generic-notifier.test.ts`  | `GenericWebhookNotifier` — POST, HMAC signing, error resilience                      |
+| `plugin-loader.test.ts`     | `PluginLoader` — gaia.json, RULES.md, UNIT_TESTS.md, getRulesAsContext               |
+| `xcode-runner.test.ts`      | `runSwiftTests`, `runXcodeBuild`, `runSwiftLint`, `verifyIosEnvironment` — mockeados |
+| `ios-skill.test.ts`         | `IosSkill` — `verifyEnvironment`, `build`, `test`, `analyze`, `getPromptContext`     |
+| `flutter-web-skill.test.ts` | `FlutterWebSkill` — build/test/analyze + prompt context                              |
 
 > Estos tests son los más rápidos de correr y deben pasar siempre. Si alguno falla, hay un bug en el harness mismo, no en el workspace del job.
 
@@ -74,6 +78,7 @@ curl -s -X POST http://localhost:3000/jobs \
     "targetBranch": "develop",
     "requireTests": false,
     "maxFilesToTouch": 6,
+    "figmaUrl": "https://figma.com/design/ABC123/home-screen?node-id=1-234",
     "acceptanceCriteria": [
       { "id": "ac-1", "text": "WHEN user opens home THEN show promotional banner", "testable": true },
       { "id": "ac-2", "text": "WHEN user taps banner THEN navigate to promotion details", "testable": true }
@@ -176,6 +181,7 @@ cat > /tmp/test-job.json <<'EOF'
   "repo": "mi-org/mi-repo",
   "targetBranch": "develop",
   "requireTests": false,
+  "figmaUrl": "https://figma.com/design/ABC123/home-screen?node-id=1-234",
   "acceptanceCriteria": [
     {"id":"ac-1","text":"WHEN user opens home THEN show banner","testable":true}
   ]
@@ -243,15 +249,15 @@ curl -s -X POST http://localhost:3000/webhook/trigger \
 
 ## Troubleshooting
 
-| Síntoma          | Causa probable         | Solución                                                   |
-| ---------------- | ---------------------- | ---------------------------------------------------------- |
-| Job en `pending` | Leader no procesa      | Verificar que `orchestrateJob` fue llamado; revisar logs   |
-| `spec_error`     | Falla LLM              | Verificar `OPENAI_API_KEY` o `ANTHROPIC_API_KEY` en `.env` |
-| `env_error`      | Toolchain faltante     | Correr `./init.sh` para ver qué falta                      |
-| `repo_error`     | Acceso a repo          | Verificar `GITHUB_TOKEN` y permisos del repo               |
-| `build_error`    | Dependencias           | Revisar que el repo tenga lockfile correcto                |
-| No aprueba spec  | Job no en `spec_ready` | Esperar más; monitorear con `/jobs/$JOB_ID`                |
-| Webhook `401`    | Firma inválida         | Verificar `WEBHOOK_SECRET` en `.env`                       |
+| Síntoma          | Causa probable                         | Solución                                                                        |
+| ---------------- | -------------------------------------- | ------------------------------------------------------------------------------- |
+| Job en `pending` | Leader no procesa                      | Verificar que `orchestrateJob` fue llamado; revisar logs                        |
+| `spec_error`     | Falla LLM o falta `FIGMA_ACCESS_TOKEN` | Verificar `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` y `FIGMA_ACCESS_TOKEN` en `.env` |
+| `env_error`      | Toolchain faltante                     | Correr `./init.sh` para ver qué falta                                           |
+| `repo_error`     | Acceso a repo                          | Verificar `GITHUB_TOKEN` y permisos del repo                                    |
+| `build_error`    | Dependencias                           | Revisar que el repo tenga lockfile correcto                                     |
+| No aprueba spec  | Job no en `spec_ready`                 | Esperar más; monitorear con `/jobs/$JOB_ID`                                     |
+| Webhook `401`    | Firma inválida                         | Verificar `WEBHOOK_SECRET` en `.env`                                            |
 
 ---
 

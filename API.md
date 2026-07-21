@@ -461,14 +461,15 @@ curl -X POST http://localhost:3000/webhook/trigger \
 
 Configura una o más variables en `.env` para activar notificaciones de salida:
 
-| Variable                                               | Notifier activado | Qué envía                                                                  |
-| ------------------------------------------------------ | ----------------- | -------------------------------------------------------------------------- |
-| `SLACK_WEBHOOK_URL`                                    | Slack             | Block Kit message por estado                                               |
-| `GITHUB_CHECKS_TOKEN` + `GITHUB_OWNER` + `GITHUB_REPO` | GitHub Checks API | Check Run por job                                                          |
-| `NOTIFY_WEBHOOK_URL`                                   | Generic HTTP      | JSON completo del evento                                                   |
-| `NOTIFY_WEBHOOK_SECRET`                                | (firma outbound)  | `X-GAIA-Signature` header                                                  |
-| `JIRA_BASE_URL` + `JIRA_EMAIL` + `JIRA_API_TOKEN`      | Jira              | Comentarios + transiciones de estado en el ticket                          |
-| `JIRA_TRANSITION_MAP`                                  | (configura Jira)  | JSON para renombrar transiciones: `{"done":"Resolved","failed":"Blocked"}` |
+| Variable                                               | Notifier activado | Qué envía                                                                            |
+| ------------------------------------------------------ | ----------------- | ------------------------------------------------------------------------------------ |
+| `SLACK_WEBHOOK_URL`                                    | Slack             | Block Kit message por estado                                                         |
+| `GITHUB_CHECKS_TOKEN` + `GITHUB_OWNER` + `GITHUB_REPO` | GitHub Checks API | Check Run por job                                                                    |
+| `NOTIFY_WEBHOOK_URL`                                   | Generic HTTP      | JSON completo del evento                                                             |
+| `NOTIFY_WEBHOOK_SECRET`                                | (firma outbound)  | `X-GAIA-Signature` header                                                            |
+| `JIRA_BASE_URL` + `JIRA_EMAIL` + `JIRA_API_TOKEN`      | Jira              | Comentarios + transiciones de estado en el ticket                                    |
+| `JIRA_TRANSITION_MAP`                                  | (configura Jira)  | JSON para renombrar transiciones: `{"done":"Resolved","failed":"Blocked"}`           |
+| `FIGMA_ACCESS_TOKEN`                                   | SpecAuthorAgent   | Lectura de diseño Figma vía REST API (requerido cuando `job.figmaUrl` esté presente) |
 
 **Eventos emitidos:**
 

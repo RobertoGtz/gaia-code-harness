@@ -53,7 +53,7 @@
 | [`.claude/identity.json`](../.claude/identity.json)                                           | Preferencias de estilo y dominios técnicos para Claude Code |
 | [`.claude/package-manager.json`](../.claude/package-manager.json)                             | Gestor de paquetes del proyecto (`npm`)                     |
 | [`.claude/agents/`](../.claude/agents/)                                                       | Definiciones de los 6 subagentes Claude                     |
-| [`.claude/commands/gaia_code_generator.md`](../.claude/commands/gaia_code_generator.md)                                       | Slash command `/gaia_code_generator` para lanzar CLI Mode                   |
+| [`.claude/commands/gaia_code_generator.md`](../.claude/commands/gaia_code_generator.md)       | Slash command `/gaia_code_generator` para lanzar CLI Mode   |
 | [`.claude/rules/security-and-conventions.md`](../.claude/rules/security-and-conventions.md)   | Guardrails de seguridad y convenciones                      |
 | [`.claude/skills/gaia/SKILL.md`](../.claude/skills/gaia/SKILL.md)                             | Knowledge base del proyecto GAIA para Claude Code           |
 | [`.claude/team/gaia-team-config.json`](../.claude/team/gaia-team-config.json)                 | Config compartida de skills, commands, rules y agentes      |
@@ -103,7 +103,7 @@ gaia-code-harness/
 │   ├── api/routes/    ← jobs.ts + webhook.ts
 │   ├── notifiers/     ← Slack, GitHub Checks, Generic, Jira
 │   ├── state/         ← PostgresBackend + DiskBackend
-│   ├── tools/         ← git.ts, jira.ts, llm.ts, test runners
+│   ├── tools/         ← git.ts, jira.ts, figma.ts, llm.ts, test runners
 │   └── cli/run.ts     ← CLI entry point (Modo B)
 │
 ├── tests/             ← Unit tests

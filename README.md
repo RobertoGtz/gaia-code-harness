@@ -13,7 +13,7 @@ Le das criterios de aceptación. El sistema genera un plan técnico, espera tu a
 PM escribe ACs
       │
       ▼
- SpecAuthor      → analiza el repo + genera TechnicalSpec + Gherkin
+ SpecAuthor      → analiza el repo + Figma (opcional) + genera TechnicalSpec + Gherkin
       │            └─ escribe handoff.md para el siguiente agente
       ⏸  Human aprueba el plan  ← único punto de control obligatorio
       │
@@ -93,6 +93,9 @@ JIRA_EMAIL=tu@email.com
 JIRA_API_TOKEN=...
 DEFAULT_PLATFORM=flutter      # fallback si el ticket no tiene label de plataforma
 DEFAULT_REPO=tu-org/tu-repo   # fallback si el ticket no tiene repo
+
+# Figma — opcional, para enriquecer el spec con contexto de diseño
+FIGMA_ACCESS_TOKEN=...        # personal access token con scope file_read
 ```
 
 ### 4. Levantar el servidor (Modos A y C)

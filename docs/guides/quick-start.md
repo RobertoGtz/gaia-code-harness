@@ -49,6 +49,9 @@ DEFAULT_REPO=tu-org/tu-repo
 # Plataforma por defecto cuando el ticket no tiene label de plataforma
 # Tickets con prefijo [MOBILE] usan este valor (default: flutter)
 DEFAULT_PLATFORM=flutter
+
+# Figma — opcional, enriquece el spec con contexto de diseño
+FIGMA_ACCESS_TOKEN=tu-token-de-figma
 ```
 
 > **¿No tienes estos valores?**
@@ -56,6 +59,7 @@ DEFAULT_PLATFORM=flutter
 > - `OPENAI_API_KEY`: crea uno en [platform.openai.com](https://platform.openai.com/api-keys)
 > - `GITHUB_TOKEN`: crea uno en [github.com/settings/tokens](https://github.com/settings/tokens) (activa el scope `repo`)
 > - `JIRA_API_TOKEN`: crea uno en [id.atlassian.com](https://id.atlassian.com/manage-profile/security/api-tokens)
+> - `FIGMA_ACCESS_TOKEN`: crea uno en [help.figma.com/hc/en-us/articles/8085703771159-Manage-personal-access-tokens](https://help.figma.com/hc/en-us/articles/8085703771159-Manage-personal-access-tokens) (scope `file_read`)
 
 ### 2. Dependencias instaladas
 
@@ -117,6 +121,7 @@ curl -s -X POST http://localhost:3000/jobs \
     "targetBranch": "develop",
     "requireTests": false,
     "maxFilesToTouch": 6,
+    "figmaUrl": "https://figma.com/design/ABC123/home-screen?node-id=1-234",
     "acceptanceCriteria": [
       "WHEN user opens home screen THEN display promotional banner",
       "WHEN there are 3+ promotions THEN show pagination dots",
@@ -124,6 +129,8 @@ curl -s -X POST http://localhost:3000/jobs \
     ]
   }' | python3 -m json.tool
 ```
+
+> Si incluyes `figmaUrl`, `SpecAuthorAgent` leerá el frame/nodo de Figma y añadirá su layout, textos, colores y jerarquía de componentes al prompt del spec.
 
 **Opción B — Solo con el ticket de Jira (el sistema fetcha el resto):**
 

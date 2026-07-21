@@ -50,6 +50,9 @@ DATABASE_URL=postgresql://localhost:5432/gaia_harness
 OPENAI_API_KEY=sk-...        # o ANTHROPIC_API_KEY
 GITHUB_TOKEN=ghp_...
 GITHUB_OWNER=tu-org
+
+# Opcional — lectura de diseños Figma
+FIGMA_ACCESS_TOKEN=...       # personal access token con scope file_read
 ```
 
 **Mínimo necesario — Modo B (CLI, sin Postgres):**
@@ -58,6 +61,9 @@ GITHUB_OWNER=tu-org
 OPENAI_API_KEY=sk-...        # o ANTHROPIC_API_KEY
 GITHUB_TOKEN=ghp_...
 GITHUB_OWNER=tu-org
+
+# Opcional — lectura de diseños Figma
+FIGMA_ACCESS_TOKEN=...       # personal access token con scope file_read
 ```
 
 ### 4. Inicializar Base de Datos _(Modos A y C — omitir en Modo B)_

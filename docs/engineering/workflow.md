@@ -91,18 +91,19 @@ medida real de si la red atrapa peces. Ver `docs/engineering/mutation-testing.md
 
 ## Mapa de artefactos
 
-| Archivo                           | Lo escribe                                    | Contiene                                                   |
-| --------------------------------- | --------------------------------------------- | ---------------------------------------------------------- |
-| `project-spec.md`                 | `spec_partner`                                | Spec conversada: propósito, contrato, decisiones           |
-| `features/<name>.feature`         | `gherkin_author` (Claude Code)                | Escenarios Gherkin `@s1..@sn` (el contrato firmado)        |
-| `specs/{jobId}/scenarios.feature` | `SpecAuthorAgent` (Modos A/B/C — 2ª LLM call) | Escenarios Gherkin generados automáticamente, non-blocking |
-| `src/` (workspace job)            | `tdd_craftsman` / `ImplementerAgent`          | Código tallado por TDD o generado en bulk                  |
-| `progress/tdd_<name>.md`          | `tdd_craftsman`                               | Bitácora de ciclos + mapa `@s → test`                      |
-| `progress/judge_<name>.md`        | `judge`                                       | Veredicto + checkpoints                                    |
-| `progress/mutation_<name>.md`     | `mutation_tester`                             | Score + mutantes sobrevivientes                            |
-| `handoff.md`                      | Cada agente                                   | Resumen de estado para el siguiente agente                 |
-| `review_report.md`                | `ReviewerAgent` (Modos A/B/C)                 | Score e issues del LLM review                              |
-| `feature_list.json`               | `craftsman_lead` / `tdd_craftsman`            | `pending → spec_ready → in_progress → done`                |
+| Archivo                                 | Lo escribe                                    | Contiene                                                          |
+| --------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------- |
+| `project-spec.md`                       | `spec_partner`                                | Spec conversada: propósito, contrato, decisiones                  |
+| `features/<name>.feature`               | `gherkin_author` (Claude Code)                | Escenarios Gherkin `@s1..@sn` (el contrato firmado)               |
+| `specs/{jobId}/scenarios.feature`       | `SpecAuthorAgent` (Modos A/B/C — 2ª LLM call) | Escenarios Gherkin generados automáticamente, non-blocking        |
+| `specs/{jobId}/design-figma-context.md` | `SpecAuthorAgent` (si `job.figmaUrl`)         | Resumen textual del frame/nodo de Figma (layout, textos, colores) |
+| `src/` (workspace job)                  | `tdd_craftsman` / `ImplementerAgent`          | Código tallado por TDD o generado en bulk                         |
+| `progress/tdd_<name>.md`                | `tdd_craftsman`                               | Bitácora de ciclos + mapa `@s → test`                             |
+| `progress/judge_<name>.md`              | `judge`                                       | Veredicto + checkpoints                                           |
+| `progress/mutation_<name>.md`           | `mutation_tester`                             | Score + mutantes sobrevivientes                                   |
+| `handoff.md`                            | Cada agente                                   | Resumen de estado para el siguiente agente                        |
+| `review_report.md`                      | `ReviewerAgent` (Modos A/B/C)                 | Score e issues del LLM review                                     |
+| `feature_list.json`                     | `craftsman_lead` / `tdd_craftsman`            | `pending → spec_ready → in_progress → done`                       |
 
 **Regla anti-teléfono-descompuesto:** los subagentes escriben en disco y
 devuelven una línea de referencia. El contenido no circula por chat.

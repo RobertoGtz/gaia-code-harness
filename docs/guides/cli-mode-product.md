@@ -106,20 +106,20 @@ Es un archivo de texto con la siguiente estructura:
 
 ### Campo por campo
 
-| Campo                | ¿Requerido? | ¿Qué significa?                                                                                                       | Ejemplo                                         |
-| -------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `platform`           | Sí          | Tecnología del proyecto. Puede ser `flutter_web`, `ios`, `android`.                                                   | `flutter_web`                                   |
-| `repo`               | Sí          | Repositorio de GitHub donde GAIA hará el cambio, en formato `dueño/repo`.                                             | `rpp-co/rpp-cashflow-multiplatform-pyme`        |
-| `targetBranch`       | No          | Rama base sobre la que se creará el PR. Si no se pone, usa `develop`.                                                 | `docs/gaia-conventions`                         |
-| `title`              | Sí          | Título corto y claro de lo que se pide.                                                                               | `Handle SummaryFormSuccess in Bre-B presummary` |
-| `module`             | No          | Módulo o área funcional del producto que se toca. Ayuda a GAIA a enfocarse.                                           | `presummary_form`                               |
-| `acceptanceCriteria` | Sí          | Lista de frases que describen qué debe pasar para considerar el trabajo correcto. Deben ser comprobables.             | Ver ejemplo arriba                              |
-| `tddMode`            | No          | Si es `true`, GAIA escribe primero el test y luego el código (Red-Green-Refactor). Si es `false`, escribe todo junto. | `true`                                          |
-| `requireTests`       | No          | Si es `true`, GAIA debe crear o actualizar tests. Casi siempre `true`.                                                | `true`                                          |
-| `maxFilesToTouch`    | No          | Límite de archivos que GAIA puede modificar. Evita cambios gigantes. Por defecto `5`.                                 | `3`                                             |
-| `description`        | No          | Contexto adicional, notas de producto, enlaces, etc.                                                                  | `"Ver Figma: ..."`                              |
-| `figmaUrl`           | No          | Enlace al diseño en Figma.                                                                                            | `https://www.figma.com/...`                     |
-| `jiraTicketId`       | No          | Si el trabajo viene de un ticket de Jira, se puede poner aquí.                                                        | `RPP-1234`                                      |
+| Campo                | ¿Requerido? | ¿Qué significa?                                                                                                                                               | Ejemplo                                         |
+| -------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `platform`           | Sí          | Tecnología del proyecto. Puede ser `flutter_web`, `ios`, `android`.                                                                                           | `flutter_web`                                   |
+| `repo`               | Sí          | Repositorio de GitHub donde GAIA hará el cambio, en formato `dueño/repo`.                                                                                     | `rpp-co/rpp-cashflow-multiplatform-pyme`        |
+| `targetBranch`       | No          | Rama base sobre la que se creará el PR. Si no se pone, usa `develop`.                                                                                         | `docs/gaia-conventions`                         |
+| `title`              | Sí          | Título corto y claro de lo que se pide.                                                                                                                       | `Handle SummaryFormSuccess in Bre-B presummary` |
+| `module`             | No          | Módulo o área funcional del producto que se toca. Ayuda a GAIA a enfocarse.                                                                                   | `presummary_form`                               |
+| `acceptanceCriteria` | Sí          | Lista de frases que describen qué debe pasar para considerar el trabajo correcto. Deben ser comprobables.                                                     | Ver ejemplo arriba                              |
+| `tddMode`            | No          | Si es `true`, GAIA escribe primero el test y luego el código (Red-Green-Refactor). Si es `false`, escribe todo junto.                                         | `true`                                          |
+| `requireTests`       | No          | Si es `true`, GAIA debe crear o actualizar tests. Casi siempre `true`.                                                                                        | `true`                                          |
+| `maxFilesToTouch`    | No          | Límite de archivos que GAIA puede modificar. Evita cambios gigantes. Por defecto `5`.                                                                         | `3`                                             |
+| `description`        | No          | Contexto adicional, notas de producto, enlaces, etc.                                                                                                          | `"Ver Figma: ..."`                              |
+| `figmaUrl`           | No          | Enlace al diseño en Figma. Si `FIGMA_ACCESS_TOKEN` está configurado, GAIA lee el frame/nodo y añade layout, textos, colores y jerarquía al prompt de la spec. | `https://www.figma.com/...`                     |
+| `jiraTicketId`       | No          | Si el trabajo viene de un ticket de Jira, se puede poner aquí.                                                                                                | `RPP-1234`                                      |
 
 ### Criterios de aceptación bien escritos
 

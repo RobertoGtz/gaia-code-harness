@@ -123,8 +123,10 @@ Leader → SpecAuthorAgent.execute()
            ↓
     1. Explore repo structure
     2. Identify relevant files
-    3. LLM → TechnicalSpec JSON
-    4. LLM → scenarios.feature (Gherkin, non-blocking)
+    3. If job.figmaUrl: fetch Figma design context via src/tools/figma.ts
+       → injected into the spec prompt + saved as design-figma-context.md
+    4. LLM → TechnicalSpec JSON
+    5. LLM → scenarios.feature (Gherkin, non-blocking)
            ↓
     DB: status='spec_ready'
     Waits: POST /approve
