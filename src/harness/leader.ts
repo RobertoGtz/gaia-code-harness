@@ -508,7 +508,7 @@ async function handleReviewing(job: CodeGenerationJob): Promise<void> {
     leaderError(`Review failed [${errorCode}]: ${result.error}`);
     await addProgressLog(job.id, `Review failed [${errorCode}]: ${result.error}`);
 
-    const MAX_REVIEW_RETRIES = 2;
+    const MAX_REVIEW_RETRIES = 5;
     if ((errorCode === 'REVIEW_ERROR' || errorCode === 'TEST_ERROR') && retryCount < MAX_REVIEW_RETRIES) {
       // Closed-loop: reviewer feedback is sent back to ImplementerAgent for retry
       await addProgressLog(job.id, `Review retry ${retryCount + 1}/${MAX_REVIEW_RETRIES} — returning to implementing with feedback`);
