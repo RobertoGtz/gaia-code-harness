@@ -423,7 +423,8 @@ async function handleImplementing(job: CodeGenerationJob): Promise<void> {
     if (supportsAutoRetry(job) && RETRYABLE_ERROR_STATUSES.has(errorStatus) && retryCount < 3) {
       await addProgressLog(job.id, `Implementation retry ${retryCount + 1}/3 [${errorCode}]`);
       await addProgressLog(job.id, `Error: ${result.error}`);
-      await updateJobStatus(job.id, 'implementing');
+      // Closed-loop: surface the error to ImplementerAgent in the next iteration
+      await updateJobStatus(job.id, 'implementing', { reviewFeedback: result.error ?? 'Implementation failed' });
       await orchestrateJob(job.id);
       return;
     }
