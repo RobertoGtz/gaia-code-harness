@@ -39,8 +39,12 @@ Es el modo más **artesanal** y con mayor control humano.
 │   ├── tdd_craftsman.md
 │   ├── judge.md
 │   └── mutation_tester.md
-├── commands/
+├── .claude/commands/
 │   └── gaia_code_generator.md ← Slash command `/gaia_code_generator` para lanzar CLI Mode
+├── .windsurf/commands/
+│   └── gaia_code_generator.md ← Instrucciones equivalentes para Windsurf
+├── .kiro/commands/
+│   └── gaia_code_generator.md ← Instrucciones equivalentes para Kiro
 ├── rules/
 │   └── security-and-conventions.md  ← Guardrails de seguridad + convenciones
 ├── skills/gaia/

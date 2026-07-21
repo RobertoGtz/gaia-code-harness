@@ -6,7 +6,7 @@
     ".claude/skills/gaia/SKILL.md"
   ],
   "commandFiles": [
-    ".claude/commands/run.md"
+    ".claude/commands/gaia_code_generator.md"
   ],
   "rulesFiles": [
     ".claude/rules/security-and-conventions.md"
