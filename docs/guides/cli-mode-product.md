@@ -161,9 +161,9 @@ flowchart TD
     I -- No --> N["Bulk: escribe todo junto"]
     N --> M["Ejecuta tests"]
     M -- Pasan --> O["ReviewerAgent revisa y crea PR"]
-    M -- Fallan --> P["LLM Fix Loop<br/>hasta 3 intentos"]
+    M -- Fallan --> P["LLM Fix Loop<br/>hasta 5 intentos"]
     P --> M
-    M -- Fallan 3x --> Q["status: test_error"]
+    M -- Fallan 5x --> Q["status: test_error"]
     O -- Aprobado --> R["git commit + push"]
     O -- Rechazado --> S["status: review_error"]
     R --> T["MutationTesterAgent valida calidad de tests"]
@@ -181,7 +181,7 @@ flowchart TD
 5. **ImplementerAgent**: GAIA escribe el código y los tests.
    - En modo TDD: primero un test que falla, luego el código, luego limpieza.
    - En modo bulk: escribe todo junto.
-6. **Ejecutar tests**: GAIA corre los tests del proyecto. Si fallan, trata de corregir automáticamente hasta 3 veces.
+6. **Ejecutar tests**: GAIA corre los tests del proyecto. Si fallan, trata de corregir automáticamente hasta 5 veces.
 7. **ReviewerAgent**: GAIA revisa calidad, estilo, arquitectura y crea el Pull Request en GitHub.
 8. **MutationTesterAgent**: GAIA introduce pequeños errores artificiales en el código para ver si los tests los detectan. Si el _kill rate_ es menor al 80 %, puede pedir más tests.
 9. **PR listo**: Dev recibe el enlace del PR para revisión humana final.
@@ -200,7 +200,7 @@ flowchart TD
 | `reviewing`       | GAIA revisa el código y crea el PR.                                             | ReviewerAgent       |
 | `pr_created`      | El PR ya existe en GitHub; GAIA valida tests con mutación.                      | MutationTesterAgent |
 | `done`            | Todo listo. Se entrega el URL del PR.                                           | —                   |
-| `test_error`      | Los tests fallaron después de 3 intentos automáticos. Se puede reintentar.      | Humano (`--retry`)  |
+| `test_error`      | Los tests fallaron después de 5 intentos automáticos. Se puede reintentar.      | Humano (`--retry`)  |
 | `review_error`    | El reviewer encontró problemas serios después de 5 intentos. Se puede reintentar. | Humano (`--retry`)  |
 | `failed`          | Error irrecuperable (por ejemplo, el repo no responde o la spec fue rechazada). | Humano              |
 

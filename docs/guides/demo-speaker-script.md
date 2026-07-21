@@ -580,7 +580,7 @@ tail -f progress/<JOB_ID>.md
 
 ### El job falla con `test_error`
 
-> "Esto es justamente una de las ventajas del harness: si los tests fallan, el pipeline se detiene. En producción el Implementer reintenta hasta 2 veces; si persiste, queda en `test_error` para revisión humana."
+> "Esto es justamente una de las ventajas del harness: si los tests fallan, el pipeline se detiene. En producción el Implementer reintenta hasta 5 veces con feedback; si persiste, queda en `test_error` para revisión humana."
 
 **Para salvar la demo al instante:**
 
@@ -645,7 +645,7 @@ git show --stat HEAD
 
 ### ¿Qué pasa si los tests fallan?
 
-> El pipeline se detiene en `test_error`. En Modo A y C el Implementer reintenta automáticamente hasta 2 veces usando el feedback del error. Si persiste, queda a la espera de un humano. En Modo B la decisión de reintentar es manual.
+> El pipeline se detiene en `test_error`. El Implementer reintenta automáticamente hasta 5 veces usando el feedback del error. Si persiste, queda a la espera de un humano. En todos los modos el retry es automático; `--retry` sirve para forzar un intento manual.
 
 ### ¿Se puede integrar con Jira?
 

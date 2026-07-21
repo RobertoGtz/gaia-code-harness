@@ -28,7 +28,7 @@ PM escribe ACs
       ▼
  MutationTester  → valida que los tests detecten bugs reales (≥ 80%)
       │
-      └─ ¿falló? → feedback vuelve al Implementer (hasta 2 retries; todos los modos)
+      └─ ¿falló? → feedback vuelve al Implementer (hasta 5 retries; todos los modos)
            ✅  Pull Request listo  (~60 segundos)
 ```
 

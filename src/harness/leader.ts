@@ -418,9 +418,9 @@ async function handleImplementing(job: CodeGenerationJob): Promise<void> {
     };
     await setErrorContext(job.id, ctx);
 
-    // test_error and unknown/failed can retry up to 3 times automatically.
-    if (supportsAutoRetry() && RETRYABLE_ERROR_STATUSES.has(errorStatus) && retryCount < 3) {
-      await addProgressLog(job.id, `Implementation retry ${retryCount + 1}/3 [${errorCode}]`);
+    // test_error and unknown/failed can retry up to 5 times automatically.
+    if (supportsAutoRetry() && RETRYABLE_ERROR_STATUSES.has(errorStatus) && retryCount < 5) {
+      await addProgressLog(job.id, `Implementation retry ${retryCount + 1}/5 [${errorCode}]`);
       await addProgressLog(job.id, `Error: ${result.error}`);
       // Closed-loop: surface the error to ImplementerAgent in the next iteration
       await updateJobStatus(job.id, 'implementing', { reviewFeedback: result.error ?? 'Implementation failed' });
@@ -541,7 +541,7 @@ async function handleReviewing(job: CodeGenerationJob): Promise<void> {
   const mutResult = await agents.mutationTester.execute(mutCtx);
   if (!mutResult.success) {
     const mutRetryCount = job.progressLogs.filter(l => l.includes('Mutation retry')).length;
-    const MAX_MUTATION_RETRIES = 2;
+    const MAX_MUTATION_RETRIES = 5;
     if (mutResult.errorCode === 'TEST_ERROR' && mutRetryCount < MAX_MUTATION_RETRIES) {
       leaderWarn(`Mutation score below threshold — retrying implementation with feedback`);
       await addProgressLog(job.id, `Mutation retry ${mutRetryCount + 1}/${MAX_MUTATION_RETRIES} — returning to implementing with feedback`);

@@ -614,7 +614,7 @@ TRIGGER (API / CLI / Webhook)
   │  MutationTester  │  Valida que los tests detecten bugs
   └──────┬───────────┘
          │
-         └── ¿falla? → feedback al Implementer (hasta 2×)
+         └── ¿falla? → feedback al Implementer (hasta 5×)
               │
               ▼
             done ✅

@@ -501,7 +501,7 @@ Sí, si tienes `GITHUB_TOKEN` configurado. Sin él, retorna un PR mock de "dry-r
 Cuando está activo, el Implementer aplica el ciclo **Red-Green-Refactor**: primero escribe un test que falla, luego hace que pase, repitiendo por cada escenario. Genera tests más robustos pero tarda más.
 
 **¿Qué hace el Mutation Tester?**
-Después del reviewer, el harness aplica pequeñas mutaciones (ej. `true → false`, `return null`) al código generado y verifica que los tests las detecten. Si el score es ≥ 80% el job termina. Si no, el feedback vuelve al ImplementerAgent para reforzar los tests (hasta 2 reintentos) antes de marcar `test_error`; en todos los modos el loop es automático.
+Después del reviewer, el harness aplica pequeñas mutaciones (ej. `true → false`, `return null`) al código generado y verifica que los tests las detecten. Si el score es ≥ 80% el job termina. Si no, el feedback vuelve al ImplementerAgent para reforzar los tests (hasta 5 reintentos) antes de marcar `test_error`; en todos los modos el loop es automático.
 
 **¿Solo funciona con Flutter?**
 No. Soporta **Flutter**, **Flutter Web**, **iOS/Swift** y **Android/Kotlin**. Cambia `"platform"` en el request para elegir la plataforma.

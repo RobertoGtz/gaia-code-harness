@@ -32,7 +32,7 @@ flowchart TD
     H -->|"false"| L["📝 Implementa\ntodos los archivos\na la vez"]
     K --> M
     L --> M["▶️ Ejecuta tests\nflutter test /\nxcodebuild test"]
-    M -->|"❌ falla\nhasta 3 intentos"| N["🔧 LLM Fix Loop"]
+    M -->|"❌ falla\nhasta 5 intentos"| N["🔧 LLM Fix Loop"]
     N --> M
     M -->|"✅ pasan"| O["📦 git commit + push\nfeature/abc-fix-title\n(sin pubspec_overrides)"]
   end
