@@ -3,18 +3,21 @@ import * as plugins from '../src/plugins';
 import * as llm from '../src/tools/llm';
 import * as repo from '../src/tools/repo';
 import * as file from '../src/tools/file';
+import * as figma from '../src/tools/figma';
 import * as pluginLoader from '../src/harness/plugin-loader';
 
 jest.mock('../src/plugins');
 jest.mock('../src/tools/llm');
 jest.mock('../src/tools/repo');
 jest.mock('../src/tools/file');
+jest.mock('../src/tools/figma');
 jest.mock('../src/harness/plugin-loader');
 
 const mockedPlugins = plugins as jest.Mocked<typeof plugins>;
 const mockedLLM = llm as jest.Mocked<typeof llm>;
 const mockedRepo = repo as jest.Mocked<typeof repo>;
 const mockedFile = file as jest.Mocked<typeof file>;
+const mockedFigma = figma as jest.Mocked<typeof figma>;
 const mockedPluginLoader = pluginLoader as jest.Mocked<typeof pluginLoader>;
 
 const SPEC_JSON = JSON.stringify({
@@ -101,6 +104,8 @@ describe('SpecAuthorAgent', () => {
     mockedFile.getRelevantSourceContext.mockResolvedValue('// source');
 
     mockedFile.writeFile.mockResolvedValue(undefined as any);
+
+    mockedFigma.fetchFigmaDesignContext.mockResolvedValue('Figma: frame');
 
     mockedPluginLoader.createPluginLoader.mockResolvedValue({
       getRulesAsContext: () => '',
@@ -201,5 +206,56 @@ describe('SpecAuthorAgent', () => {
     expect(result.spec!.gherkinScenarios).toBe('');
     // writeFile should still have been called for requirements/design/tasks
     expect(mockedFile.writeFile).toHaveBeenCalled();
+  });
+
+  describe('Figma context', () => {
+    it('does not fetch Figma when figmaUrl is absent', async () => {
+      const result = await agent.execute({ job: makeJob(), workspacePath: WORKSPACE });
+
+      expect(result.success).toBe(true);
+      expect(mockedFigma.fetchFigmaDesignContext).not.toHaveBeenCalled();
+    });
+
+    it('fetches Figma context and saves design-figma-context.md when figmaUrl is present', async () => {
+      const figmaUrl = 'https://figma.com/design/ABC123/file?node-id=1-2';
+      const result = await agent.execute({
+        job: makeJob({ figmaUrl }),
+        workspacePath: WORKSPACE,
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockedFigma.fetchFigmaDesignContext).toHaveBeenCalledWith(figmaUrl);
+      expect(mockedFile.writeFile).toHaveBeenCalledWith(
+        expect.stringContaining('design-figma-context.md'),
+        'Figma: frame',
+      );
+    });
+
+    it('fails if Figma token is missing (FigmaConfigError)', async () => {
+      mockedFigma.fetchFigmaDesignContext.mockRejectedValue(new figma.FigmaConfigError());
+
+      const result = await agent.execute({
+        job: makeJob({ figmaUrl: 'https://figma.com/design/ABC123/file' }),
+        workspacePath: WORKSPACE,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.errorCode).toBe('SPEC_ERROR');
+    });
+
+    it('continues if Figma fetch fails for other reasons', async () => {
+      mockedFigma.fetchFigmaDesignContext.mockRejectedValue(new figma.FigmaError('network'));
+
+      const result = await agent.execute({
+        job: makeJob({ figmaUrl: 'https://figma.com/design/ABC123/file' }),
+        workspacePath: WORKSPACE,
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockedFile.writeFile).not.toHaveBeenCalledWith(
+        expect.stringContaining('design-figma-context.md'),
+        expect.anything(),
+      );
+    });
   });
 });

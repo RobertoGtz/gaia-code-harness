@@ -55,10 +55,40 @@ Aplicación de insights del artículo de Anthropic "Harness design for long-runn
 - `tests/handoff.test.ts`: lectura/escritura de `handoff.md`.
 - Todos los tests existentes siguen verdes.
 
-### Próximos pasos sugeridos
+### Trabajo en curso: integración Figma → SpecAuthor (Opción B)
 
-- Validar el closed-loop del Leader con un test de integración real (mockear agentes + `orchestrateJob`).
-- Evaluar si se prefiere que `ReviewerAgent` no cree el PR hasta que `MutationTesterAgent` pase, para evitar PRs duplicados en el loop de mutación.
+Objetivo: cuando un job tenga `figmaUrl`, `SpecAuthorAgent` debe leer el diseño de Figma REST API y convertirlo en contexto textual que se inyecte al prompt de spec.
+
+### Implementación completada
+
+- Creado `src/tools/figma.ts` con:
+  - `extractFigmaIds(url)` — parsea fileKey y nodeId de URLs de Figma.
+  - `fetchFigmaDesignContext(url)` — llama Figma REST API (`/v1/files/{fileKey}`) y devuelve un resumen textual del frame/nodo.
+  - `formatFigmaNode(node)` — recorre el árbol de nodos omitiendo vectores decorativos.
+  - Clases de error: `FigmaConfigError`, `FigmaAuthError`, `FigmaNotFoundError`, `FigmaError`.
+- Modificado `src/agents/spec-author.ts`:
+  - Si `job.figmaUrl` existe, carga contexto de Figma y lo inyecta en el prompt de spec.
+  - Guarda `specs/<job>/design-figma-context.md`.
+  - `FigmaConfigError` se traduce a `GaiaSpecError` (spec_error); otros errores son non-blocking.
+- Tests:
+  - `tests/figma.test.ts` (9 tests).
+  - `tests/spec-author.test.ts` ampliado con 4 tests de Figma context.
+- Mutation testing:
+  - `src/tools/figma.ts`: 16/16 killed (100%).
+  - `src/agents/spec-author.ts`: 10/10 killed (100%).
+
+### Bloqueo ambiental
+
+`npm test` completo no puede correr establemente porque `CleanMyMac` borra directorios `build/` dentro de `node_modules` (especialmente `jest-util/build`) durante la ejecución. Los tests relevantes (`tests/figma.test.ts` y `tests/spec-author.test.ts`) pasan inmediatamente después de `rm -rf node_modules && npm install`. Pendiente: pausar/ignorar `CleanMyMac` para validar suite completa.
+
+### Archivos tocados
+
+- `src/tools/figma.ts` (nuevo)
+- `src/agents/spec-author.ts`
+- `tests/figma.test.ts` (nuevo)
+- `tests/spec-author.test.ts`
+- `CHECKPOINTS.md` (conteo de tests: 270 → 283 en 22 suites)
+- `progress/current.md`
 
 ### Revisión de documentación
 

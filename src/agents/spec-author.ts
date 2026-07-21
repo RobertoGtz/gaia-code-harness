@@ -8,6 +8,7 @@ import { BaseAgent } from './base';
 import { AgentContext, AgentResult, TechnicalSpec } from '../types';
 import { getDirectoryStructure, getRelevantFiles, getRelevantSourceContext, writeFile } from '../tools/file';
 import { setupRepository } from '../tools/repo';
+import { fetchFigmaDesignContext, FigmaConfigError, FigmaError } from '../tools/figma';
 import { callLLM, extractJSON } from '../tools/llm';
 import { loadSkill } from '../plugins';
 import { createPluginLoader } from '../harness/plugin-loader';
@@ -48,12 +49,27 @@ export class SpecAuthorAgent extends BaseAgent {
       );
       this.log(`Loaded source context (${sourceContext.length} chars)`);
 
+      let figmaContext = '';
+      if (job.figmaUrl) {
+        try {
+          figmaContext = await fetchFigmaDesignContext(job.figmaUrl);
+          this.log(`Loaded Figma design context (${figmaContext.length} chars)`);
+        } catch (err) {
+          // Missing token is a hard error; other Figma failures are non-blocking.
+          if (err instanceof FigmaConfigError) {
+            throw new GaiaSpecError(err.message);
+          }
+          const reason = err instanceof FigmaError ? err.message : String(err);
+          this.log(`[warn] Could not load Figma context: ${reason}`);
+        }
+      }
+
       const pluginLoader = await createPluginLoader(repoPath);
       const repoRules = pluginLoader.getRulesAsContext();
       const promptCtx = skill.getPromptContext(job);
-      const spec = await this.generateSpec(job, relevantFiles, structure, sourceContext, promptCtx, repoRules);
+      const spec = await this.generateSpec(job, relevantFiles, structure, sourceContext, figmaContext, promptCtx, repoRules);
       spec.gherkinScenarios = await this.generateGherkinScenarios(job, spec);
-      await this.saveSpec(workspacePath, spec, job.id);
+      await this.saveSpec(workspacePath, spec, job.id, figmaContext);
 
       await this.writeHandoff(workspacePath, `# Handoff: SpecAuthor → Implementer
 
@@ -86,6 +102,7 @@ Wait for human approval, then ImplementerAgent should execute the tasks in spec.
     relevantFiles: { lib: string[]; test: string[]; pubspec: boolean },
     repoStructure: string,
     sourceContext: string,
+    figmaContext: string,
     promptCtx: import('../plugins').PromptContext,
     repoRules?: string
   ): Promise<TechnicalSpec> {
@@ -108,6 +125,8 @@ File path conventions for this platform:
 ${Object.entries(promptCtx.filePatterns).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
 
 ${sourceContext ? `\nExisting source code for the target module/feature (use this to understand current classes, states, routes and TODOs):\n${sourceContext}` : ''}
+
+${figmaContext ? `\nFigma design context (match layout, spacing, colors, typography and component hierarchy):\n${figmaContext}` : ''}
 
 CRITICAL INSTRUCTIONS FOR TASK SELECTION:
 - Use the Existing source code above to identify where the change really belongs. Do NOT propose changes to screens, routers or routes unless navigation itself is part of the acceptance criteria.
@@ -193,7 +212,7 @@ Write the complete .feature file.`;
     }
   }
 
-  private async saveSpec(workspacePath: string, spec: TechnicalSpec, jobId: string): Promise<void> {
+  private async saveSpec(workspacePath: string, spec: TechnicalSpec, jobId: string, figmaContext: string): Promise<void> {
     const specDir = path.join(workspacePath, 'specs', jobId);
     await writeFile(path.join(specDir, 'requirements.json'), JSON.stringify(spec.requirements, null, 2));
     await writeFile(path.join(specDir, 'design.json'), JSON.stringify(spec.design, null, 2));
@@ -201,6 +220,10 @@ Write the complete .feature file.`;
     if (spec.gherkinScenarios) {
       await writeFile(path.join(specDir, 'scenarios.feature'), spec.gherkinScenarios);
       this.logSuccess(`Gherkin saved to ${specDir}/scenarios.feature`);
+    }
+    if (figmaContext) {
+      await writeFile(path.join(specDir, 'design-figma-context.md'), figmaContext);
+      this.logSuccess(`Figma design context saved to ${specDir}/design-figma-context.md`);
     }
     this.logSuccess(`Spec saved to ${specDir}`);
   }
