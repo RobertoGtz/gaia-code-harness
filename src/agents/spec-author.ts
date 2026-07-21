@@ -128,6 +128,8 @@ ${sourceContext ? `\nExisting source code for the target module/feature (use thi
 
 ${figmaContext ? `\nFigma design context (match layout, spacing, colors, typography and component hierarchy):\n${figmaContext}` : ''}
 
+${job.specFeedback ? `\nCorrecciones pedidas por el humano (esta es la tentativa ${(job.specRetryCount ?? 0) + 1} de generar el spec; atiende estas observaciones antes que cualquier otra instrucción):\n${job.specFeedback}` : ''}
+
 CRITICAL INSTRUCTIONS FOR TASK SELECTION:
 - Use the Existing source code above to identify where the change really belongs. Do NOT propose changes to screens, routers or routes unless navigation itself is part of the acceptance criteria.
 - If the acceptance criteria describe how a view state is rendered (loading/error/success), the modification target is almost always the module widget (modules/<module>/<module>_module.dart), not the flow screen or router.

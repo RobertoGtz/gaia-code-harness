@@ -232,10 +232,11 @@ export async function setupJobRoutes(app: FastifyInstance) {
    * }
    * 
    * Approval: Transitions to 'spec_approved' and continues implementation
-   * Rejection: Returns to 'pending' for spec regeneration
+   * Rejection: Returns to 'spec_generating' for spec regeneration with human feedback.
+   *            Limited to MAX_SPEC_RETRIES attempts to avoid infinite loops.
    * 
    * Response: { job: CodeGenerationJob }
-   * Errors: 404 if job not found, 400 if job not in 'spec_ready' status
+   * Errors: 404 if job not found, 400 if job not in 'spec_ready' status or max retries reached
    */
   app.post('/jobs/:id/approve', async (request, reply) => {
     const { id } = request.params as { id: string };
@@ -253,8 +254,24 @@ export async function setupJobRoutes(app: FastifyInstance) {
     }
     
     if (body.approved === false) {
-      await updateJobStatus(id, 'pending', { currentAgent: undefined });
-      await addProgressLog(id, `Spec rejected by human: ${body.feedback || 'No feedback provided'}`);
+      const MAX_SPEC_RETRIES = 3;
+      const retryCount = job.specRetryCount ?? 0;
+      if (retryCount >= MAX_SPEC_RETRIES) {
+        return reply.status(400).send({
+          error: `Maximum spec retry attempts (${MAX_SPEC_RETRIES}) reached. Create a new job or use POST /jobs/${id}/retry.`,
+        });
+      }
+
+      await updateJobStatus(id, 'spec_generating', {
+        currentAgent: undefined,
+        specFeedback: body.feedback,
+        specRetryCount: retryCount + 1,
+      });
+      await addProgressLog(id, `Spec rejected by human (retry ${retryCount + 1}/${MAX_SPEC_RETRIES}): ${body.feedback || 'No feedback provided'}`);
+
+      // Resume orchestration to regenerate spec with human feedback
+      orchestrateJob(id).catch(console.error);
+
       return { job: await getJob(id) };
     }
     

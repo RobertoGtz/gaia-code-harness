@@ -179,6 +179,12 @@ export interface CodeGenerationJob {
 
   /** Feedback from Reviewer/MutationTester used by ImplementerAgent on retry loops */
   reviewFeedback?: string;
+
+  /** Feedback provided by a human when rejecting a spec; injected into the next SpecAuthorAgent prompt */
+  specFeedback?: string;
+
+  /** Number of times the spec has been regenerated after human rejection (limits retry loop) */
+  specRetryCount?: number;
 }
 
 export interface TechnicalSpec {

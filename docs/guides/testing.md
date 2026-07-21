@@ -116,7 +116,7 @@ curl -s -X POST http://localhost:3000/jobs/$JOB_ID/approve \
   -H "Content-Type: application/json" \
   -d '{"approved": true}'
 
-# Rechazar con feedback
+# Rechazar con feedback (máximo 3 reintentos; superado el límite, crea un nuevo job)
 curl -s -X POST http://localhost:3000/jobs/$JOB_ID/approve \
   -H "Content-Type: application/json" \
   -d '{"approved": false, "feedback": "Necesita más detalle en el caso de error"}'

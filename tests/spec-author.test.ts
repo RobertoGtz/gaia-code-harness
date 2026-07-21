@@ -208,6 +208,33 @@ describe('SpecAuthorAgent', () => {
     expect(mockedFile.writeFile).toHaveBeenCalled();
   });
 
+  it('injects human specFeedback into the spec generation prompt on retry', async () => {
+    const callLLMMock = mockedLLM.callLLM as jest.MockedFunction<typeof llm.callLLM>;
+    callLLMMock
+      .mockReset()
+      .mockResolvedValueOnce({
+        text: SPEC_JSON,
+        provider: 'openai',
+        model: 'gpt-test',
+      })
+      .mockResolvedValueOnce({
+        text: 'Feature: Test\n  Scenario: @s1\n    Given x\n',
+        provider: 'openai',
+        model: 'gpt-test',
+      });
+
+    const feedback = 'Include analytics tracking and target the module widget, not the screen.';
+    await agent.execute({
+      job: makeJob({ specFeedback: feedback, specRetryCount: 1 }),
+      workspacePath: WORKSPACE,
+    });
+
+    const userPrompt = (callLLMMock.mock.calls[0][0] as any[])[1].content;
+    expect(userPrompt).toContain('Correcciones pedidas por el humano');
+    expect(userPrompt).toContain(feedback);
+    expect(userPrompt).toContain('tentativa 2');
+  });
+
   describe('Figma context', () => {
     it('does not fetch Figma when figmaUrl is absent', async () => {
       const result = await agent.execute({ job: makeJob(), workspacePath: WORKSPACE });

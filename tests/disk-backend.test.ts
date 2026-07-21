@@ -135,6 +135,16 @@ describe('DiskBackend', () => {
       expect(updated?.prUrl).toBe('https://github.com/pr/1');
     });
 
+    it('persists specFeedback and specRetryCount for spec rejection retries', async () => {
+      const job = await backend.createJob(minimalJob);
+      const feedback = 'Target the module widget instead of the screen';
+      await backend.updateJobStatus(job.id, 'spec_generating', { specFeedback: feedback, specRetryCount: 1 });
+      const updated = await backend.getJob(job.id);
+      expect(updated?.specFeedback).toBe(feedback);
+      expect(updated?.specRetryCount).toBe(1);
+      expect(updated?.status).toBe('spec_generating');
+    });
+
     it('persists reviewFeedback for closed-loop retries', async () => {
       const job = await backend.createJob(minimalJob);
       const feedback = 'Missing test for empty list edge case';

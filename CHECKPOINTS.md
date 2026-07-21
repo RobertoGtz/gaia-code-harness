@@ -35,7 +35,7 @@
 
 - [ ] `src/agents/` tiene tests de integración o unit para el agente tocado.
 - [ ] Los tests usan fixtures reales, no mocks frágiles de filesystem.
-- [ ] `npm test` muestra > 0 tests y todos verdes (actualmente: 313 tests en 27 suites; verificar tras pausar CleanMyMac).
+- [ ] `npm test` muestra > 0 tests y todos verdes (actualmente: 321 tests en 28 suites; verificar tras pausar CleanMyMac).
 
 ## C5 — La sesión se cerró bien
 

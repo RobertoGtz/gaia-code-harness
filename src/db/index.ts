@@ -66,6 +66,10 @@ export async function initDatabase(): Promise<void> {
         ADD COLUMN IF NOT EXISTS review_feedback TEXT;
       ALTER TABLE code_generation_jobs
         ADD COLUMN IF NOT EXISTS request_source VARCHAR(16);
+      ALTER TABLE code_generation_jobs
+        ADD COLUMN IF NOT EXISTS spec_feedback TEXT;
+      ALTER TABLE code_generation_jobs
+        ADD COLUMN IF NOT EXISTS spec_retry_count INTEGER DEFAULT 0;
       
       CREATE INDEX IF NOT EXISTS idx_jobs_status ON code_generation_jobs(status);
       CREATE INDEX IF NOT EXISTS idx_jobs_initiative ON code_generation_jobs(initiative_id);
@@ -340,5 +344,8 @@ function mapRowToJob(row: any): CodeGenerationJob {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     errorContext: row.error_context ?? undefined,
+    reviewFeedback: row.review_feedback ?? undefined,
+    specFeedback: row.spec_feedback ?? undefined,
+    specRetryCount: row.spec_retry_count ?? 0,
   };
 }

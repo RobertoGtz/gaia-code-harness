@@ -198,10 +198,12 @@ curl -s -X POST http://localhost:3000/jobs/TU_JOB_ID/approve \
   -H "Content-Type: application/json" \
   -d '{"approved": true}' | python3 -m json.tool
 
-# Rechazar con feedback (el sistema regenera el plan)
+# Rechazar con feedback (el sistema regenera el plan; máximo 3 reintentos)
 curl -s -X POST http://localhost:3000/jobs/TU_JOB_ID/approve \
   -H "Content-Type: application/json" \
   -d '{"approved": false, "feedback": "Necesita incluir analytics"}' | python3 -m json.tool
+
+# Si se superan los 3 reintentos, crea un nuevo job o usa POST /jobs/TU_JOB_ID/retry
 ```
 
 ### Paso 6: Ver el resultado
