@@ -2,14 +2,17 @@
 
 ## Feature en curso
 
-Aplicación de insights del artículo de Anthropic "Harness design for long-running application development": cerrar el loop de feedback entre evaluador e implementador, introducir handoff artifacts entre agentes, y hacer al Reviewer más escéptico con few-shot examples.
+Integración de contexto de diseño Figma en `SpecAuthorAgent` (Opción B): cuando un job tiene `figmaUrl`, GAIA lee el frame/nodo de Figma vía REST API, lo convierte a texto y lo inyecta en el prompt de spec; el contexto también se guarda como `design-figma-context.md`.
 
 ## Estado
 
-- `init.sh`: verde
+- `init.sh --quick`: verde
 - `npx tsc --noEmit`: sin errores
-- Tests locales Jest: entorno roto (jest-watcher faltante), pendiente de reparar `node_modules`
-- Git working tree: limpio de archivos temporales; docs/archive y logs de runtime eliminados
+- Tests locales Jest: los tests relevantes (`tests/figma.test.ts`, `tests/spec-author.test.ts`) pasan con `rm -rf node_modules && npm install && npx jest ...`
+- Suite completa `npm test`: ~313 tests en 27 suites; bloqueada por `CleanMyMac` que borra directorios `build/` dentro de `node_modules` (especialmente `jest-util/build`) antes de terminar
+- Mutation testing: 100% kill rate en `src/tools/figma.ts` (16/16) y `src/agents/spec-author.ts` (10/10)
+- Git working tree: limpio de archivos temporales
+- Documentación actualizada: README, quick-start, setup, testing, production, cli-mode-product, architecture, workflow, API, AGENTS, docs/index
 
 ## Notas de sesión
 

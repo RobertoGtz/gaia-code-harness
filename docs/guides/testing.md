@@ -19,7 +19,7 @@
 Tests unitarios internos que no requieren servidor ni Postgres ni LLM:
 
 ```bash
-npm test                  # corre toda la suite Jest (~283 tests, 22 suites)
+npm test                  # corre toda la suite Jest (~313 tests, 27 suites)
 npm test -- --watch       # modo watch durante desarrollo
 npm test -- webhook       # filtra por nombre de suite
 npm test -- ios-skill     # solo el skill de iOS
