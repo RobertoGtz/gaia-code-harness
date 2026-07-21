@@ -313,3 +313,42 @@ Objetivo: cuando un job tenga `figmaUrl`, `SpecAuthorAgent` debe leer el diseño
     - FAQ extensa para la audiencia (reemplazo devs, scope, seguridad, TDD, mutation testing, Jira/Slack, repos privados).
     - Comandos rápidos ampliados.
   - Agregada sección "Intro 0 — Presentar el proyecto GAIA Code Harness" con qué decir, archivos clave a mostrar (`src/agents/`, `src/harness/leader.ts`, `src/plugins/`, `AGENTS.md`, `docs/engineering/workflow.md`) y explicación de cada componente.
+
+## Translation / sanitization pass (current session)
+
+Goal: translate all documentation and code touched by the CLI spec approval feature from Spanish to English, and remove company-specific references.
+
+### Files translated / updated
+
+- `src/harness/leader.ts`
+  - Fixed retry-count doc comments and error message (`3` → `5`) to match the implementation.
+- `docs/engineering/architecture.md`
+  - Translated the "Closed-loop feedback" section to English.
+- `docs/engineering/mutation-testing.md`
+  - Translated the runner comparison table and closed-loop retry paragraph to English.
+- `docs/guides/cli-mode-product.md`
+  - Full file translated to English; sanitized example repo placeholders.
+- `docs/guides/claude-mode.md`
+  - Full file translated to English.
+- `docs/guides/claude-vs-gaia-agents.md`
+  - Full file translated to English.
+- `docs/guides/demo.md`
+  - Translated the Mutation Tester FAQ entry to English.
+- `docs/guides/quick-start.md`
+  - Translated CLI mode section, retry note, and Webhook mode intro to English.
+- `API.md`
+  - Translated approve/reject spec endpoint, retry endpoint, and CLI examples to English.
+- `README.md`
+  - Translated the full README to English and sanitized repo placeholders.
+
+### Verification
+
+- `npx tsc --noEmit`: passed.
+- Jest tests: not completed — the user canceled the test run before it finished.
+- Mutation testing: not run due to test cancellation.
+
+### Pending
+
+- Complete Jest run once `CleanMyMac`/environment issue is paused.
+- Run `python3 tools/mutate.py` on touched source files if tests pass.
+- Push the resulting commit to origin.

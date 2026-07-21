@@ -500,8 +500,8 @@ Sí, si tienes `GITHUB_TOKEN` configurado. Sin él, retorna un PR mock de "dry-r
 **¿Qué es `tddMode`?**
 Cuando está activo, el Implementer aplica el ciclo **Red-Green-Refactor**: primero escribe un test que falla, luego hace que pase, repitiendo por cada escenario. Genera tests más robustos pero tarda más.
 
-**¿Qué hace el Mutation Tester?**
-Después del reviewer, el harness aplica pequeñas mutaciones (ej. `true → false`, `return null`) al código generado y verifica que los tests las detecten. Si el score es ≥ 80% el job termina. Si no, el feedback vuelve al ImplementerAgent para reforzar los tests (hasta 5 reintentos) antes de marcar `test_error`; en todos los modos el loop es automático.
+**What does the Mutation Tester do?**
+After the reviewer, the harness applies small mutations (e.g. `true → false`, `return null`) to the generated code and verifies the tests detect them. If the score is ≥ 80%, the job finishes. Otherwise, the feedback returns to the ImplementerAgent to strengthen the tests (up to 5 retries) before marking `test_error`; the loop is automatic in all modes.
 
 **¿Solo funciona con Flutter?**
 No. Soporta **Flutter**, **Flutter Web**, **iOS/Swift** y **Android/Kotlin**. Cambia `"platform"` en el request para elegir la plataforma.

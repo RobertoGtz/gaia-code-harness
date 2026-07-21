@@ -214,7 +214,7 @@ GET /jobs
 
 ---
 
-### Aprobar o rechazar Spec
+### Approve or Reject Spec
 
 ```http
 POST /jobs/:id/approve
@@ -230,45 +230,45 @@ Content-Type: application/json
 }
 ```
 
-**Response (Aprobado):**
+**Response (Approved):**
 
 ```json
 {
   "job": {
     "id": "550e8400-e29b-41d4-a716-446655440000",
     "status": "spec_approved",
-    "title": "Agregar banner de promociones"
+    "title": "Add promotional banner"
   }
 }
 ```
 
-**Response (Rechazado con feedback):**
+**Response (Rejected with feedback):**
 
 ```json
 {
   "job": {
     "id": "550e8400-e29b-41d4-a716-446655440000",
     "status": "spec_generating",
-    "specFeedback": "Necesita incluir analytics",
-    "title": "Agregar banner de promociones"
+    "specFeedback": "Needs to include analytics",
+    "title": "Add promotional banner"
   }
 }
 ```
 
-> Si `approved: false`, el spec se regenera usando `feedback`. Máximo 5 reintentos; superado el límite devuelve `400`.
+> If `approved: false`, the spec is regenerated using `feedback`. Maximum 5 retries; exceeding the limit returns `400`.
 
 ---
 
-### Reintentar Job
+### Retry Job
 
 ```http
 POST /jobs/:id/retry
 ```
 
-**Notas:**
+**Notes:**
 
-- Funciona para cualquier estado de error: `failed`, `env_error`, `repo_error`, `build_error`, `test_error`, `review_error`, `spec_error`
-- Reinicia el flujo desde `pending`
+- Works for any error status: `failed`, `env_error`, `repo_error`, `build_error`, `test_error`, `review_error`, `spec_error`
+- Restarts the flow from `pending`
 
 **Response:**
 
@@ -277,7 +277,7 @@ POST /jobs/:id/retry
   "job": {
     "id": "550e8400-e29b-41d4-a716-446655440000",
     "status": "pending",
-    "title": "Agregar banner de promociones"
+    "title": "Add promotional banner"
   }
 }
 ```
@@ -509,33 +509,33 @@ Configura una o más variables en `.env` para activar notificaciones de salida:
 Alternativa sin servidor HTTP. Usa un `DiskBackend` (JSON en `progress/`) en lugar de Postgres.
 
 ```bash
-# Listar jobs
+# List jobs
 npx ts-node src/cli/run.ts --list
 
-# Crear y correr un job desde archivo JSON
+# Create and run a job from a JSON file
 npx ts-node src/cli/run.ts --job job.json
 
-# Crear y aprobar spec automáticamente (sin pausa)
+# Create and auto-approve spec (no pause)
 npx ts-node src/cli/run.ts --job job.json --approve
 
-# Crear y rechazar spec con feedback para regenerarlo
-npx ts-node src/cli/run.ts --job job.json --reject "Necesita incluir analytics"
+# Create and reject spec with feedback to regenerate it
+npx ts-node src/cli/run.ts --job job.json --reject "Needs to include analytics"
 
-# Activar TDD (Red-Green-Refactor)
+# Enable TDD (Red-Green-Refactor)
 npx ts-node src/cli/run.ts --job job.json --tdd --approve
 
-# Crear job directo desde ticket Jira
+# Create job directly from a Jira ticket
 npx ts-node src/cli/run.ts --jira PROJ-123 --approve
 npx ts-node src/cli/run.ts --jira PROJ-123 --tdd --approve
 
-# Retomar job existente
+# Resume existing job
 npx ts-node src/cli/run.ts --id <uuid>
 
-# Rechazar spec de un job existente (máximo 5 reintentos)
-npx ts-node src/cli/run.ts --id <uuid> --reject "Necesita más detalle en el caso de error"
+# Reject spec of an existing job (maximum 5 retries)
+npx ts-node src/cli/run.ts --id <uuid> --reject "Needs more detail on the error case"
 ```
 
-El `job.json` acepta los mismos campos que `POST /jobs` body flat (incluido `tddMode` y `buildStrategy`).
+`job.json` accepts the same fields as the flat `POST /jobs` body (including `tddMode` and `buildStrategy`).
 
 ---
 

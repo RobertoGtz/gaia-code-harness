@@ -380,11 +380,11 @@ async function handleSpecGenerating(job: CodeGenerationJob): Promise<void> {
 /**
  * Handler for 'implementing' state.
  * Executes ImplementerAgent to modify code according to approved spec.
- * Includes retry logic: attempts up to 3 times on failure.
+ * Includes retry logic: attempts up to 5 times on failure.
  * Steps: verify platform env → create branch → resolve deps → write code → tests → commit & push.
  * 
  * @param job - The job with approved spec
- * @throws Error after 3 failed retries
+ * @throws Error after 5 failed retries
  * @example
  * await handleImplementing(job);
  * // Modifies files, runs tests, commits changes
@@ -735,7 +735,7 @@ function printErrorBox(job: CodeGenerationJob, ctx: ErrorContext): void {
     ENV_ERROR:    'Install/configure the platform toolchain, then retry (POST /jobs/:id/retry  |  --id <id>)',
     REPO_ERROR:   'Check GITHUB_TOKEN, repo name, branch permissions, then retry (POST /jobs/:id/retry  |  --id <id>)',
     BUILD_ERROR:  'Fix pubspec.yaml / build.gradle / Package.swift, then retry (POST /jobs/:id/retry  |  --id <id>)',
-    TEST_ERROR:   'Tests retried automatically (up to 3x). If still failing: POST /jobs/:id/retry  |  --id <id>',
+    TEST_ERROR:   'Tests retried automatically (up to 5x). If still failing: POST /jobs/:id/retry  |  --id <id>',
     REVIEW_ERROR: 'Check PR constraints (maxFilesToTouch, spec presence), then retry (POST /jobs/:id/retry  |  --id <id>)',
     SPEC_ERROR:   'Check LLM API keys and acceptance criteria, then retry (POST /jobs/:id/retry  |  --id <id>)',
     UNKNOWN:      'Check server logs, then retry (POST /jobs/:id/retry  |  --id <id>)',

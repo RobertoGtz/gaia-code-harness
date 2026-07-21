@@ -1,38 +1,38 @@
-# Modo `.claude` — Guía de uso
+# `.claude` Mode — User Guide
 
-> Cómo usar GAIA desde Claude Code: agentes conversacionales, aprobación humana y el slash command `/gaia_code_generator`.
+> How to use GAIA from Claude Code: conversational agents, human approval, and the `/gaia_code_generator` slash command.
 
 ---
 
-## ¿Qué es el modo `.claude`?
+## What is `.claude` mode?
 
-El **modo `.claude`** es la forma de trabajar con GAIA directamente dentro de Claude Code. En lugar de ejecutar un comando de terminal o llamar a una API, le pides a Claude que coordine el pipeline usando los archivos de `.claude/agents/`.
+**`.claude` mode** is the way to work with GAIA directly inside Claude Code. Instead of running a terminal command or calling an API, you ask Claude to coordinate the pipeline using the files in `.claude/agents/`.
 
-Es el modo más **artesanal** y con mayor control humano.
+It is the most **artisan** mode and offers the most human control.
 
-## ¿Cómo se compara con los otros modos?
+## How does it compare to the other modes?
 
-| Modo          | ¿Cómo arranca?                              | Orquestador                    | Aprobación de spec               |
-| ------------- | ------------------------------------------- | ------------------------------ | -------------------------------- |
-| **HTTP API**  | `POST /jobs`                                | Servidor + `leader.ts`         | `POST /jobs/:id/approve`                              |
-| **CLI**       | `npx ts-node src/cli/run.ts --job job.json` | `src/cli/run.ts` + `leader.ts` | `--approve` o `--reject "feedback"`                 |
-| **Webhook**   | `POST /webhook/trigger`                     | Servidor + `leader.ts`         | Pausa en `spec_ready`; `POST /jobs/:id/approve`       |
-| **`.claude`** | Conversación con Claude Code                | `craftsman_lead` + subagentes  | Siempre pausa después de Gherkin                    |
+| Mode          | How it starts                               | Orchestrator                   | Spec approval                        |
+| ------------- | ------------------------------------------- | ------------------------------ | ------------------------------------ |
+| **HTTP API**  | `POST /jobs`                                | Server + `leader.ts`           | `POST /jobs/:id/approve`             |
+| **CLI**       | `npx ts-node src/cli/run.ts --job job.json` | `src/cli/run.ts` + `leader.ts` | `--approve` or `--reject "feedback"` |
+| **Webhook**   | `POST /webhook/trigger`                     | Server + `leader.ts`           | Pause at `spec_ready`; `POST /jobs/:id/approve` |
+| **`.claude`** | Conversation with Claude Code               | `craftsman_lead` + subagents   | Always pauses after Gherkin          |
 
-## ¿Cuándo usar `.claude`?
+## When should I use `.claude`?
 
-- La feature es ambigua y necesita conversación para entenderla.
-- Quieres revisar y aprobar cada escenario Gherkin antes de que se escriba código.
-- Estás depurando GAIA, afinando prompts o probando nuevos agentes.
-- Prefieres un control manual paso a paso sobre automatización total.
+- The feature is ambiguous and needs conversation to understand it.
+- You want to review and approve each Gherkin scenario before code is written.
+- You are debugging GAIA, tuning prompts, or testing new agents.
+- You prefer manual step-by-step control over full automation.
 
-## Estructura de `.claude/`
+## `.claude/` structure
 
 ```
 .claude/
-├── identity.json              ← Estilo y dominios técnicos de Claude Code
-├── package-manager.json       ← Gestor de paquetes del proyecto
-├── agents/                    ← Instrucciones de los 6 subagentes
+├── identity.json              ← Claude Code style and technical domains
+├── package-manager.json       ← Project package manager
+├── agents/                    ← Instructions for the 6 subagents
 │   ├── craftsman_lead.md
 │   ├── spec_partner.md
 │   ├── gherkin_author.md
@@ -40,123 +40,123 @@ Es el modo más **artesanal** y con mayor control humano.
 │   ├── judge.md
 │   └── mutation_tester.md
 ├── .claude/commands/
-│   └── gaia_code_generator.md ← Slash command `/gaia_code_generator` para lanzar CLI Mode
+│   └── gaia_code_generator.md ← Slash command `/gaia_code_generator` to launch CLI Mode
 ├── .windsurf/commands/
-│   └── gaia_code_generator.md ← Instrucciones equivalentes para Windsurf
+│   └── gaia_code_generator.md ← Equivalent instructions for Windsurf
 ├── .kiro/commands/
-│   └── gaia_code_generator.md ← Instrucciones equivalentes para Kiro
+│   └── gaia_code_generator.md ← Equivalent instructions for Kiro
 ├── rules/
-│   └── security-and-conventions.md  ← Guardrails de seguridad + convenciones
+│   └── security-and-conventions.md  ← Security guardrails + conventions
 ├── skills/gaia/
-│   └── SKILL.md              ← Knowledge base del proyecto
+│   └── SKILL.md              ← Project knowledge base
 ├── team/
-│   └── gaia-team-config.json ← Config compartida de recursos
-├── workflows/                ← Procedimientos multi-paso
+│   └── gaia-team-config.json ← Shared resource config
+├── workflows/                ← Multi-step procedures
 │   ├── security-review.md
 │   ├── release-checklist.md
 │   └── add-new-platform.md
 └── research/
-    └── gaia-research-playbook.md  ← Investigación estructurada antes de specs
+    └── gaia-research-playbook.md  ← Structured research before specs
 ```
 
-## Cómo arrancar
+## How to start
 
-1. Abre Claude Code en el repositorio `gaia-code-harness`.
-2. `CLAUDE.md` se carga automáticamente: Claude actúa como `craftsman_lead`.
-3. Pide la siguiente tarea pendiente, por ejemplo:
+1. Open Claude Code in the `gaia-code-harness` repository.
+2. `CLAUDE.md` loads automatically: Claude acts as `craftsman_lead`.
+3. Ask for the next pending task, for example:
 
 ```
-Implementa la siguiente feature pendiente
+Implement the next pending feature
 ```
 
-4. Claude leerá `AGENTS.md`, `feature_list.json` y `progress/current.md`, ejecutará `./init.sh` y seguirá el pipeline.
+4. Claude will read `AGENTS.md`, `feature_list.json`, and `progress/current.md`, run `./init.sh`, and follow the pipeline.
 
-## El pipeline del modo `.claude`
+## The `.claude` mode pipeline
 
 ```
 pending
-  → [spec_partner]     conversa y escribe project-spec.md
-  → [gherkin_author]   destila features/<name>.feature
-  → ⏸ HUMANO APRUEBA los escenarios Gherkin
+  → [spec_partner]     discusses and writes project-spec.md
+  → [gherkin_author]   distills features/<name>.feature
+  → ⏸ HUMAN APPROVES the Gherkin scenarios
   → in_progress
-  → [tdd_craftsman]    implementa con TDD estricto (o bulk si tddMode=false)
-  → [judge]            revisa calidad
-  → [mutation_tester]  valida mutación ≥ 80%
+  → [tdd_craftsman]    implements with strict TDD (or bulk if tddMode=false)
+  → [judge]            reviews quality
+  → [mutation_tester]  validates mutation ≥ 80%
   → done
 ```
 
-La **única puerta de aprobación humana** está después de los escenarios Gherkin. Antes de escribir producción, el humano debe aprobar el `.feature`.
+The **only human approval gate** is after the Gherkin scenarios. Before writing production code, the human must approve the `.feature`.
 
-## Los agentes y sus equivalentes en GAIA
+## Agents and their GAIA equivalents
 
-| Fase           | Agente `.claude`  | Equivalente GAIA TypeScript            | Artefacto                       |
-| -------------- | ----------------- | -------------------------------------- | ------------------------------- |
-| Spec           | `spec_partner`    | `SpecAuthorAgent`                      | `project-spec.md`               |
-| Gherkin        | `gherkin_author`  | `SpecAuthorAgent` (2ª LLM call)        | `features/<name>.feature`       |
-| Aprobación     | `craftsman_lead`  | `--approve` / `POST /jobs/:id/approve` | —                               |
-| Implementación | `tdd_craftsman`   | `ImplementerAgent.executeTDD()`        | `src/` + `tests/` del workspace |
-| Review         | `judge`           | `ReviewerAgent`                        | `progress/judge_<name>.md`      |
-| Mutación       | `mutation_tester` | `MutationTesterAgent`                  | `progress/mutation_<name>.md`   |
+| Phase           | `.claude` agent   | GAIA TypeScript equivalent             | Artifact                        |
+| --------------- | ----------------- | -------------------------------------- | ------------------------------- |
+| Spec            | `spec_partner`    | `SpecAuthorAgent`                      | `project-spec.md`               |
+| Gherkin         | `gherkin_author`  | `SpecAuthorAgent` (2nd LLM call)       | `features/<name>.feature`       |
+| Approval        | `craftsman_lead`  | `--approve` / `POST /jobs/:id/approve` | —                               |
+| Implementation  | `tdd_craftsman`   | `ImplementerAgent.executeTDD()`        | `src/` + `tests/` of the workspace |
+| Review          | `judge`           | `ReviewerAgent`                        | `progress/judge_<name>.md`      |
+| Mutation        | `mutation_tester` | `MutationTesterAgent`                  | `progress/mutation_<name>.md`   |
 
 ## Slash command `/gaia_code_generator`
 
-Si prefieres que el mismo pipeline corra de forma automática (como CLI Mode) pero sin salir de Claude Code, usa el slash command:
+If you prefer the same pipeline to run automatically (like CLI Mode) but without leaving Claude Code, use the slash command:
 
 ```
 /gaia_code_generator --job job.json --approve
 ```
 
-o, para la siguiente feature pendiente:
+or, for the next pending feature:
 
 ```
 /gaia_code_generator
 ```
 
-Este comando invoca `src/cli/run.ts`, por lo que **usa los mismos agentes TypeScript** de GAIA pero desde el chat. Es la forma de alternar entre control manual y ejecución automática sin cambiar de herramienta.
+This command invokes `src/cli/run.ts`, so it **uses the same GAIA TypeScript agents** but from chat. It is the way to alternate between manual control and automatic execution without switching tools.
 
-## Configuración, skills y workflows adicionales
+## Configuration, skills, and additional workflows
 
-Además de agentes y commands, el modo `.claude` cuenta con recursos compartidos:
+In addition to agents and commands, `.claude` mode has shared resources:
 
-| Recurso                                      | Qué es                      | Para qué sirve                                                        |
+| Resource                                     | What it is                  | What it is for                                                        |
 | -------------------------------------------- | --------------------------- | --------------------------------------------------------------------- |
-| `.claude/identity.json`                      | Perfil técnico y de estilo  | Claude arranca con el contexto correcto sin preguntar.                |
-| `.claude/package-manager.json`               | Gestor de paquetes (`npm`)  | Instalación/actualización de dependencias.                            |
-| `.claude/rules/security-and-conventions.md`  | Guardrails + convenciones   | Seguridad, commits convencionales, TDD, no tocar `src/` directamente. |
-| `.claude/skills/gaia/SKILL.md`               | Knowledge base del proyecto | Contexto profundo de arquitectura, modos y pipeline.                  |
-| `.claude/team/gaia-team-config.json`         | Catálogo de recursos        | Documenta skills, commands, rules y agents activos.                   |
-| `.claude/workflows/`                         | Procedimientos multi-paso   | `security-review`, `release-checklist`, `add-new-platform`.           |
-| `.claude/research/gaia-research-playbook.md` | Guía de investigación       | Antes de escribir specs para features ambiguas.                       |
+| `.claude/identity.json`                      | Technical and style profile | Claude starts with the right context without asking.                  |
+| `.claude/package-manager.json`               | Package manager (`npm`)     | Installing/updating dependencies.                                     |
+| `.claude/rules/security-and-conventions.md`  | Guardrails + conventions    | Security, conventional commits, TDD, do not touch `src/` directly.     |
+| `.claude/skills/gaia/SKILL.md`               | Project knowledge base      | Deep context on architecture, modes, and pipeline.                    |
+| `.claude/team/gaia-team-config.json`         | Resource catalog            | Documents active skills, commands, rules, and agents.                 |
+| `.claude/workflows/`                         | Multi-step procedures       | `security-review`, `release-checklist`, `add-new-platform`.           |
+| `.claude/research/gaia-research-playbook.md` | Research guide              | Before writing specs for ambiguous features.                            |
 
-## Reglas duras del modo `.claude`
+## Hard rules of `.claude` mode
 
-- **Una sola feature a la vez.** No mezcles cambios de varias tareas.
-- **No declares `done`** sin `judge` aprobado y mutación ≥ 80%.
-- **No saltes la aprobación humana** sobre los `.feature`.
-- **No edites `src/` ni `tests/` directamente**; delega al agente correspondiente.
-- Cada subagente debe **escribir sus resultados en disco** (`project-spec.md`, `.feature`, `progress/*.md`).
+- **One feature at a time.** Do not mix changes from multiple tasks.
+- **Do not declare `done`** without `judge` approval and mutation ≥ 80%.
+- **Do not skip human approval** of `.feature` files.
+- **Do not edit `src/` or `tests/` directly**; delegate to the corresponding agent.
+- Each subagent must **write its results to disk** (`project-spec.md`, `.feature`, `progress/*.md`).
 
-## Ejemplo de flujo completo
+## Full flow example
 
 ```
-Usuario: Implementa la siguiente feature pendiente
-Claude:  La siguiente feature es "Handle SummaryFormSuccess". Arranco con spec_partner...
-         → project-spec.md actualizado.
-Claude:  Ahora gherkin_author destilará los escenarios...
-         → features/handle-summary-form-success.feature creado.
-Claude:  Escenarios listos. Léelos y dime "aprobado" para continuar.
-Usuario: aprobado
-Claude:  [tdd_craftsman] implementando...
-Claude:  [judge] revisando...
-Claude:  [mutation_tester] corriendo mutación...
-Claude:  Feature done. PR: https://github.com/...
+User: Implement the next pending feature
+Claude: The next feature is "Handle SummaryFormSuccess". Starting with spec_partner...
+         → project-spec.md updated.
+Claude: Now gherkin_author will distill the scenarios...
+         → features/handle-summary-form-success.feature created.
+Claude: Scenarios ready. Read them and say "approved" to continue.
+User: approved
+Claude: [tdd_craftsman] implementing...
+Claude: [judge] reviewing...
+Claude: [mutation_tester] running mutation...
+Claude: Feature done. PR: https://github.com/...
 ```
 
-## Relación con otros documentos
+## Relationship with other documents
 
-- `CLAUDE.md` — instrucciones que Claude lee al arrancar (entry point del modo `.claude`).
-- `AGENTS.md` — mapa completo de archivos, reglas y pipeline.
-- `docs/engineering/workflow.md` — pipeline de las 5 fases y mapeo con HTTP/CLI/Webhook.
-- `docs/guides/cli-mode-product.md` — guía del CLI Mode para producto.
-- `docs/guides/claude-vs-gaia-agents.md` — cuándo usar `.claude/agents` vs GAIA agents.
-- `.claude/research/gaia-research-playbook.md` — investigación estructurada antes de escribir specs.
+- `CLAUDE.md` — instructions Claude reads on startup (entry point of `.claude` mode).
+- `AGENTS.md` — complete map of files, rules, and pipeline.
+- `docs/engineering/workflow.md` — 5-phase pipeline and mapping with HTTP/CLI/Webhook.
+- `docs/guides/cli-mode-product.md` — CLI Mode product guide.
+- `docs/guides/claude-vs-gaia-agents.md` — when to use `.claude/agents` vs GAIA agents.
+- `.claude/research/gaia-research-playbook.md` — structured research before writing specs.

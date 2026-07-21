@@ -218,25 +218,25 @@ Verás el link al Pull Request en GitHub.
 
 ### Reintento en caso de error
 
-Si el job falló (`test_error`, `build_error`, etc.):
+If the job failed (`test_error`, `build_error`, etc.):
 
-**Modo A / C (HTTP API / Webhook):**
-
-```bash
-curl -s -X POST http://localhost:3000/jobs/TU_JOB_ID/retry | python3 -m json.tool
-```
-
-**Modo B (CLI):**
+**Mode A / C (HTTP API / Webhook):**
 
 ```bash
-npx ts-node src/cli/run.ts --id TU_JOB_ID --retry
+curl -s -X POST http://localhost:3000/jobs/YOUR_JOB_ID/retry | python3 -m json.tool
 ```
 
-> En Modo B los loops de feedback son automáticos igual que en Modo A/C. El flag `--retry` sirve para reintentar manualmente después de agotar los reintentos automáticos o para forzar un nuevo intento desde `review_error`, `test_error` o `failed`.
+**Mode B (CLI):**
 
-### Usando el script de demo automático
+```bash
+npx ts-node src/cli/run.ts --id YOUR_JOB_ID --retry
+```
 
-Si no quieres hacer todos los pasos a mano, el script lo hace todo solo:
+> In Mode B, feedback loops are automatic just like in Modes A/C. The `--retry` flag is used to retry manually after automatic retries are exhausted, or to force a new attempt from `review_error`, `test_error`, or `failed`.
+
+### Using the automatic demo script
+
+If you don't want to do every step manually, the script does it all:
 
 ```bash
 ./scripts/demo.sh flutter a   # HTTP API + Flutter
@@ -246,22 +246,22 @@ Si no quieres hacer todos los pasos a mano, el script lo hace todo solo:
 
 ---
 
-## Modo B — CLI
+## Mode B — CLI
 
-**Ideal para:** desarrolladores que quieren correr el sistema localmente sin levantar servidor ni base de datos.
+**Best for:** developers who want to run the system locally without starting a server or database.
 
-El modo CLI usa archivos en disco en lugar de Postgres. No necesitas Docker ni un servidor corriendo.
+CLI mode uses disk files instead of Postgres. You don't need Docker or a running server.
 
-### Paso 1: Preparar un archivo de job
+### Step 1: Prepare a job file
 
-Crea un archivo JSON con la descripción de lo que quieres, por ejemplo `mi-job.json`:
+Create a JSON file with the description of what you want, for example `my-job.json`:
 
 ```json
 {
   "platform": "flutter",
   "title": "Add promotional banner to home screen",
   "jiraTicketId": "DEMO-100",
-  "repo": "mi-org/demo-repo",
+  "repo": "my-org/demo-repo",
   "targetBranch": "develop",
   "requireTests": false,
   "maxFilesToTouch": 6,
@@ -273,89 +273,89 @@ Crea un archivo JSON con la descripción de lo que quieres, por ejemplo `mi-job.
 }
 ```
 
-Plataformas disponibles: `flutter`, `flutter_web`, `ios`, `android`
+Available platforms: `flutter`, `flutter_web`, `ios`, `android`
 
-### Paso 2: Correr el job
-
-```bash
-npx ts-node src/cli/run.ts --job mi-job.json
-```
-
-El CLI imprime el progreso en la terminal en tiempo real:
-
-```
-[SpecAuthor] Analizando repositorio...
-[SpecAuthor] Generando spec...
-[SpecAuthor] Spec lista — status: spec_ready
-```
-
-### Paso 3: Aprobar el spec (o auto-aprobar)
-
-**Opción manual:** el CLI pausa y espera. Corre en otra terminal:
+### Step 2: Run the job
 
 ```bash
-# Aprobar
-npx ts-node src/cli/run.ts --id TU_JOB_ID --approve
-
-# Rechazar con feedback (máximo 5 reintentos)
-npx ts-node src/cli/run.ts --id TU_JOB_ID --reject "Necesita incluir analytics"
+npx ts-node src/cli/run.ts --job my-job.json
 ```
 
-**Opción auto-aprobación (ideal para demos):** agrega `--approve` al comando original y el spec se aprueba automáticamente:
+The CLI prints progress to the terminal in real time:
+
+```
+[SpecAuthor] Analyzing repository...
+[SpecAuthor] Generating spec...
+[SpecAuthor] Spec ready — status: spec_ready
+```
+
+### Step 3: Approve the spec (or auto-approve)
+
+**Manual option:** the CLI pauses and waits. Run in another terminal:
 
 ```bash
-npx ts-node src/cli/run.ts --job mi-job.json --approve
+# Approve
+npx ts-node src/cli/run.ts --id YOUR_JOB_ID --approve
+
+# Reject with feedback (maximum 5 retries)
+npx ts-node src/cli/run.ts --id YOUR_JOB_ID --reject "Needs to include analytics"
 ```
 
-> Con `--approve`, el pipeline corre de punta a punta sin intervención manual.
-
-**Modo TDD (Red-Green-Refactor):** agrega `--tdd` para activar el ciclo rojo-verde por test:
+**Auto-approval option (ideal for demos):** add `--approve` to the original command and the spec is approved automatically:
 
 ```bash
-npx ts-node src/cli/run.ts --job mi-job.json --tdd --approve
+npx ts-node src/cli/run.ts --job my-job.json --approve
 ```
 
-### Paso 4: Usar con Jira directamente
+> With `--approve`, the pipeline runs end to end without manual intervention.
 
-Si tienes las variables de Jira en `.env`, puedes crear un job directamente desde un ticket:
+**TDD mode (Red-Green-Refactor):** add `--tdd` to activate the red-green cycle per test:
+
+```bash
+npx ts-node src/cli/run.ts --job my-job.json --tdd --approve
+```
+
+### Step 4: Use with Jira directly
+
+If you have the Jira variables in `.env`, you can create a job directly from a ticket:
 
 ```bash
 npx ts-node src/cli/run.ts --jira PROJ-123 --approve
-npx ts-node src/cli/run.ts --jira PROJ-123 --tdd --approve  # con TDD
+npx ts-node src/cli/run.ts --jira PROJ-123 --tdd --approve  # with TDD
 ```
 
-El sistema lee el título, descripción y criterios de aceptación de Jira automáticamente.
+The system reads the title, description, and acceptance criteria from Jira automatically.
 
-### Paso 5: Ver jobs previos
+### Step 5: View previous jobs
 
 ```bash
 npx ts-node src/cli/run.ts --list
 ```
 
-Ver detalles de un job específico:
+View details of a specific job:
 
 ```bash
-npx ts-node src/cli/run.ts --id TU_JOB_ID
+npx ts-node src/cli/run.ts --id YOUR_JOB_ID
 ```
 
-Reintentar un job fallido (`review_error`, `test_error`, `failed`):
+Retry a failed job (`review_error`, `test_error`, `failed`):
 
 ```bash
-npx ts-node src/cli/run.ts --id TU_JOB_ID --retry
+npx ts-node src/cli/run.ts --id YOUR_JOB_ID --retry
 ```
 
-### Estado guardado en disco
+### Saved state on disk
 
-El CLI guarda los jobs en `progress/`:
+The CLI saves jobs in `progress/`:
 
 ```
 progress/
-  56bdcf05-8d56-494f-bfaa-aa4a68e6a26d.md   ← log de progreso
+  56bdcf05-8d56-494f-bfaa-aa4a68e6a26d.md   ← progress log
   .state/
-    56bdcf05-8d56-494f-bfaa-aa4a68e6a26d.json  ← estado del job
+    56bdcf05-8d56-494f-bfaa-aa4a68e6a26d.json  ← job state
 ```
 
-### Usando el script de demo automático
+### Using the automatic demo script
 
 ```bash
 ./scripts/demo.sh flutter b   # CLI + Flutter
@@ -365,13 +365,13 @@ progress/
 
 ---
 
-## Modo C — Webhook
+## Mode C — Webhook
 
-**Ideal para:** integraciones con Jira, Slack o cualquier sistema externo que envíe eventos.
+**Best for:** integrations with Jira, Slack, or any external system that sends events.
 
-En este modo, un sistema externo llama al endpoint `POST /webhook/trigger` y el job arranca automáticamente.
+In this mode, an external system calls the `POST /webhook/trigger` endpoint and the job starts automatically.
 
-> **Diferencia clave vs. Modo A:** El webhook inicia el job, pero el pipeline se detiene en `spec_ready` igual que en Modo A; se aprueba/rechaza con `POST /jobs/:id/approve`. El webhook solo automatiza el *disparo*, no la aprobación del spec.
+> **Key difference vs. Mode A:** The webhook initiates the job, but the pipeline still pauses at `spec_ready` just like in Mode A; it is approved/rejected with `POST /jobs/:id/approve`. The webhook only automates the *trigger*, not the spec approval.
 
 ### Paso 1: Levantar el servidor (mismo que Modo A)
 

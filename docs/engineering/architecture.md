@@ -209,7 +209,7 @@ MutationTesterAgent (automatic, post-review):
 
 ### Closed-loop feedback
 
-Cuando `ImplementerAgent` devuelve `test_error` durante la implementación, cuando `ReviewerAgent` devuelve `REVIEW_ERROR` o `TEST_ERROR`, o cuando `MutationTesterAgent` detecta mutaciones sobrevivientes, el `Leader` no solo marca el job como fallido: persiste el feedback en `reviewFeedback` del job y vuelve a `implementing`. `ImplementerAgent` inyecta ese feedback en su system prompt en la siguiente iteración. Máximo 5 reintentos en cada loop (implementación, `REVIEW_ERROR` / `TEST_ERROR` y `MutationTester`) antes de entrar en estado de error granular (`review_error` / `test_error`).
+When `ImplementerAgent` returns `test_error` during implementation, when `ReviewerAgent` returns `REVIEW_ERROR` or `TEST_ERROR`, or when `MutationTesterAgent` detects surviving mutants, the `Leader` does not simply mark the job as failed: it persists the feedback in the job's `reviewFeedback` and returns to `implementing`. `ImplementerAgent` injects that feedback into its system prompt on the next iteration. Each loop allows up to 5 retries (implementation, `REVIEW_ERROR` / `TEST_ERROR`, and `MutationTester`) before entering a granular error state (`review_error` / `test_error`).
 
 ---
 

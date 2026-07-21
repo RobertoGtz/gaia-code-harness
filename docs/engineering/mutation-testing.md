@@ -99,21 +99,21 @@ python3 tools/mutate.py src/agents/implementer.ts \
 
 ## Quién hace qué
 
-| Modo             | Quién ejecuta                                | Efecto si score < 80%                                         |
+| Mode             | Runner                                       | Effect when score < 80%                                       |
 | ---------------- | -------------------------------------------- | ------------------------------------------------------------- |
-| **Claude Code**  | agente `mutation_tester` (humano en el loop) | Bloquea; vuelve a `tdd_craftsman`                             |
-| **A — HTTP API** | `MutationTesterAgent.ts` (automático)        | Closed-loop: feedback a `ImplementerAgent` (≤ 5×)             |
-| **B — CLI**      | `MutationTesterAgent.ts` (automático)      | Closed-loop: feedback a `ImplementerAgent` (≤ 5×)             |
-| **C — Webhook**  | `MutationTesterAgent.ts` (automático)       | Closed-loop: feedback a `ImplementerAgent` (≤ 5×)             |
+| **Claude Code**  | `mutation_tester` agent (human in the loop) | Blocks; returns to `tdd_craftsman`                            |
+| **A — HTTP API** | `MutationTesterAgent.ts` (automatic)         | Closed-loop: feedback to `ImplementerAgent` (≤ 5×)            |
+| **B — CLI**      | `MutationTesterAgent.ts` (automatic)           | Closed-loop: feedback to `ImplementerAgent` (≤ 5×)            |
+| **C — Webhook**  | `MutationTesterAgent.ts` (automatic)           | Closed-loop: feedback to `ImplementerAgent` (≤ 5×)            |
 
-El `mutation_tester` **mide y reporta**. No edita código directamente.
-Si un mutante sobrevive, `MutationTesterAgent.ts` devuelve `TEST_ERROR` con
-los detalles; el `Leader` persiste ese feedback en `reviewFeedback` y re-ejecuta
-`ImplementerAgent` (máximo 5 reintentos) antes de marcar el job como `test_error`.
-En cualquier modo se puede reintentar manualmente con
-`npx ts-node src/cli/run.ts --id <jobId> --retry` o `POST /jobs/:id/retry`.
-Un mutante sobreviviente es trabajo del implementador: escribe el test
-rojo que lo mata y vuelve a pasar por el `judge`/reviewer.
+`mutation_tester` **measures and reports**. It does not edit code directly.
+If a mutant survives, `MutationTesterAgent.ts` returns `TEST_ERROR` with the
+details; the `Leader` persists that feedback in `reviewFeedback` and re-runs
+`ImplementerAgent` (up to 5 retries) before marking the job as `test_error`.
+In any mode you can retry manually with
+`npx ts-node src/cli/run.ts --id <jobId> --retry` or `POST /jobs/:id/retry`.
+A surviving mutant is the implementer's job: write the red test that kills it
+and run it through the `judge`/reviewer again.
 
 ---
 

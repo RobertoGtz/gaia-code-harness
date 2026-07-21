@@ -1,96 +1,96 @@
-# ¿Cuándo usar GAIA agents vs `.claude/agents`?
+# When to use GAIA agents vs `.claude/agents`
 
-> Guía rápida para decidir si usar el pipeline automatizado de GAIA (TypeScript) o los agentes manuales de Claude Code (`.claude/agents/`).
+> Quick guide to decide whether to use GAIA's automated pipeline (TypeScript) or Claude Code's manual agents (`.claude/agents/`).
 
 ---
 
 ## TL;DR
 
-No son excluyentes. **GAIA agents** (`src/agents/` + `src/harness/leader.ts`) son mejores para trabajo repetible, automático y trazable. **`.claude/agents/`** son mejores para exploración, especificaciones ambiguas y control humano paso a paso.
+They are not mutually exclusive. **GAIA agents** (`src/agents/` + `src/harness/leader.ts`) are best for repeatable, automatic, and traceable work. **`.claude/agents/`** are best for exploration, ambiguous specs, and step-by-step human control.
 
-La forma más práctica de combinarlos es el slash command `/gaia_code_generator` (`.claude/commands/gaia_code_generator.md`), que lanza el pipeline de GAIA desde Claude Code.
+The most practical way to combine them is the `/gaia_code_generator` slash command (`.claude/commands/gaia_code_generator.md`), which launches the GAIA pipeline from Claude Code.
 
 ---
 
-## Comparación directa
+## Direct comparison
 
-| Criterio | **GAIA agents (TypeScript)** | **`.claude/agents/` (prompts)** |
+| Criterion | **GAIA agents (TypeScript)** | **`.claude/agents/` (prompts)** |
 |---|---|---|
-| **Orquestación** | Automática vía `src/harness/leader.ts` | Manual; el humano actúa como `craftsman_lead` |
-| **Backend de estado** | `DiskBackend` / `PostgresBackend` | Ninguno estructurado; solo `feature_list.json` + markdown |
-| **Persistencia** | El job sobrevive a reinicios y caídas | El estado vive en el chat y en archivos sueltos |
-| **Aprobación humana** | `--approve` / `--reject "feedback"` puede saltar o regenerar la puerta | Siempre se respeta la pausa después de Gherkin |
-| **Retry / loop cerrado** | Automático en todos los modos: `ReviewerAgent` → `ImplementerAgent` | Manual; el humano relanza agentes |
-| **Repetibilidad** | Alta: mismo `job.json` → mismo resultado | Baja; depende del hilo conversacional |
-| **Control de calidad** | Mutation testing integrado, score ≥ 80% | Depende de que el humano lo pida |
-| **Ambigüedad** | Necesita un spec claro para no fallar | Excelente para explorar y pivotear |
-| **Costo y velocidad** | Más barato y rápido en CI / batch | Más lento por ciclos de chat |
-| **Observabilidad** | Logs, estados y archivos de progreso estructurados | Chat disperso |
-| **Testeabilidad** | Se puede unit-testear (`tests/*.test.ts`) | Solo validación empírica |
-| **Mantenimiento** | Código tipado, refactor fácil | Editar markdowns y probar a mano |
-| **LLM context control** | Prompts de sistema + `handoff.md` | Conversacional; riesgo de “teléfono descompuesto” |
+| **Orchestration** | Automatic via `src/harness/leader.ts` | Manual; the human acts as `craftsman_lead` |
+| **State backend** | `DiskBackend` / `PostgresBackend` | No structured backend; only `feature_list.json` + markdown |
+| **Persistence** | Job survives restarts and crashes | State lives in the chat and loose files |
+| **Human approval** | `--approve` / `--reject "feedback"` can skip or regenerate the gate | The pause after Gherkin is always respected |
+| **Retry / closed loop** | Automatic in all modes: `ReviewerAgent` → `ImplementerAgent` | Manual; the human relaunches agents |
+| **Repeatability** | High: same `job.json` → same result | Low; depends on the conversation thread |
+| **Quality control** | Integrated mutation testing, score ≥ 80% | Depends on the human asking for it |
+| **Ambiguity** | Needs a clear spec to avoid failure | Excellent for exploring and pivoting |
+| **Cost and speed** | Cheaper and faster in CI / batch | Slower due to chat cycles |
+| **Observability** | Logs, statuses, and structured progress files | Scattered chat |
+| **Testability** | Unit-testable (`tests/*.test.ts`) | Only empirical validation |
+| **Maintenance** | Typed code, easy refactoring | Edit markdowns and test manually |
+| **LLM context control** | System prompts + `handoff.md` | Conversational; risk of “broken telephone” |
 
 ---
 
-## Mapeo de agentes
+## Agent mapping
 
-Ambos mundos usan **los mismos roles**, solo que uno los ejecuta como clases TypeScript y el otro como instrucciones de prompt:
+Both worlds use **the same roles**, but one runs them as TypeScript classes and the other as prompt instructions:
 
-| Fase | `.claude/agents/` | GAIA TypeScript | Artefacto |
+| Phase | `.claude/agents/` | GAIA TypeScript | Artifact |
 |---|---|---|---|
 | Spec | `spec_partner` | `SpecAuthorAgent` | `project-spec.md` / `TechnicalSpec` |
-| Gherkin | `gherkin_author` | `SpecAuthorAgent` (2ª LLM call) | `features/<name>.feature` |
-| Aprobación | `craftsman_lead` | `--approve` / `POST /jobs/:id/approve` | — |
-| Implementación | `tdd_craftsman` | `ImplementerAgent.executeTDD()` | `src/` + `tests/` del workspace |
+| Gherkin | `gherkin_author` | `SpecAuthorAgent` (2nd LLM call) | `features/<name>.feature` |
+| Approval | `craftsman_lead` | `--approve` / `POST /jobs/:id/approve` | — |
+| Implementation | `tdd_craftsman` | `ImplementerAgent.executeTDD()` | `src/` + `tests/` of the workspace |
 | Review | `judge` | `ReviewerAgent` | `progress/judge_<name>.md` |
-| Mutación | `mutation_tester` | `MutationTesterAgent` | `progress/mutation_<name>.md` |
+| Mutation | `mutation_tester` | `MutationTesterAgent` | `progress/mutation_<name>.md` |
 
 ---
 
-## ¿Cuándo usar GAIA?
+## When to use GAIA?
 
-- La spec ya está clara o se puede obtener de Jira/GitHub.
-- Quieres correr muchos jobs sin supervisar cada paso.
-- Necesitas CI/CD o integración con webhooks.
-- Quieres retry automático, trazabilidad y mutation testing obligatorio.
-- El cambio es repetible y de tamaño controlado (`maxFilesToTouch`).
+- The spec is already clear or can be obtained from Jira/GitHub.
+- You want to run many jobs without supervising every step.
+- You need CI/CD or webhook integration.
+- You want automatic retry, traceability, and mandatory mutation testing.
+- The change is repeatable and of controlled size (`maxFilesToTouch`).
 
-## ¿Cuándo usar `.claude/agents/`?
+## When to use `.claude/agents/`?
 
-- La feature es ambigua y requiere conversación para entenderla.
-- Quieres decidir manualmente cuándo aprobar los escenarios Gherkin.
-- Estás depurando GAIA, afinando prompts o probando nuevos agentes.
-- Prefieres un control artesanal sobre automatización.
-
----
-
-## Recomendación: combinarlos
-
-La configuración ideal es híbrida:
-
-1. **Explora y define** con `.claude/agents/` (`spec_partner` + `gherkin_author`) cuando la feature es confusa.
-2. **Automatiza** con GAIA agents una vez que el contrato Gherkin está firme.
-3. **LanGAIA desde Claude Code** con el slash command `/gaia_code_generator` (`.claude/commands/gaia_code_generator.md`) para no tener que cambiar de ventana.
-
-Así aprovechas lo mejor de los dos mundos: la conversación para entender el problema y la máquina de estados para ejecutarlo sin errores.
+- The feature is ambiguous and requires conversation to understand it.
+- You want to manually decide when to approve Gherkin scenarios.
+- You are debugging GAIA, tuning prompts, or testing new agents.
+- You prefer artisan control over automation.
 
 ---
 
-## Cómo probar cada modo
+## Recommendation: combine them
 
-### GAIA CLI (agentes TypeScript)
+The ideal setup is hybrid:
+
+1. **Explore and define** with `.claude/agents/` (`spec_partner` + `gherkin_author`) when the feature is confusing.
+2. **Automate** with GAIA agents once the Gherkin contract is firm.
+3. **Launch GAIA from Claude Code** with the `/gaia_code_generator` slash command (`.claude/commands/gaia_code_generator.md`) so you do not have to switch windows.
+
+This way you get the best of both worlds: conversation to understand the problem and a state machine to execute it without errors.
+
+---
+
+## How to test each mode
+
+### GAIA CLI (TypeScript agents)
 
 ```bash
 npx ts-node src/cli/run.ts --job job.json --approve
 ```
 
-### Claude Code manual (prompts)
+### Manual Claude Code (prompts)
 
 ```
-@craftsman_lead, implementa la siguiente feature pendiente
+@craftsman_lead, implement the next pending feature
 ```
 
-### Desde Claude Code usando GAIA agents
+### From Claude Code using GAIA agents
 
 ```
 /gaia_code_generator --job job.json --approve

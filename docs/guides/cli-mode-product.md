@@ -1,91 +1,91 @@
-# GAIA CLI Mode — Guía para Producto
+# GAIA CLI Mode — Product Guide
 
-> Cómo usar GAIA en modo artesano/local sin depender del servidor HTTP. Pensada para personas de producto que quieren entender el flujo sin leer código.
+> How to use GAIA in artisan/local mode without relying on the HTTP server. Intended for product people who want to understand the flow without reading code.
 
 ---
 
 ## TL;DR
 
-GAIA CLI Mode es una forma de pedirle a GAIA que programe una feature ejecutando un solo comando en la terminal.
+GAIA CLI Mode is a way to ask GAIA to implement a feature by running a single command in the terminal.
 
-1. El usuario (dev o producto) escribe una **ficha de trabajo** en un archivo llamado `job.json`.
-2. Ejecuta `npx ts-node src/cli/run.ts --job job.json --approve`.
-3. GAIA genera una propuesta técnica (spec), la implementa, corre tests, revisa la calidad y sube el código a GitHub.
-4. Al final entrega el enlace del Pull Request.
+1. The user (dev or product) writes a **job card** in a file called `job.json`.
+2. Runs `npx ts-node src/cli/run.ts --job job.json --approve`.
+3. GAIA generates a technical proposal (spec), implements it, runs tests, reviews quality, and pushes the code to GitHub.
+4. It finally returns the Pull Request link.
 
-Si no se usa `--approve`, GAIA se detiene después de generar la spec para que un humano la revise.
+If `--approve` is not used, GAIA stops after generating the spec so a human can review it.
 
 ---
 
-## ¿Qué es el CLI Mode?
+## What is CLI Mode?
 
-GAIA tiene tres formas de uso:
+GAIA has three usage modes:
 
-| Modo             | Forma de lanzar                                  | Para quién                                     |
+| Mode             | How to launch                                    | Best for                                       |
 | ---------------- | ------------------------------------------------ | ---------------------------------------------- |
-| **HTTP Mode**    | Peticiones a un servidor (`POST /jobs`)          | Producción, CI/CD, integraciones               |
-| **CLI Mode**     | Un comando en la terminal                        | Desarrollo local, trabajo artesanal con un dev |
-| **Webhook Mode** | Disparadores automáticos desde Jira/Slack/GitHub | Automatización de tickets                      |
+| **HTTP Mode**    | Requests to a server (`POST /jobs`)              | Production, CI/CD, integrations                |
+| **CLI Mode**     | One command in the terminal                      | Local development, artisan work with a dev     |
+| **Webhook Mode** | Automatic triggers from Jira/Slack/GitHub      | Ticket automation                              |
 
-El **CLI Mode** es el más directo: no hay servidor, no hay base de datos externa, no hay polling. GAIA guarda todo en archivos locales dentro de la carpeta `progress/` del proyecto.
+**CLI Mode** is the most direct: no server, no external database, no polling. GAIA stores everything locally in the project's `progress/` folder.
 
-**Analogía:** HTTP Mode es como pedir comida por app y esperar notificaciones. CLI Mode es como cocinar en casa con una receta escrita.
-
----
-
-## ¿Qué tecnología usa?
-
-No es necesario entender todos los detalles técnicos, pero aquí va un resumen de lo que hay debajo del capó:
-
-| Tecnología                 | ¿Qué es?                                                                               | ¿Para qué sirve en GAIA CLI Mode?                                                                    |
-| -------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Node.js**                | El entorno que ejecuta programas escritos en JavaScript/TypeScript.                    | Es el motor que corre GAIA en tu computadora.                                                        |
-| **TypeScript**             | Una versión de JavaScript con tipos; ayuda a evitar errores.                           | Todo GAIA está escrito en TypeScript.                                                                |
-| **ts-node**                | Una herramienta que ejecuta TypeScript directamente sin compilar a JavaScript primero. | Permite lanzar GAIA con `npx ts-node src/cli/run.ts ...` en un solo paso.                            |
-| **Git**                    | Sistema de control de versiones.                                                       | GAIA usa Git para crear ramas, commitear cambios y subirlos a GitHub.                                |
-| **GitHub API**             | La interfaz de programación de GitHub.                                                 | GAIA crea el Pull Request automáticamente.                                                           |
-| **OpenAI / Anthropic LLM** | Modelos de lenguaje grande (inteligencia artificial generativa).                       | Son los que “piensan” y escriben la spec, el código, los tests y las revisiones.                     |
-| **Archivos JSON locales**  | Archivos de texto estructurados que guardan datos.                                     | GAIA guarda el estado del job en `progress/.state/{id}.json` y un log legible en `progress/{id}.md`. |
-| **Tests de la plataforma** | `flutter test`, `xcodebuild test`, etc.                                                | GAIA ejecuta los tests del proyecto para verificar que el cambio funciona.                           |
-
-**Analogía:** GAIA CLI Mode es como un asistente personal que lee tu ficha de trabajo (`job.json`), investiga el proyecto, escribe el borrador, lo revisa, lo entrega en GitHub y guarda copia de todo en una carpeta local (`progress/`).
+**Analogy:** HTTP Mode is like ordering food through an app and waiting for notifications. CLI Mode is like cooking at home with a written recipe.
 
 ---
 
-## ¿Cuándo usar el CLI Mode?
+## What technology does it use?
 
-- Un dev quiere corregir un bug o implementar una feature pequeña sin subir un servidor.
-- Producto quiere probar una idea rápidamente con un dev sentado al lado.
-- Se está depurando un comportamiento de GAIA (por eso se le llama "modo artesano").
-- No hay necesidad de exponer una API pública.
+You don't need to understand every technical detail, but here is a summary of what is under the hood:
+
+| Technology                 | What is it?                                                                           | What is it for in GAIA CLI Mode?                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Node.js**                | The runtime that executes JavaScript/TypeScript programs.                             | It is the engine that runs GAIA on your machine.                                                    |
+| **TypeScript**             | A typed version of JavaScript; helps prevent errors.                                  | All GAIA is written in TypeScript.                                                                  |
+| **ts-node**                | A tool that runs TypeScript directly without compiling to JavaScript first.            | Lets you launch GAIA with `npx ts-node src/cli/run.ts ...` in one step.                             |
+| **Git**                    | Version control system.                                                               | GAIA uses Git to create branches, commit changes, and push them to GitHub.                          |
+| **GitHub API**             | GitHub's programming interface.                                                         | GAIA creates the Pull Request automatically.                                                        |
+| **OpenAI / Anthropic LLM** | Large language models (generative AI).                                                  | They "think" and write the spec, code, tests, and reviews.                                        |
+| **Local JSON files**       | Structured text files that store data.                                                  | GAIA saves the job state in `progress/.state/{id}.json` and a human-readable log in `progress/{id}.md`. |
+| **Platform tests**         | `flutter test`, `xcodebuild test`, etc.                                                 | GAIA runs the project's tests to verify the change works.                                           |
+
+**Analogy:** GAIA CLI Mode is like a personal assistant that reads your job card (`job.json`), researches the project, writes the draft, reviews it, delivers it on GitHub, and keeps a copy of everything in a local folder (`progress/`).
 
 ---
 
-## ¿Qué necesito para lanzarlo?
+## When should I use CLI Mode?
 
-Dos cosas:
+- A dev wants to fix a bug or implement a small feature without spinning up a server.
+- Product wants to quickly test an idea with a dev sitting nearby.
+- You are debugging a GAIA behavior (that's why it's called "artisan mode").
+- There is no need to expose a public API.
 
-1. Un archivo `job.json` con la descripción del trabajo.
-2. El comando:
+---
+
+## What do I need to run it?
+
+Two things:
+
+1. A `job.json` file describing the work.
+2. The command:
 
 ```bash
 npx ts-node src/cli/run.ts --job job.json --approve
 ```
 
-- `--job job.json` le dice a GAIA dónde está la ficha de trabajo.
-- `--approve` le dice que no espere aprobación humana y siga directo a implementar.
+- `--job job.json` tells GAIA where the job card is.
+- `--approve` tells it not to wait for human approval and go straight to implementation.
 
-Si omites `--approve`, GAIA se detendrá en `spec_ready` y el dev deberá aprobar con:
+If you omit `--approve`, GAIA will stop at `spec_ready` and the dev must approve with:
 
 ```bash
-npx ts-node src/cli/run.ts --id <id-del-job> --approve
+npx ts-node src/cli/run.ts --id <job-id> --approve
 ```
 
 ---
 
-## ¿Qué va dentro del `job.json`?
+## What goes inside `job.json`?
 
-Es un archivo de texto con la siguiente estructura:
+It is a text file with the following structure:
 
 ```json
 {
@@ -104,141 +104,141 @@ Es un archivo de texto con la siguiente estructura:
 }
 ```
 
-### Campo por campo
+### Field by field
 
-| Campo                | ¿Requerido? | ¿Qué significa?                                                                                                                                               | Ejemplo                                         |
-| -------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `platform`           | Sí          | Tecnología del proyecto. Puede ser `flutter_web`, `ios`, `android`.                                                                                           | `flutter_web`                                   |
-| `repo`               | Sí          | Repositorio de GitHub donde GAIA hará el cambio, en formato `dueño/repo`.                                                                                     | `rpp-co/rpp-cashflow-multiplatform-pyme`        |
-| `targetBranch`       | No          | Rama base sobre la que se creará el PR. Si no se pone, usa `develop`.                                                                                         | `docs/gaia-conventions`                         |
-| `title`              | Sí          | Título corto y claro de lo que se pide.                                                                                                                       | `Handle SummaryFormSuccess in Bre-B presummary` |
-| `module`             | No          | Módulo o área funcional del producto que se toca. Ayuda a GAIA a enfocarse.                                                                                   | `presummary_form`                               |
-| `acceptanceCriteria` | Sí          | Lista de frases que describen qué debe pasar para considerar el trabajo correcto. Deben ser comprobables.                                                     | Ver ejemplo arriba                              |
-| `tddMode`            | No          | Si es `true`, GAIA escribe primero el test y luego el código (Red-Green-Refactor). Si es `false`, escribe todo junto.                                         | `true`                                          |
-| `requireTests`       | No          | Si es `true`, GAIA debe crear o actualizar tests. Casi siempre `true`.                                                                                        | `true`                                          |
-| `maxFilesToTouch`    | No          | Límite de archivos que GAIA puede modificar. Evita cambios gigantes. Por defecto `5`.                                                                         | `3`                                             |
-| `description`        | No          | Contexto adicional, notas de producto, enlaces, etc.                                                                                                          | `"Ver Figma: ..."`                              |
-| `figmaUrl`           | No          | Enlace al diseño en Figma. Si `FIGMA_ACCESS_TOKEN` está configurado, GAIA lee el frame/nodo y añade layout, textos, colores y jerarquía al prompt de la spec. | `https://www.figma.com/...`                     |
-| `jiraTicketId`       | No          | Si el trabajo viene de un ticket de Jira, se puede poner aquí.                                                                                                | `RPP-1234`                                      |
+| Field                | Required? | Meaning                                                                                                                                                       | Example                                         |
+| -------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `platform`           | Yes       | Project technology. Can be `flutter_web`, `ios`, `android`.                                                                                                   | `flutter_web`                                   |
+| `repo`               | Yes       | GitHub repository where GAIA will make the change, in `owner/repo` format.                                                                                   | `rpp-co/rpp-cashflow-multiplatform-pyme`        |
+| `targetBranch`       | No        | Base branch for the PR. Defaults to `develop` if omitted.                                                                                                     | `docs/gaia-conventions`                         |
+| `title`              | Yes       | Short, clear title of what is being asked.                                                                                                                  | `Handle SummaryFormSuccess in Bre-B presummary` |
+| `module`             | No        | Module or functional area of the product being touched. Helps GAIA focus.                                                                                     | `presummary_form`                               |
+| `acceptanceCriteria` | Yes       | List of phrases describing what must happen for the work to be considered correct. Must be testable.                                                        | See example above                               |
+| `tddMode`            | No        | If `true`, GAIA writes the test first and then the code (Red-Green-Refactor). If `false`, it writes everything together.                                     | `true`                                          |
+| `requireTests`       | No        | If `true`, GAIA must create or update tests. Almost always `true`.                                                                                            | `true`                                          |
+| `maxFilesToTouch`    | No        | Limit on files GAIA can modify. Prevents giant changes. Defaults to `5`.                                                                                    | `3`                                             |
+| `description`        | No        | Additional context, product notes, links, etc.                                                                                                                | `"See Figma: ..."`                              |
+| `figmaUrl`           | No        | Link to the Figma design. If `FIGMA_ACCESS_TOKEN` is configured, GAIA reads the frame/node and adds layout, text, colors, and hierarchy to the spec prompt. | `https://www.figma.com/...`                     |
+| `jiraTicketId`       | No        | If the work comes from a Jira ticket, you can put it here.                                                                                                   | `RPP-1234`                                      |
 
-### Criterios de aceptación bien escritos
+### Writing good acceptance criteria
 
-Son la parte más importante del `job.json`. Un buen criterio:
+They are the most important part of `job.json`. A good criterion:
 
-- Empieza con una acción (`When ...`, `Given ... Then ...`).
-- Es observable sin leer código (puede verse en la UI o en el resultado de un test).
-- Es pequeño: un criterio = una sola cosa.
+- Starts with an action (`When ...`, `Given ... Then ...`).
+- Is observable without reading code (can be seen in the UI or in a test result).
+- Is small: one criterion = one thing.
 
-**Ejemplos buenos:**
+**Good examples:**
 
 - `When the user taps “Retry”, the presummary reloads.`
 - `When the presummary service fails, the error screen shows “Retry” and “Back” buttons.`
 - `When the presummary succeeds, the success screen shows a button to navigate to Summary.`
 
-**Ejemplo malo:**
+**Bad example:**
 
-- `Fix the bug.` (No se puede comprobar.)
+- `Fix the bug.` (Cannot be verified.)
 
 ---
 
-## Flujo paso a paso
+## Step-by-step flow
 
 ```mermaid
 flowchart TD
-    A["Producto / Dev escribe job.json"] --> B["npx ts-node src/cli/run.ts --job job.json --approve"]
-    B --> C["GAIA guarda el job en disco<br/>status: pending"]
-    C --> D["SpecAuthorAgent escribe la spec tecnica"]
+    A["Product / Dev writes job.json"] --> B["npx ts-node src/cli/run.ts --job job.json --approve"]
+    B --> C["GAIA saves the job to disk<br/>status: pending"]
+    C --> D["SpecAuthorAgent writes the technical spec"]
     D --> E{"--approve?"}
-    E -- No --> F["status: spec_ready<br/>Espera revision humana"]
+    E -- No --> F["status: spec_ready<br/>Waits for human review"]
     F --> G["--id {id} --approve"]
     G --> H
-    E -- Sí --> H["ImplementerAgent escribe codigo + tests"]
+    E -- Yes --> H["ImplementerAgent writes code + tests"]
     H --> I{"tddMode?"}
-    I -- Sí --> J["RED: test que falla"]
-    J --> K["GREEN: codigo minimo que pasa"]
-    K --> L["REFACTOR: limpia y optimiza"]
+    I -- Yes --> J["RED: failing test"]
+    J --> K["GREEN: minimal passing code"]
+    K --> L["REFACTOR: clean and optimize"]
     L --> M
-    I -- No --> N["Bulk: escribe todo junto"]
-    N --> M["Ejecuta tests"]
-    M -- Pasan --> O["ReviewerAgent revisa y crea PR"]
-    M -- Fallan --> P["LLM Fix Loop<br/>hasta 5 intentos"]
+    I -- No --> N["Bulk: write everything together"]
+    N --> M["Run tests"]
+    M -- Pass --> O["ReviewerAgent reviews and creates PR"]
+    M -- Fail --> P["LLM Fix Loop<br/>up to 5 attempts"]
     P --> M
-    M -- Fallan 5x --> Q["status: test_error"]
-    O -- Aprobado --> R["git commit + push"]
-    O -- Rechazado --> S["status: review_error"]
-    R --> T["MutationTesterAgent valida calidad de tests"]
-    T --> U["PR creado en GitHub"]
+    M -- Fail 5x --> Q["status: test_error"]
+    O -- Approved --> R["git commit + push"]
+    O -- Rejected --> S["status: review_error"]
+    R --> T["MutationTesterAgent validates test quality"]
+    T --> U["PR created on GitHub"]
     Q --> V["--id {id} --retry"]
     S --> V
 ```
 
-### Explicación de cada paso
+### Explanation of each step
 
-1. **Escribir `job.json`**: Producto o dev describe qué se quiere y cómo se sabrá que está listo.
-2. **Lanzar comando**: GAIA lee el archivo y crea un job local. Guarda el estado en `progress/.state/{id}.json` y un log legible en `progress/{id}.md`.
-3. **SpecAuthorAgent**: GAIA investiga el repo, identifica archivos relevantes y escribe una propuesta técnica (la _spec_). Es como el blueprint de una obra.
-4. **Aprobación**: Si no se usó `--approve`, GAIA se detiene aquí. Un humano revisa la spec y aprueba.
-5. **ImplementerAgent**: GAIA escribe el código y los tests.
-   - En modo TDD: primero un test que falla, luego el código, luego limpieza.
-   - En modo bulk: escribe todo junto.
-6. **Ejecutar tests**: GAIA corre los tests del proyecto. Si fallan, trata de corregir automáticamente hasta 5 veces.
-7. **ReviewerAgent**: GAIA revisa calidad, estilo, arquitectura y crea el Pull Request en GitHub.
-8. **MutationTesterAgent**: GAIA introduce pequeños errores artificiales en el código para ver si los tests los detectan. Si el _kill rate_ es menor al 80 %, puede pedir más tests.
-9. **PR listo**: Dev recibe el enlace del PR para revisión humana final.
-
----
-
-## Estados del job
-
-| Estado            | ¿Qué significa en lenguaje humano?                                              | ¿Quién actúa?       |
-| ----------------- | ------------------------------------------------------------------------------- | ------------------- |
-| `pending`         | El job acaba de nacer y está en cola.                                           | Sistema             |
-| `spec_generating` | GAIA está escribiendo la propuesta técnica.                                     | SpecAuthorAgent     |
-| `spec_ready`      | La spec está lista y **GAIA espera aprobación humana**.                         | Humano              |
-| `spec_approved`   | Un humano (o `--approve`) aprobó la spec.                                       | Sistema             |
-| `implementing`    | GAIA está escribiendo código y tests.                                           | ImplementerAgent    |
-| `reviewing`       | GAIA revisa el código y crea el PR.                                             | ReviewerAgent       |
-| `pr_created`      | El PR ya existe en GitHub; GAIA valida tests con mutación.                      | MutationTesterAgent |
-| `done`            | Todo listo. Se entrega el URL del PR.                                           | —                   |
-| `test_error`      | Los tests fallaron después de 5 intentos automáticos. Se puede reintentar.      | Humano (`--retry`)  |
-| `review_error`    | El reviewer encontró problemas serios después de 5 intentos. Se puede reintentar. | Humano (`--retry`)  |
-| `failed`          | Error irrecuperable (por ejemplo, el repo no responde o la spec fue rechazada). | Humano              |
+1. **Write `job.json`**: Product or dev describes what is wanted and how to know it is ready.
+2. **Launch command**: GAIA reads the file and creates a local job. It saves the state in `progress/.state/{id}.json` and a readable log in `progress/{id}.md`.
+3. **SpecAuthorAgent**: GAIA researches the repo, identifies relevant files, and writes a technical proposal (the _spec_). It is like the blueprint of a construction project.
+4. **Approval**: If `--approve` was not used, GAIA stops here. A human reviews the spec and approves.
+5. **ImplementerAgent**: GAIA writes the code and tests.
+   - In TDD mode: first a failing test, then the code, then cleanup.
+   - In bulk mode: writes everything together.
+6. **Run tests**: GAIA runs the project's tests. If they fail, it tries to fix automatically up to 5 times.
+7. **ReviewerAgent**: GAIA reviews quality, style, architecture, and creates the Pull Request on GitHub.
+8. **MutationTesterAgent**: GAIA introduces small artificial errors into the code to see if the tests catch them. If the _kill rate_ is below 80%, it may ask for more tests.
+9. **PR ready**: Dev receives the PR link for final human review.
 
 ---
 
-## Comandos útiles
+## Job states
 
-### Crear y correr un job nuevo
+| State             | What it means in human language                                               | Who acts             |
+| ----------------- | ------------------------------------------------------------------------------- | -------------------- |
+| `pending`         | The job has just been created and is queued.                                    | System               |
+| `spec_generating` | GAIA is writing the technical proposal.                                         | SpecAuthorAgent      |
+| `spec_ready`      | The spec is ready and **GAIA waits for human approval**.                        | Human                |
+| `spec_approved`   | A human (or `--approve`) approved the spec.                                       | System               |
+| `implementing`    | GAIA is writing code and tests.                                                 | ImplementerAgent     |
+| `reviewing`       | GAIA reviews the code and creates the PR.                                       | ReviewerAgent        |
+| `pr_created`      | The PR already exists on GitHub; GAIA validates tests with mutation.            | MutationTesterAgent  |
+| `done`            | Everything ready. The PR URL is delivered.                                      | —                    |
+| `test_error`      | Tests failed after 5 automatic attempts. Can be retried.                        | Human (`--retry`)    |
+| `review_error`    | The reviewer found serious issues after 5 attempts. Can be retried.             | Human (`--retry`)    |
+| `failed`          | Unrecoverable error (for example, the repo does not respond or spec was rejected). | Human             |
+
+---
+
+## Useful commands
+
+### Create and run a new job
 
 ```bash
 npx ts-node src/cli/run.ts --job job.json --approve
 ```
 
-### Crear un job sin auto-aprobar (pausa en spec_ready)
+### Create a job without auto-approving (pause at spec_ready)
 
 ```bash
 npx ts-node src/cli/run.ts --job job.json
 ```
 
-### Aprobar un job existente y continuar
+### Approve an existing job and continue
 
 ```bash
-npx ts-node src/cli/run.ts --id <id-del-job> --approve
+npx ts-node src/cli/run.ts --id <job-id> --approve
 ```
 
-### Reintentar un job que falló
+### Retry a failed job
 
 ```bash
-npx ts-node src/cli/run.ts --id <id-del-job> --retry
+npx ts-node src/cli/run.ts --id <job-id> --retry
 ```
 
-### Crear un job desde un ticket de Jira
+### Create a job from a Jira ticket
 
 ```bash
 npx ts-node src/cli/run.ts --jira RPP-1234 --approve
 ```
 
-### Ver todos los jobs locales
+### List all local jobs
 
 ```bash
 npx ts-node src/cli/run.ts --list
@@ -246,53 +246,53 @@ npx ts-node src/cli/run.ts --list
 
 ---
 
-## Diferencias clave con HTTP Mode
+## Key differences with HTTP Mode
 
-| Tema          | HTTP Mode                          | CLI Mode                                    |
+| Topic         | HTTP Mode                          | CLI Mode                                    |
 | ------------- | ---------------------------------- | ------------------------------------------- |
-| Cómo se lanza | Petición HTTP (`POST /jobs`)       | Comando en terminal                         |
-| Persistencia  | Base de datos Postgres             | Archivos JSON locales en `progress/.state/` |
-| Aprobación    | Endpoint `POST /jobs/:id/approve`  | Flag `--approve` o `--id <id> --approve`    |
+| How to launch | HTTP request (`POST /jobs`)        | Terminal command                            |
+| Persistence   | Postgres database                  | Local JSON files in `progress/.state/`     |
+| Approval      | Endpoint `POST /jobs/:id/approve`  | Flag `--approve` or `--id <id> --approve`   |
 | Retry         | Endpoint `POST /jobs/:id/retry`    | Flag `--id <id> --retry`                    |
-| Ideal para    | Producción, CI/CD, muchos usuarios | Trabajo local, debugging, iteración rápida  |
+| Best for      | Production, CI/CD, many users      | Local work, debugging, fast iteration       |
 
 ---
 
-## Glosario
+## Glossary
 
-- **Spec**: Propuesta técnica que GAIA genera antes de escribir código. Incluye tareas, archivos a tocar y criterios de aceptación detallados.
-- **TDD (Test-Driven Development)**: Primero el test, luego el código. Modo más seguro pero más lento.
-- **Bulk**: Escribir código y tests al mismo tiempo. Más rápido, menos control paso a paso.
-- **Mutation testing**: GAIA “rompe” el código a propósito para ver si los tests lo detectan. Mide la calidad de los tests.
-- **PR (Pull Request)**: Solicitud para combinar el código nuevo en la rama principal del repo.
-- **Job**: Una unidad de trabajo de GAIA. Equivale a una feature, bug o mejora.
+- **Spec**: Technical proposal that GAIA generates before writing code. Includes tasks, files to touch, and detailed acceptance criteria.
+- **TDD (Test-Driven Development)**: Test first, then code. Safer but slower.
+- **Bulk**: Write code and tests at the same time. Faster, less step-by-step control.
+- **Mutation testing**: GAIA intentionally "breaks" the code to see if the tests catch it. Measures test quality.
+- **PR (Pull Request)**: Request to merge the new code into the repo's main branch.
+- **Job**: A unit of work for GAIA. Equivalent to a feature, bug, or improvement.
 
 ---
 
 ## FAQ
 
-**¿Producto puede lanzar un job directamente?**
-Sí, si tiene acceso al repo y la terminal configurada. En la práctica suele ser un dev quien ejecuta el comando, pero el `job.json` puede escribirse en conjunto.
+**Can product launch a job directly?**
+Yes, if they have access to the repo and a configured terminal. In practice it is usually a dev who runs the command, but the `job.json` can be written together.
 
-**¿Qué pasa si GAIA no entiende algo del `job.json`?**
-GAIA generará una spec que refleja la ambigüedad. Por eso es importante que los criterios de aceptación sean claros.
+**What happens if GAIA doesn't understand something in `job.json`?**
+GAIA will generate a spec that reflects the ambiguity. That is why acceptance criteria must be clear.
 
-**¿Por qué usar `--approve`?**
-Para no detenerse a revisar la spec. Útil en iteraciones rápidas o cuando la spec ya se conoce de antemano.
+**Why use `--approve`?**
+To avoid stopping to review the spec. Useful for fast iterations or when the spec is already known in advance.
 
-**¿Dónde veo el progreso?**
-En dos lugares:
+**Where do I see progress?**
+In two places:
 
-- `progress/.state/{id}.json`: estado técnico en JSON.
-- `progress/{id}.md`: log legible para humanos.
+- `progress/.state/{id}.json`: technical state in JSON.
+- `progress/{id}.md`: human-readable log.
 
-**¿El CLI Mode modifica el repo local?**
-GAIA clona el repo a una carpeta temporal de trabajo (`/tmp/gaia-workspace/{jobId}`), hace los cambios allí y empuja la rama al remoto. El repo local del dev no se toca.
+**Does CLI Mode modify the local repo?**
+GAIA clones the repo to a temporary working folder (`/tmp/gaia-workspace/{jobId}`), makes changes there, and pushes the branch to the remote. The dev's local repo is not touched.
 
 ---
 
-## Enlaces relacionados
+## Related links
 
-- [`docs/guides/gaia-http-flow.md`](gaia-http-flow.md) — Versión del flujo con servidor HTTP.
-- [`src/cli/run.ts`](../../src/cli/run.ts) — Punto de entrada del CLI (para devs).
-- FigJam del flujo CLI: https://www.figma.com/board/hg8uzqC0Wx17t3XNlSvfEe
+- [`docs/guides/gaia-http-flow.md`](gaia-http-flow.md) — HTTP server flow version.
+- [`src/cli/run.ts`](../../src/cli/run.ts) — CLI entry point (for devs).
+- CLI flow FigJam: https://www.figma.com/board/hg8uzqC0Wx17t3XNlSvfEe
