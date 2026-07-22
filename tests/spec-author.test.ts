@@ -230,9 +230,9 @@ describe('SpecAuthorAgent', () => {
     });
 
     const userPrompt = (callLLMMock.mock.calls[0][0] as any[])[1].content;
-    expect(userPrompt).toContain('Correcciones pedidas por el humano');
+    expect(userPrompt).toContain('Human-requested corrections');
     expect(userPrompt).toContain(feedback);
-    expect(userPrompt).toContain('tentativa 2');
+    expect(userPrompt).toContain('attempt 2');
   });
 
   describe('Figma context', () => {

@@ -90,10 +90,10 @@ It is a text file with the following structure:
 ```json
 {
   "platform": "flutter_web",
-  "repo": "rpp-co/rpp-cashflow-multiplatform-pyme",
-  "targetBranch": "docs/gaia-conventions",
-  "title": "Handle SummaryFormSuccess in Bre-B presummary",
-  "module": "presummary_form",
+  "repo": "my-org/my-flutter-web-app",
+  "targetBranch": "develop",
+  "title": "Handle SummaryFormSuccess in checkout summary",
+  "module": "checkout_summary",
   "acceptanceCriteria": [
     "When notifier emits SummaryFormSuccess render success view",
     "When notifier emits SummaryFormError render GenericError with retry and back"
@@ -109,17 +109,17 @@ It is a text file with the following structure:
 | Field                | Required? | Meaning                                                                                                                                                       | Example                                         |
 | -------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
 | `platform`           | Yes       | Project technology. Can be `flutter_web`, `ios`, `android`.                                                                                                   | `flutter_web`                                   |
-| `repo`               | Yes       | GitHub repository where GAIA will make the change, in `owner/repo` format.                                                                                   | `rpp-co/rpp-cashflow-multiplatform-pyme`        |
-| `targetBranch`       | No        | Base branch for the PR. Defaults to `develop` if omitted.                                                                                                     | `docs/gaia-conventions`                         |
-| `title`              | Yes       | Short, clear title of what is being asked.                                                                                                                  | `Handle SummaryFormSuccess in Bre-B presummary` |
-| `module`             | No        | Module or functional area of the product being touched. Helps GAIA focus.                                                                                     | `presummary_form`                               |
+| `repo`               | Yes       | GitHub repository where GAIA will make the change, in `owner/repo` format.                                                                                   | `my-org/my-flutter-web-app`                     |
+| `targetBranch`       | No        | Base branch for the PR. Defaults to `develop` if omitted.                                                                                                     | `develop`                                       |
+| `title`              | Yes       | Short, clear title of what is being asked.                                                                                                                  | `Handle SummaryFormSuccess in checkout summary` |
+| `module`             | No        | Module or functional area of the product being touched. Helps GAIA focus.                                                                                     | `checkout_summary`                                |
 | `acceptanceCriteria` | Yes       | List of phrases describing what must happen for the work to be considered correct. Must be testable.                                                        | See example above                               |
 | `tddMode`            | No        | If `true`, GAIA writes the test first and then the code (Red-Green-Refactor). If `false`, it writes everything together.                                     | `true`                                          |
 | `requireTests`       | No        | If `true`, GAIA must create or update tests. Almost always `true`.                                                                                            | `true`                                          |
 | `maxFilesToTouch`    | No        | Limit on files GAIA can modify. Prevents giant changes. Defaults to `5`.                                                                                    | `3`                                             |
 | `description`        | No        | Additional context, product notes, links, etc.                                                                                                                | `"See Figma: ..."`                              |
 | `figmaUrl`           | No        | Link to the Figma design. If `FIGMA_ACCESS_TOKEN` is configured, GAIA reads the frame/node and adds layout, text, colors, and hierarchy to the spec prompt. | `https://www.figma.com/...`                     |
-| `jiraTicketId`       | No        | If the work comes from a Jira ticket, you can put it here.                                                                                                   | `RPP-1234`                                      |
+| `jiraTicketId`       | No        | If the work comes from a Jira ticket, you can put it here.                                                                                                   | `PROJ-1234`                                     |
 
 ### Writing good acceptance criteria
 

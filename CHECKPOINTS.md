@@ -1,81 +1,81 @@
-# CHECKPOINTS — Evaluación del estado final
+# CHECKPOINTS — Final State Evaluation
 
-> En sistemas multi-agente no se evalúa el camino, se evalúa el destino.
-> Estos son los checkpoints objetivos que un juez (humano o IA) puede usar
-> para decidir si el proyecto está sano.
+> In multi-agent systems the journey is not evaluated, the destination is.
+> These are the objective checkpoints a judge (human or AI) can use
+> to decide whether the project is healthy.
 >
-> El agente `judge` recorre C1–C6 y el `mutation_tester` valida C7.
-> Se rechaza el cierre de sesión si quedan boxes sin marcar.
+> The `judge` agent walks through C1–C6 and the `mutation_tester` validates C7.
+> Session close is rejected if any boxes remain unchecked.
 
 ---
 
-## C1 — El arnés está completo
+## C1 — The harness is complete
 
-- [ ] Existen los archivos base: `AGENTS.md`, `init.sh`, `feature_list.json`, `progress/current.md`.
-- [ ] Existen los docs de disciplina: `docs/engineering/tdd.md`, `docs/engineering/gherkin.md`, `docs/engineering/mutation-testing.md`, `docs/engineering/workflow.md`.
-- [ ] `./init.sh` termina con exit code 0.
-- [ ] `npx tsc --noEmit` termina sin errores.
+- [ ] Base files exist: `AGENTS.md`, `init.sh`, `feature_list.json`, `progress/current.md`.
+- [ ] Discipline docs exist: `docs/engineering/tdd.md`, `docs/engineering/gherkin.md`, `docs/engineering/mutation-testing.md`, `docs/engineering/workflow.md`.
+- [ ] `./init.sh` exits with code 0.
+- [ ] `npx tsc --noEmit` finishes without errors.
 
-## C2 — El estado es coherente
+## C2 — State is coherent
 
-- [ ] Como mucho una feature en `in_progress` en `feature_list.json`.
-- [ ] Toda feature `done` tiene tests que pasan (`./init.sh` lo verifica).
-- [ ] `progress/current.md` está vacío o describe la sesión activa
-      (no contiene basura de sesiones anteriores).
+- [ ] At most one feature in `in_progress` in `feature_list.json`.
+- [ ] Every `done` feature has passing tests (`./init.sh` verifies this).
+- [ ] `progress/current.md` is empty or describes the active session
+      (no leftover garbage from previous sessions).
 
-## C3 — El código respeta la arquitectura
+## C3 — Code respects the architecture
 
-- [ ] `src/` solo contiene los módulos previstos en `docs/engineering/architecture.md`.
-- [ ] Los agentes TypeScript (`src/agents/`) no tienen lógica de plataforma —
-      esa vive en `src/plugins/{platform}/`.
-- [ ] No hay `console.log` de debug sueltos, ni TODOs sin contexto.
-- [ ] Leader (`src/harness/leader.ts`) importa de `state/`, nunca directamente de `db/`.
+- [ ] `src/` only contains the modules planned in `docs/engineering/architecture.md`.
+- [ ] TypeScript agents (`src/agents/`) have no platform logic —
+      that lives in `src/plugins/{platform}/`.
+- [ ] No stray debug `console.log` statements or contextless TODOs.
+- [ ] Leader (`src/harness/leader.ts`) imports from `state/`, never directly from `db/`.
 
-## C4 — La verificación es real
+## C4 — Verification is real
 
-- [ ] `src/agents/` tiene tests de integración o unit para el agente tocado.
-- [ ] Los tests usan fixtures reales, no mocks frágiles de filesystem.
-- [ ] `npm test` muestra > 0 tests y todos verdes (actualmente: 325 tests en 28 suites; verificar tras pausar CleanMyMac).
+- [ ] `src/agents/` has integration or unit tests for the touched agent.
+- [ ] Tests use real fixtures, not fragile filesystem mocks.
+- [ ] `npm test` shows > 0 tests and all green (currently: 325 tests in 28 suites; verify after pausing CleanMyMac).
 
-## C5 — La sesión se cerró bien
+## C5 — Session closed properly
 
-- [ ] No hay archivos sin trackear sospechosos (`.tmp`, `dist/` sin gitignore).
-- [ ] `progress/history.md` tiene una entrada por la última sesión completada.
-- [ ] La última feature trabajada está en el estado correcto en `feature_list.json`.
+- [ ] No suspicious untracked files (`.tmp`, `dist/` without gitignore).
+- [ ] `progress/history.md` has an entry for the last completed session.
+- [ ] The last worked feature is in the correct state in `feature_list.json`.
 
-## C6 — Contrato Gherkin (features con `"sdd": true`)
+## C6 — Gherkin contract (features with `"sdd": true`)
 
-- [ ] Toda feature con `"sdd": true` en estado `spec_ready`, `in_progress`
-      o `done` tiene su `features/<name>.feature` y una sección en `project-spec.md`.
-- [ ] El `.feature` usa Gherkin con escenarios tagueados `@s1`, `@s2`, …
-      y cada `Then` afirma algo medible (ver `docs/engineering/gherkin.md`).
-- [ ] Cada escenario `@s` está cubierto por al menos un test concreto
-      (mapa `@s → test` en `progress/tdd_<name>.md`).
-- [ ] No hay código de producción que ningún test rojo haya pedido
-      (disciplina TDD, ver `docs/engineering/tdd.md`).
+- [ ] Every feature with `"sdd": true` in state `spec_ready`, `in_progress`,
+      or `done` has its `features/<name>.feature` and a section in `project-spec.md`.
+- [ ] The `.feature` uses Gherkin with scenarios tagged `@s1`, `@s2`, …
+      and every `Then` asserts something measurable (see `docs/engineering/gherkin.md`).
+- [ ] Every `@s` scenario is covered by at least one concrete test
+      (`@s → test` map in `progress/tdd_<name>.md`).
+- [ ] No production code was written that a red test did not ask for
+      (TDD discipline, see `docs/engineering/tdd.md`).
 
-## C7 — Prueba de mutación
+## C7 — Mutation testing
 
-- [ ] La feature `done` superó la prueba de mutación con score ≥ 80%:
+- [ ] The `done` feature passed mutation testing with score ≥ 80%:
 
-  | Modo             | Cómo verificar                                                                   |
+  | Mode             | How to verify                                                                  |
   | ---------------- | -------------------------------------------------------------------------------- |
-  | **A — HTTP API** | `MutationTesterAgent.ts` reportó score ≥ 80% en `progressLogs` (`GET /jobs/:id`) |
-  | **B — CLI**      | `python3 tools/mutate.py <archivo> --cmd "<runner>" --threshold 80` exit 0       |
-  | **C — Webhook**  | Igual que Modo A (mismo agente, solo warn si < 80%)                              |
-  | **Claude Code**  | Agente `mutation_tester` aprobó en `progress/mutation_<name>.md`                 |
+  | **A — HTTP API** | `MutationTesterAgent.ts` reported score ≥ 80% in `progressLogs` (`GET /jobs/:id`) |
+  | **B — CLI**      | `python3 tools/mutate.py <file> --cmd "<runner>" --threshold 80` exits 0          |
+  | **C — Webhook**  | Same as Mode A (same agent, only warns if < 80%)                                  |
+  | **Claude Code**  | `mutation_tester` agent approved in `progress/mutation_<name>.md`               |
 
-- [ ] Cualquier mutante sobreviviente queda documentado en
-      `progress/mutation_<name>.md` (matado con un test nuevo, o
-      justificado explícitamente como equivalente).
+- [ ] Any surviving mutant is documented in
+      `progress/mutation_<name>.md` (killed with a new test, or
+      explicitly justified as equivalent).
 
 ---
 
-## Cómo usar este archivo
+## How to use this file
 
-**Agentes:** al cerrar una feature, el `judge` marca cada checkbox de C1–C6
-y el `mutation_tester` valida C7. Si alguno queda vacío, rechaza y devuelve
-el control al `craftsman_lead` con lista de issues.
+**Agents:** when closing a feature, the `judge` checks every C1–C6 checkbox
+and the `mutation_tester` validates C7. If any remain empty, reject and return
+control to `craftsman_lead` with the issue list.
 
-**Humano:** puedes correr `./init.sh` en cualquier momento para verificar
-el estado de entorno (C1, C3, C4).
+**Human:** you can run `./init.sh` at any time to verify
+environment state (C1, C3, C4).

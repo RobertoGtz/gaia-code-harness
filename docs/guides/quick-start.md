@@ -1,67 +1,67 @@
-# Guía de los tres modos — GAIA Code Harness
+# Guide to the Three Modes — GAIA Code Harness
 
-> Paso a paso para cada modo de uso. Para un resumen general del sistema ver [`README.md`](../README.md).
+> Step-by-step for each usage mode. For a system overview see [`README.md`](../README.md).
 
 ---
 
-## ¿Qué modo usar?
+## Which mode should I use?
 
-| Situación                                                                  | Modo recomendado      |
+| Situation                                                                  | Recommended mode      |
 | -------------------------------------------------------------------------- | --------------------- |
-| Quiero llamar al sistema desde Postman, un script o CI/CD                  | **Modo A — HTTP API** |
-| Soy desarrollador y quiero correrlo desde la terminal localmente           | **Modo B — CLI**      |
-| Uso Jira/Slack y quiero que el sistema arranque solo cuando creo un ticket | **Modo C — Webhook**  |
+| I want to call the system from Postman, a script, or CI/CD                   | **Mode A — HTTP API** |
+| I am a developer and want to run it from the terminal locally              | **Mode B — CLI**      |
+| I use Jira/Slack and want the system to start when I create a ticket       | **Mode C — Webhook**  |
 
 ---
 
-## Prerrequisitos (todos los modos)
+## Prerequisites (all modes)
 
-Antes de usar cualquier modo, asegúrate de tener:
+Before using any mode, make sure you have:
 
-### 1. Variables de entorno configuradas
+### 1. Environment variables configured
 
-Copia el archivo de ejemplo y edítalo:
+Copy the example file and edit it:
 
 ```bash
 cp .env.example .env
 ```
 
-Las variables más importantes:
+The most important variables:
 
 ```bash
-# LLM — al menos una de las dos
+# LLM — at least one of the two
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 
-# GitHub — para crear PRs reales
+# GitHub — to create real PRs
 GITHUB_TOKEN=ghp_...
-GITHUB_OWNER=tu-org-o-usuario
+GITHUB_OWNER=your-org-or-user
 
-# Jira — para leer tickets (opcional, solo si usas Jira)
-# IMPORTANTE: usa el subdominio exacto de tu tenant
-JIRA_BASE_URL=https://tu-org.atlassian.net
-JIRA_EMAIL=tu@email.com
-JIRA_API_TOKEN=tu-token
+# Jira — to read tickets (optional, only if you use Jira)
+# IMPORTANT: use the exact tenant subdomain
+JIRA_BASE_URL=https://your-org.atlassian.net
+JIRA_EMAIL=you@email.com
+JIRA_API_TOKEN=your-token
 
-# Repo por defecto cuando el ticket no tiene label repo:org/nombre
-DEFAULT_REPO=tu-org/tu-repo
+# Default repo when the ticket has no repo:org/name label
+DEFAULT_REPO=your-org/your-repo
 
-# Plataforma por defecto cuando el ticket no tiene label de plataforma
-# Tickets con prefijo [MOBILE] usan este valor (default: flutter)
+# Default platform when the ticket has no platform label
+# Tickets with prefix [MOBILE] use this value (default: flutter)
 DEFAULT_PLATFORM=flutter
 
-# Figma — opcional, enriquece el spec con contexto de diseño
-FIGMA_ACCESS_TOKEN=tu-token-de-figma
+# Figma — optional, enriches the spec with design context
+FIGMA_ACCESS_TOKEN=your-figma-token
 ```
 
-> **¿No tienes estos valores?**
+> **Don't have these values?**
 >
-> - `OPENAI_API_KEY`: crea uno en [platform.openai.com](https://platform.openai.com/api-keys)
-> - `GITHUB_TOKEN`: crea uno en [github.com/settings/tokens](https://github.com/settings/tokens) (activa el scope `repo`)
-> - `JIRA_API_TOKEN`: crea uno en [id.atlassian.com](https://id.atlassian.com/manage-profile/security/api-tokens)
-> - `FIGMA_ACCESS_TOKEN`: crea uno en [help.figma.com/hc/en-us/articles/8085703771159-Manage-personal-access-tokens](https://help.figma.com/hc/en-us/articles/8085703771159-Manage-personal-access-tokens) (scope `file_read`)
+> - `OPENAI_API_KEY`: create one at [platform.openai.com](https://platform.openai.com/api-keys)
+> - `GITHUB_TOKEN`: create one at [github.com/settings/tokens](https://github.com/settings/tokens) (enable the `repo` scope)
+> - `JIRA_API_TOKEN`: create one at [id.atlassian.com](https://id.atlassian.com/manage-profile/security/api-tokens)
+> - `FIGMA_ACCESS_TOKEN`: create one at [help.figma.com/hc/en-us/articles/8085703771159-Manage-personal-access-tokens](https://help.figma.com/hc/en-us/articles/8085703771159-Manage-personal-access-tokens) (scope `file_read`)
 
-### 2. Dependencias instaladas
+### 2. Dependencies installed
 
 ```bash
 npm install
@@ -70,13 +70,13 @@ npm run build
 
 ---
 
-## Modo A — HTTP API
+## Mode A — HTTP API
 
-**Ideal para:** integraciones, scripts automáticos, CI/CD, Postman.
+**Ideal for:** integrations, automated scripts, CI/CD, Postman.
 
-El servidor expone una API REST. Tú envías una petición HTTP y el sistema procesa el job en background.
+The server exposes a REST API. You send an HTTP request and the system processes the job in the background.
 
-### Paso 1: Levantar la base de datos (PostgreSQL)
+### Step 1: Start the database (PostgreSQL)
 
 ```bash
 docker start gaia-postgres 2>/dev/null || docker run -d \
@@ -88,28 +88,28 @@ docker start gaia-postgres 2>/dev/null || docker run -d \
   postgres:15
 ```
 
-> La base de datos guarda el estado de cada job (qué paso está ejecutando, logs, spec generada, etc.)
+> The database stores each job's state (which step it is running, logs, generated spec, etc.)
 
-### Paso 2: Iniciar el servidor
+### Step 2: Start the server
 
 ```bash
 npm run dev
 ```
 
-Deberías ver:
+You should see:
 
 ```
 Database initialized
 Server running on port 3000
 ```
 
-> **Deja esta terminal abierta.** El servidor debe estar corriendo mientras haces requests.
+> **Keep this terminal open.** The server must be running while you make requests.
 
-### Paso 3: Crear un job
+### Step 3: Create a job
 
-Abre otra terminal y envía este request (personaliza los campos):
+Open another terminal and send this request (customize the fields):
 
-**Opción A — Con todos los detalles:**
+**Option A — With full details:**
 
 ```bash
 curl -s -X POST http://localhost:3000/jobs \
@@ -117,7 +117,7 @@ curl -s -X POST http://localhost:3000/jobs \
   -d '{
     "platform": "flutter",
     "title": "Add promotional banner to home screen",
-    "repo": "mi-org/demo-repo",
+    "repo": "my-org/demo-repo",
     "targetBranch": "develop",
     "requireTests": false,
     "maxFilesToTouch": 6,
@@ -130,32 +130,32 @@ curl -s -X POST http://localhost:3000/jobs \
   }' | python3 -m json.tool
 ```
 
-> Si incluyes `figmaUrl`, `SpecAuthorAgent` leerá el frame/nodo de Figma y añadirá su layout, textos, colores y jerarquía de componentes al prompt del spec.
+> If you include `figmaUrl`, `SpecAuthorAgent` will read the Figma frame/node and add its layout, text, colors, and component hierarchy to the spec prompt.
 
-**Opción B — Solo con el ticket de Jira (el sistema fetcha el resto):**
+**Option B — With only the Jira ticket (the system fetches the rest):**
 
 ```bash
 curl -s -X POST http://localhost:3000/jobs \
   -H "Content-Type: application/json" \
   -d '{
     "jiraTicketId": "PROJ-1234",
-    "repo": "mi-org/mi-repo"
+    "repo": "my-org/my-repo"
   }' | python3 -m json.tool
 ```
 
-> El sistema lee el título, descripción, criterios de aceptación y URL de Figma directamente de Jira.  
-> Requiere `JIRA_BASE_URL`, `JIRA_EMAIL` y `JIRA_API_TOKEN` en `.env`.
+> The system reads the title, description, acceptance criteria, and Figma URL directly from Jira.  
+> Requires `JIRA_BASE_URL`, `JIRA_EMAIL`, and `JIRA_API_TOKEN` in `.env`.
 >
-> **Plataforma** se infiere en este orden:
+> **Platform** is inferred in this order:
 >
-> 1. Labels del ticket — `flutter`, `ios`, `android`, `flutter_web`
-> 2. Prefijo del título — `[MOBILE]` → `DEFAULT_PLATFORM`, `[WEB]` → `flutter_web`
-> 3. Palabras clave en el título — `swift`, `kotlin`, etc.
-> 4. Variable `DEFAULT_PLATFORM` en `.env`
+> 1. Ticket labels — `flutter`, `ios`, `android`, `flutter_web`
+> 2. Title prefix — `[MOBILE]` → `DEFAULT_PLATFORM`, `[WEB]` → `flutter_web`
+> 3. Keywords in the title — `swift`, `kotlin`, etc.
+> 4. `DEFAULT_PLATFORM` variable in `.env`
 >
-> **Repo**: si el ticket no tiene label `repo:org/nombre`, pásalo explícitamente en el body.
+> **Repo**: if the ticket has no `repo:org/name` label, pass it explicitly in the body.
 
-La respuesta incluye un `id` — guárdalo:
+The response includes an `id` — save it:
 
 ```json
 {
@@ -167,56 +167,56 @@ La respuesta incluye un `id` — guárdalo:
 }
 ```
 
-### Paso 4: Monitorear el progreso
+### Step 4: Monitor progress
 
-Reemplaza `TU_JOB_ID` con el id que recibiste:
+Replace `YOUR_JOB_ID` with the id you received:
 
 ```bash
-curl -s http://localhost:3000/jobs/TU_JOB_ID | python3 -m json.tool
+curl -s http://localhost:3000/jobs/YOUR_JOB_ID | python3 -m json.tool
 ```
 
-Los estados que verás en orden:
+States you will see in order:
 
-| Estado            | Qué está pasando                               |
+| State             | What is happening                              |
 | ----------------- | ---------------------------------------------- |
-| `pending`         | Job creado, esperando inicio                   |
-| `fetching_jira`   | Leyendo datos del ticket de Jira               |
-| `spec_generating` | Analizando el repo y generando el plan técnico |
-| `spec_ready`      | Plan listo — **esperando tu aprobación**       |
-| `implementing`    | Escribiendo código                             |
-| `reviewing`       | Lint/tests + LLM review + creando PR           |
-| `pr_created`      | PR creado — corriendo mutation tests           |
-| `done`            | ¡Listo!                                        |
+| `pending`         | Job created, waiting to start                  |
+| `fetching_jira`   | Reading Jira ticket data                       |
+| `spec_generating` | Analyzing the repo and generating technical plan |
+| `spec_ready`      | Plan ready — **waiting for your approval**     |
+| `implementing`    | Writing code                                   |
+| `reviewing`       | Lint/tests + LLM review + creating PR          |
+| `pr_created`      | PR created — running mutation tests            |
+| `done`            | Done!                                          |
 
-### Paso 5: Aprobar el spec
+### Step 5: Approve the spec
 
-Cuando el status sea `spec_ready`, el sistema pausó y espera tu aprobación:
+When the status is `spec_ready`, the system paused and is waiting for your approval:
 
 ```bash
-# Aprobar
-curl -s -X POST http://localhost:3000/jobs/TU_JOB_ID/approve \
+# Approve
+curl -s -X POST http://localhost:3000/jobs/YOUR_JOB_ID/approve \
   -H "Content-Type: application/json" \
   -d '{"approved": true}' | python3 -m json.tool
 
-# Rechazar con feedback (el sistema regenera el plan; máximo 5 reintentos)
-curl -s -X POST http://localhost:3000/jobs/TU_JOB_ID/approve \
+# Reject with feedback (the system regenerates the plan; maximum 5 retries)
+curl -s -X POST http://localhost:3000/jobs/YOUR_JOB_ID/approve \
   -H "Content-Type: application/json" \
-  -d '{"approved": false, "feedback": "Necesita incluir analytics"}' | python3 -m json.tool
+  -d '{"approved": false, "feedback": "Needs to include analytics"}' | python3 -m json.tool
 
-# Si se superan los 5 reintentos, crea un nuevo job o usa POST /jobs/TU_JOB_ID/retry
+# If the 5 retries are exceeded, create a new job or use POST /jobs/YOUR_JOB_ID/retry
 ```
 
-### Paso 6: Ver el resultado
+### Step 6: See the result
 
-Cuando el status sea `done`:
+When the status is `done`:
 
 ```bash
-curl -s http://localhost:3000/jobs/TU_JOB_ID | python3 -m json.tool | grep prUrl
+curl -s http://localhost:3000/jobs/YOUR_JOB_ID | python3 -m json.tool | grep prUrl
 ```
 
-Verás el link al Pull Request en GitHub.
+You will see the link to the Pull Request on GitHub.
 
-### Reintento en caso de error
+### Retry on error
 
 If the job failed (`test_error`, `build_error`, etc.):
 
@@ -373,7 +373,7 @@ In this mode, an external system calls the `POST /webhook/trigger` endpoint and 
 
 > **Key difference vs. Mode A:** The webhook initiates the job, but the pipeline still pauses at `spec_ready` just like in Mode A; it is approved/rejected with `POST /jobs/:id/approve`. The webhook only automates the *trigger*, not the spec approval.
 
-### Paso 1: Levantar el servidor (mismo que Modo A)
+### Step 1: Start the server (same as Mode A)
 
 ```bash
 docker start gaia-postgres 2>/dev/null || \
@@ -383,9 +383,9 @@ docker start gaia-postgres 2>/dev/null || \
 npm run dev
 ```
 
-### Paso 2: Disparar un webhook genérico
+### Step 2: Trigger a generic webhook
 
-Este es el formato más simple — cualquier sistema puede llamarlo:
+This is the simplest format — any system can call it:
 
 ```bash
 curl -s -X POST http://localhost:3000/webhook/trigger \
@@ -393,7 +393,7 @@ curl -s -X POST http://localhost:3000/webhook/trigger \
   -d '{
     "title": "Add loyalty points banner",
     "platform": "flutter",
-    "repo": "mi-org/demo-repo",
+    "repo": "my-org/demo-repo",
     "targetBranch": "develop",
     "requireTests": false,
     "maxFilesToTouch": 5,
@@ -404,7 +404,7 @@ curl -s -X POST http://localhost:3000/webhook/trigger \
   }' | python3 -m json.tool
 ```
 
-Respuesta inmediata (202 Accepted):
+Immediate response (202 Accepted):
 
 ```json
 {
@@ -415,15 +415,15 @@ Respuesta inmediata (202 Accepted):
 }
 ```
 
-El pipeline corre en background. Monitorea igual que en Modo A:
+The pipeline runs in the background. Monitor it just like in Mode A:
 
 ```bash
 curl -s http://localhost:3000/jobs/924417e7-5c06-4a9c-ad0e-72c1fa091994 | python3 -m json.tool
 ```
 
-### Paso 3: Simular un webhook de Jira
+### Step 3: Simulate a Jira webhook
 
-Cuando se crea un issue en Jira, Jira puede llamar automáticamente al webhook. Así se ve el payload:
+When an issue is created in Jira, Jira can automatically call the webhook. This is what the payload looks like:
 
 ```bash
 curl -s -X POST http://localhost:3000/webhook/trigger \
@@ -436,43 +436,43 @@ curl -s -X POST http://localhost:3000/webhook/trigger \
       "fields": {
         "summary": "Add dark mode toggle to settings",
         "labels": ["flutter", "skip-tests"],
-        "customfield_repo": "mi-org/demo-repo"
+        "customfield_repo": "my-org/demo-repo"
       }
     }
   }' | python3 -m json.tool
 ```
 
-> **Nota:** La etiqueta `skip-tests` en Jira activa automáticamente `requireTests: false`.  
-> El campo `customfield_repo` le dice al sistema en qué repo trabajar.  
-> Si no está, usa el valor de `DEFAULT_REPO` en `.env`.
+> **Note:** The `skip-tests` label in Jira automatically activates `requireTests: false`.  
+> The `customfield_repo` field tells the system which repo to work on.  
+> If absent, it uses `DEFAULT_REPO` from `.env`.
 
-### Paso 4: Integrar con Slack (slash command)
+### Step 4: Integrate with Slack (slash command)
 
-Configura un Slash Command en tu workspace de Slack apuntando a:
-
-```
-POST http://<tu-ip-publica>:3000/webhook/trigger
-```
-
-Luego en Slack escribe:
+Configure a Slash Command in your Slack workspace pointing to:
 
 ```
-/gaia flutter mi-org/demo-repo Add dark mode toggle
+POST http://<your-public-ip>:3000/webhook/trigger
 ```
 
-El formato es: `/gaia <plataforma> <repo> <descripción del feature>`
+Then in Slack write:
 
-### Paso 5: Seguridad con firma HMAC
+```
+/gaia flutter my-org/demo-repo Add dark mode toggle
+```
 
-Para producción, configura `WEBHOOK_SECRET` en `.env` y firma cada request:
+Format: `/gaia <platform> <repo> <feature description>`
+
+### Step 5: Security with HMAC signature
+
+For production, configure `WEBHOOK_SECRET` in `.env` and sign each request:
 
 ```bash
-WEBHOOK_SECRET=mi-secreto-super-seguro
+WEBHOOK_SECRET=my-super-secure-secret
 ```
 
 ```bash
-BODY='{"title":"Test","platform":"flutter","repo":"mi-org/demo-repo"}'
-SIG=$(echo -n "$BODY" | openssl dgst -sha256 -hmac "mi-secreto-super-seguro" | cut -d' ' -f2)
+BODY='{"title":"Test","platform":"flutter","repo":"my-org/demo-repo"}'
+SIG=$(echo -n "$BODY" | openssl dgst -sha256 -hmac "my-super-secure-secret" | cut -d' ' -f2)
 
 curl -s -X POST http://localhost:3000/webhook/trigger \
   -H "Content-Type: application/json" \
@@ -480,11 +480,11 @@ curl -s -X POST http://localhost:3000/webhook/trigger \
   -d "$BODY"
 ```
 
-> Si la firma no coincide, el servidor responde `401 Invalid webhook signature`.
+> If the signature does not match, the server responds `401 Invalid webhook signature`.
 
-### Configurar notificaciones automáticas
+### Configure automatic notifications
 
-Cuando el job avanza de estado, el sistema puede notificar a:
+When the job advances in state, the system can notify:
 
 **Slack:**
 
@@ -492,30 +492,30 @@ Cuando el job avanza de estado, el sistema puede notificar a:
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T000/B000/xxxx
 ```
 
-**Jira (comenta en el ticket y mueve estados):**
+**Jira (comments on the ticket and state transitions):**
 
 ```bash
-JIRA_BASE_URL=https://tu-org.atlassian.net
-JIRA_EMAIL=tu@email.com
-JIRA_API_TOKEN=tu-token
+JIRA_BASE_URL=https://your-org.atlassian.net
+JIRA_EMAIL=you@email.com
+JIRA_API_TOKEN=your-token
 ```
 
-| Evento         | Qué hace el JiraNotifier                            |
-| -------------- | --------------------------------------------------- |
-| `spec_ready`   | Agrega comentario con el plan técnico               |
-| `implementing` | Mueve el ticket a "In Progress"                     |
-| `done`         | Mueve el ticket a "Done" + link al PR               |
-| `failed`       | Mueve el ticket a "Blocked" + descripción del error |
+| Event          | What JiraNotifier does                                |
+| -------------- | ----------------------------------------------------- |
+| `spec_ready`   | Adds a comment with the technical plan                |
+| `implementing` | Moves the ticket to "In Progress"                     |
+| `done`         | Moves the ticket to "Done" + PR link                  |
+| `failed`       | Moves the ticket to "Blocked" + error description     |
 
-**Webhook genérico (cualquier endpoint HTTP):**
+**Generic webhook (any HTTP endpoint):**
 
 ```bash
-NOTIFY_WEBHOOK_URL=https://tu-sistema.com/gaia-events
+NOTIFY_WEBHOOK_URL=https://your-system.com/gaia-events
 ```
 
-> Si no configuras nada, el sistema usa un notifier vacío — no hay errores ni overhead.
+> If you don't configure anything, the system uses a null notifier — no errors or overhead.
 
-### Usando el script de demo automático
+### Using the automatic demo script
 
 ```bash
 ./scripts/demo.sh flutter c    # Webhook + Flutter
@@ -525,151 +525,151 @@ NOTIFY_WEBHOOK_URL=https://tu-sistema.com/gaia-events
 
 ---
 
-## Parámetros importantes
+## Important parameters
 
 ### `requireTests` (boolean, default: `true`)
 
-Controla si el sistema intenta correr el suite de tests de la plataforma (Flutter test, Xcode test, Gradle test).
+Controls whether the system tries to run the platform test suite (Flutter test, Xcode test, Gradle test).
 
 ```json
 "requireTests": false
 ```
 
-> Usa `false` cuando no tienes las herramientas de la plataforma instaladas (por ejemplo, en un servidor sin Flutter). El código y el PR se generan igual — solo se omite la ejecución de tests.
+> Use `false` when you don't have the platform tools installed (for example, on a server without Flutter). The code and PR are still generated — only test execution is skipped.
 
-En Jira webhook: añade la etiqueta `skip-tests` al ticket para activar `requireTests: false`.
+In Jira webhook: add the `skip-tests` label to the ticket to activate `requireTests: false`.
 
 ### `maxFilesToTouch` (number, default: `5`)
 
-Límite máximo de archivos que el sistema puede modificar. Si el implementador toca más archivos de los permitidos, el reviewer rechaza el cambio.
+Maximum number of files the system can modify. If the implementer touches more files than allowed, the reviewer rejects the change.
 
 ```json
 "maxFilesToTouch": 8
 ```
 
-> Úsalo para features grandes. El valor por defecto de 5 es conservador para cambios pequeños.
+> Use it for large features. The default value of 5 is conservative for small changes.
 
 ### `tddMode` (boolean, default: `false`)
 
-Activa el ciclo **Red-Green-Refactor** (TDD estricto). El implementador:
+Activates the **Red-Green-Refactor** cycle (strict TDD). The implementer:
 
-1. Escribe el test que falla (rojo)
-2. Escribe el mínimo código para que pase (verde)
-3. Refactoriza
+1. Writes the failing test (red)
+2. Writes the minimum code to make it pass (green)
+3. Refactors
 
 ```json
 "tddMode": true
 ```
 
-En Modo B (CLI) el flag equivalente es `--tdd`:
+In Mode B (CLI) the equivalent flag is `--tdd`:
 
 ```bash
-npx ts-node src/cli/run.ts --job mi-job.json --tdd --approve
+npx ts-node src/cli/run.ts --job my-job.json --tdd --approve
 ```
 
-> Genera tests más robustos pero tarda el doble. Ideal para features críticas.
+> Generates more robust tests but takes twice as long. Ideal for critical features.
 
 ---
 
-## Comparativa de los tres modos
+## Comparison of the three modes
 
-|                              | Modo A — HTTP API    | Modo B — CLI              | Modo C — Webhook                     |
+|                              | Mode A — HTTP API    | Mode B — CLI              | Mode C — Webhook                     |
 | ---------------------------- | -------------------- | ------------------------- | ------------------------------------ |
-| **Requiere servidor**        | Sí                   | No                        | Sí                                   |
-| **Requiere Postgres/Docker** | Sí                   | No (usa disco)            | Sí                                   |
-| **Aprobación de spec**       | Manual via API       | Manual, `--approve` o `--reject` | Pausa en `spec_ready`; `POST /jobs/:id/approve` |
-| **Integra con Jira/Slack**   | Manual               | `--jira PROJ-123`         | Automático                           |
-| **Ideal para**               | CI/CD, APIs, Postman | Dev local, demos rápidos  | Producción, automatización           |
-| **Logs**                     | API REST + Postgres  | Terminal + archivos `.md` | API REST + Postgres + notificaciones |
-| **Notificaciones**           | Configurable         | No                        | Slack, Jira, Webhook genérico        |
-| **TDD (`tddMode`)**          | `"tddMode": true`    | `--tdd`                   | `"tddMode": true` en payload         |
+| **Requires server**          | Yes                  | No                        | Yes                                  |
+| **Requires Postgres/Docker** | Yes                  | No (uses disk)            | Yes                                  |
+| **Spec approval**            | Manual via API       | Manual, `--approve` or `--reject` | Pauses at `spec_ready`; `POST /jobs/:id/approve` |
+| **Integrates with Jira/Slack** | Manual             | `--jira PROJ-123`         | Automatic                            |
+| **Best for**                 | CI/CD, APIs, Postman | Local dev, quick demos    | Production, automation               |
+| **Logs**                     | REST API + Postgres  | Terminal + `.md` files    | REST API + Postgres + notifications  |
+| **Notifications**            | Configurable         | No                        | Slack, Jira, generic webhook         |
+| **TDD (`tddMode`)**          | `"tddMode": true`    | `--tdd`                   | `"tddMode": true` in payload         |
 
 ---
 
-## Flujo interno (igual en los tres modos)
+## Internal flow (same in all three modes)
 
 ```
 TRIGGER (API / CLI / Webhook)
         │
         ▼
   ┌─────────────┐
-  │  SpecAuthor │  Analiza el repo + genera plan técnico + Gherkin
-  └──────┬──────┘  └─ escribe handoff.md
+  │  SpecAuthor │  Analyzes repo + generates technical plan + Gherkin
+  └──────┬──────┘  └─ writes handoff.md
          │  spec_ready
          ▼
-   ⏸ APROBACIÓN HUMANA  ← solo en Modos A y B
-         │  (automática en Modo C)
+   ⏸ HUMAN APPROVAL  ← only in Modes A and B
+         │  (automatic in Mode C)
          ▼
   ┌──────────────┐
-  │  Implementer │  Escribe código (bulk o TDD)
-  └──────┬───────┘  └─ lee handoff.md + reviewFeedback
+  │  Implementer │  Writes code (bulk or TDD)
+  └──────┬───────┘  └─ reads handoff.md + reviewFeedback
          │
          ▼
   ┌──────────────┐
-  │   Reviewer   │  Lint + tests + LLM review crítico → GitHub PR
-  └──────┬───────┘  └─ escribe handoff.md
+  │   Reviewer   │  Lint + tests + critical LLM review → GitHub PR
+  └──────┬───────┘  └─ writes handoff.md
          │
          ▼
   ┌──────────────────┐
-  │  MutationTester  │  Valida que los tests detecten bugs
+  │  MutationTester  │  Validates that tests detect bugs
   └──────┬───────────┘
          │
-         └── ¿falla? → feedback al Implementer (hasta 5×)
+         └── fails? → feedback to Implementer (up to 5×)
               │
               ▼
             done ✅
-           (PR listo para revisión humana)
+           (PR ready for human review)
 ```
 
-**Tiempo típico: 50–90 segundos por job**
+**Typical time: 50–90 seconds per job**
 
 ---
 
-## Solución de problemas comunes
+## Troubleshooting common issues
 
-### "Connection refused" al hacer curl
+### "Connection refused" when running curl
 
-El servidor no está corriendo. Verifica con:
+The server is not running. Verify with:
 
 ```bash
 curl http://localhost:3000/health
 ```
 
-Si falla, vuelve al Paso 2 del modo que estés usando.
+If it fails, go back to Step 2 of the mode you are using.
 
 ### "Jira ticket not found"
 
-- Verifica que el ticket existe y que tu cuenta tiene acceso al proyecto
-- Verifica `JIRA_BASE_URL` (debe terminar sin `/`)
-- Verifica que `JIRA_API_TOKEN` es un token de API, no tu contraseña
+- Verify the ticket exists and your account has access to the project
+- Verify `JIRA_BASE_URL` (must not end with `/`)
+- Verify `JIRA_API_TOKEN` is an API token, not your password
 
 ### "Authentication failed" (GitHub)
 
-- `GITHUB_TOKEN` no tiene el scope `repo` — créalo de nuevo en [github.com/settings/tokens](https://github.com/settings/tokens)
-- El token expiró — genera uno nuevo
+- `GITHUB_TOKEN` does not have the `repo` scope — create a new one at [github.com/settings/tokens](https://github.com/settings/tokens)
+- The token expired — generate a new one
 
-### Job en estado `test_error` o `build_error`
+### Job in `test_error` or `build_error`
 
-Si no quieres instalar el toolchain de la plataforma:
+If you don't want to install the platform toolchain:
 
 ```bash
-# Usa requireTests: false en el payload
+# Use requireTests: false in the payload
 "requireTests": false
 ```
 
-Para reintentar un job fallido:
+To retry a failed job:
 
 ```bash
-curl -s -X POST http://localhost:3000/jobs/TU_JOB_ID/retry
+curl -s -X POST http://localhost:3000/jobs/YOUR_JOB_ID/retry
 ```
 
-### Ver todos los jobs (Modo A y C)
+### View all jobs (Modes A and C)
 
 ```bash
 curl -s http://localhost:3000/jobs | python3 -m json.tool
 ```
 
-### Limpiar jobs del CLI
+### Clean CLI jobs
 
 ```bash
 rm -rf progress/.state/ progress/*.md
@@ -677,29 +677,29 @@ rm -rf progress/.state/ progress/*.md
 
 ---
 
-## Próximos pasos
+## Next steps
 
-Una vez que el sistema crea el Pull Request, un desarrollador lo revisa en GitHub como cualquier otro PR:
+Once the system creates the Pull Request, a developer reviews it in GitHub like any other PR:
 
-1. Lee el diff del código generado
-2. Revisa los comentarios del PR (incluyen el spec aprobado)
-3. Solicita cambios si es necesario
-4. Hace merge cuando esté listo
+1. Read the code diff
+2. Review PR comments (include the approved spec)
+3. Request changes if needed
+4. Merge when ready
 
-> El sistema no hace merge automáticamente. El merge siempre requiere aprobación humana.
+> The system does not merge automatically. Merge always requires human approval.
 
 ---
 
-## Referencias rápidas
+## Quick references
 
-| Recurso              | Link                                                                 |
+| Resource             | Link                                                                 |
 | -------------------- | -------------------------------------------------------------------- |
-| API completa         | [`API.md`](../API.md)                                                |
-| Arquitectura interna | [`docs/engineering/architecture.md`](../engineering/architecture.md) |
-| Setup detallado      | [`docs/guides/setup.md`](../guides/setup.md)                         |
-| Script de demo       | [`scripts/demo.sh`](../scripts/demo.sh)                              |
-| Variables de entorno | [`.env.example`](../.env.example)                                    |
+| Full API             | [`API.md`](../API.md)                                                |
+| Internal architecture | [`docs/engineering/architecture.md`](../engineering/architecture.md) |
+| Detailed setup       | [`docs/guides/setup.md`](../guides/setup.md)                         |
+| Demo script          | [`scripts/demo.sh`](../scripts/demo.sh)                              |
+| Environment variables | [`.env.example`](../.env.example)                                    |
 
 ---
 
-> **¿Algo no funciona?** Revisa los logs del servidor (`npm run dev`) — cada error incluye un mensaje específico con la causa y qué hacer para resolverlo.
+> **Something not working?** Check the server logs (`npm run dev`) — each error includes a specific message with the cause and how to resolve it.

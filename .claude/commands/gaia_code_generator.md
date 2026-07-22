@@ -1,92 +1,92 @@
 ---
 name: gaia_code_generator
-description: Ejecuta un job de GAIA en modo CLI desde Claude Code. Usa los mismos agentes que src/cli/run.ts.
+description: Run a GAIA job in CLI mode from Claude Code. Uses the same agents as src/cli/run.ts.
 tools: Read, Bash, Agent
 ---
 
-# `/gaia_code_generator` — Ejecuta GAIA en modo CLI desde Claude Code
+# `/gaia_code_generator` — Run GAIA in CLI mode from Claude Code
 
-Este comando hace que `.claude` se comporte como el **CLI Mode**: toma una ficha de trabajo, corre el pipeline completo y entrega un PR. Usa los **mismos agentes** (los TypeScript de `src/agents/`, equivalentes a los de `.claude/agents/` según `docs/engineering/workflow.md`).
+This command makes `.claude` behave like **CLI Mode**: it takes a job ticket, runs the full pipeline, and delivers a PR. It uses the **same agents** (the TypeScript agents in `src/agents/`, equivalent to those in `.claude/agents/` as described in `docs/engineering/workflow.md`).
 
-## Pasos
+## Steps
 
-1. Lee `AGENTS.md` y `docs/engineering/workflow.md` para orientarte.
-2. Ejecuta `./init.sh`. Si falla, **detente** y reporta.
-3. Determina el trabajo:
-   - Si el usuario te dio un path a un `job.json`, úsalo.
-   - Si no, lee `feature_list.json`, elige la primera feature con `"sdd": true` y `status` distinto de `done`/`blocked`, y genera un `job.json` temporal con los campos requeridos.
-4. Pregunta al humano si quiere ejecutar con `--approve` (auto-aprobar) o pausar después del spec, como el CLI normal.
-5. Para generar el spec y detenerte en la puerta humana:
-   - Muestra primero el comando con la ruta real en su propio bloque ejecutable, para ofrecer **Ejecutar en terminal**:
+1. Read `AGENTS.md` and `docs/engineering/workflow.md` to orient yourself.
+2. Run `./init.sh`. If it fails, **stop** and report it.
+3. Determine the task:
+   - If the user gave you a path to a `job.json`, use it.
+   - If not, read `feature_list.json`, choose the first feature with `"sdd": true` and a `status` other than `done`/`blocked`, and generate a temporary `job.json` with the required fields.
+4. Ask the human whether to run with `--approve` (auto-approve) or pause after the spec, as the normal CLI does.
+5. To generate the spec and stop at the human gate:
+   - First show the command with the real path in its own executable block, to offer **Run in terminal**:
      ```bash
-     npm run gaia -- <RUTA_JOB_JSON_REAL>
+     npm run gaia -- <REAL_JOB_JSON_PATH>
      ```
-   - Inmediatamente después, ejecuta tú mismo exactamente ese comando mediante `Bash`, en modo bloqueante, y espera su salida. **No esperes a que el humano pulse el botón**: Claude no puede observar cuándo termina un comando iniciado desde ese botón y el flujo quedaría detenido. El botón es una alternativa manual visible; la llamada `Bash` es la ejecución autoritativa del flujo.
-   - Si detectas que el humano ya lo ejecutó y el job está en `spec_ready`, no lo ejecutes otra vez: recupera el job existente con `--list` y continúa leyendo sus artefactos.
-6. Cuando el SpecAuthor termine, obtén de la salida real del CLI:
-   - El `JOB_ID`.
-   - La ruta absoluta indicada por `Spec saved to ...` o `Gherkin saved to ...`.
-     Luego muestra en Claude, **completos, sin truncar ni resumir**, todos sus artefactos en este orden:
-   - `requirements.json`: requisitos derivados y criterios de aceptación.
-   - `design.json`: diseño técnico y archivos afectados.
-   - `tasks.json`: plan completo de implementación.
-   - `scenarios.feature`: todos los escenarios Gherkin, incluyendo `Feature`, `Background`, tags, `Scenario`/`Scenario Outline`, `Examples` y cada paso `Given/When/Then`.
-   - `handoff.md`: handoff del SpecAuthor, si existe.
-7. Usa `Read` con las **rutas absolutas reales reportadas por el CLI**; no asumas que el workspace está en `/tmp/gaia-workspace`, porque puede estar bajo `/private/tmp/claude/...` u otra raíz configurada. `requirements.json`, `design.json`, `tasks.json` y `scenarios.feature` viven en el directorio reportado por `Spec saved to`. Para localizar `handoff.md`, parte del workspace padre mostrado en la misma salida. Si un archivo no existe, indícalo explícitamente; no lo omitas silenciosamente. No uses `head`, `tail`, límites de líneas ni una explicación que sustituya el contenido original.
-8. Presenta los artefactos con encabezados separados y bloques de código apropiados (`json`, `gherkin` o `markdown`). Los escenarios Gherkin completos deben quedar visibles en el chat de Claude **siempre**, incluso cuando se solicitó `--approve` desde el inicio.
-9. Si el job se detuvo en `spec_ready`, solo después de mostrar todo lo anterior pide al humano que acepte o rechace explícitamente el spec.
-10. En la puerta de aprobación, **siempre** muestra las dos opciones como bloques `bash` independientes, de una sola línea y con el `JOB_ID` real. Este formato es obligatorio para que Claude Code muestre el botón **Ejecutar en terminal**. Antes de los bloques pregunta: "¿Aprobás este spec para continuar con la implementación, o lo rechazás con feedback para regenerarlo? (máximo 5 reintentos)".
+   - Immediately after, run that exact command yourself via `Bash` in blocking mode and wait for its output. **Do not wait for the human to click the button**: Claude cannot observe when a command started from that button finishes and the flow would stall. The button is a visible manual alternative; the `Bash` call is the authoritative execution of the flow.
+   - If you detect the human already ran it and the job is in `spec_ready`, do not run it again: recover the existing job with `--list` and continue reading its artifacts.
+6. When SpecAuthor finishes, get from the CLI's real output:
+   - The `JOB_ID`.
+   - The absolute path indicated by `Spec saved to ...` or `Gherkin saved to ...`.
+   Then show in Claude, **complete, without truncating or summarizing**, all its artifacts in this order:
+   - `requirements.json`: derived requirements and acceptance criteria.
+   - `design.json`: technical design and affected files.
+   - `tasks.json`: complete implementation plan.
+   - `scenarios.feature`: all Gherkin scenarios, including `Feature`, `Background`, tags, `Scenario`/`Scenario Outline`, `Examples`, and every `Given/When/Then` step.
+   - `handoff.md`: SpecAuthor handoff, if it exists.
+7. Use `Read` with the **real absolute paths reported by the CLI**; do not assume the workspace is in `/tmp/gaia-workspace`, because it may be under `/private/tmp/claude/...` or another configured root. `requirements.json`, `design.json`, `tasks.json`, and `scenarios.feature` live in the directory reported by `Spec saved to`. To locate `handoff.md`, start from the parent workspace shown in the same output. If a file does not exist, say so explicitly; do not silently omit it. Do not use `head`, `tail`, line limits, or an explanation that replaces the original content.
+8. Present the artifacts with separate headings and appropriate code blocks (`json`, `gherkin`, or `markdown`). The full Gherkin scenarios must remain visible in the Claude chat **always**, even when `--approve` was requested from the start.
+9. If the job stopped at `spec_ready`, only after showing all of the above ask the human to explicitly approve or reject the spec.
+10. At the approval gate, **always** show both options as independent `bash` blocks, single-line, with the real `JOB_ID`. This format is mandatory for Claude Code to show the **Run in terminal** button. Before the blocks ask: "Do you approve this spec to continue with implementation, or reject it with feedback to regenerate? (max 5 retries)".
 
-    **Aprobar y continuar**
-
-    ```bash
-    npm run gaia -- --id <JOB_ID_REAL> --approve
-    ```
-
-    **Rechazar con feedback**
+    **Approve and continue**
 
     ```bash
-    npm run gaia -- --id <JOB_ID_REAL> --reject "<FEEDBACK_REAL_DEL_HUMANO>"
+    npm run gaia -- --id <REAL_JOB_ID> --approve
     ```
 
-    No uses un bloque `text`, una lista, código inline, placeholders sin reemplazar ni varios comandos dentro del mismo bloque.
-11. Espera la respuesta textual del humano:
-    - Si aprueba, ejecuta tú mismo el comando `--approve` mediante `Bash` en modo bloqueante y continúa automáticamente con la salida completa del CLI durante Implementer, Reviewer, MutationTester y creación del PR.
-    - Si rechaza, pide el feedback, ejecuta tú mismo el comando `--reject` con ese feedback mediante `Bash` en modo bloqueante. El CLI regenerará el spec y volverá a detenerse en `spec_ready`. Lee los nuevos artefactos del spec (pasos 6–8) y vuelve a presentar la puerta de aprobación. Si se alcanzan 5 reintentos, informa al humano y no intentes más rechazos automáticos.
-    - No esperes a detectar el clic en **Ejecutar en terminal**, porque ese terminal es externo al flujo del agente. Si el humano informa que ya usó el botón, verifica el estado con `npm run gaia -- --list` y continúa sin duplicar la ejecución.
-12. Todo comando accionable que entregues durante este flujo debe aparecer además en su propio bloque cercado `bash`, con una sola línea ejecutable, para obtener el botón **Ejecutar en terminal**. No agrupes comandos distintos en un único bloque. Mostrar el botón nunca reemplaza la ejecución autoritativa mediante `Bash` cuando el agente necesita leer la salida y continuar.
-13. Si el humano pidió auto-aprobación desde el inicio, también ejecuta primero `npm run gaia -- <job.json>` **sin** `--approve` para que el CLI se detenga en `spec_ready`. Muestra completos los artefactos según los pasos 6–8 y luego muestra el bloque ejecutable con `npm run gaia -- --id <JOB_ID_REAL> --approve`. Nunca ejecutes el pipeline completo en una sola llamada porque ocultaría los artefactos del SpecAuthor hasta el final.
-14. Reporta el resultado final, el URL del PR y el próximo paso.
-15. Actualiza `progress/current.md` si aplica.
-16. Al finalizar, entrega cada acción del handoff por separado con su propio botón **Ejecutar en terminal**:
+    **Reject with feedback**
 
-    **Listar jobs recientes**
+    ```bash
+    npm run gaia -- --id <REAL_JOB_ID> --reject "<REAL_HUMAN_FEEDBACK>"
+    ```
+
+    Do not use a `text` block, a list, inline code, unreplaced placeholders, or multiple commands inside the same block.
+11. Wait for the human's textual response:
+    - If approved, run the `--approve` command yourself via `Bash` in blocking mode and automatically continue with the full CLI output through Implementer, Reviewer, MutationTester, and PR creation.
+    - If rejected, ask for the feedback, run the `--reject` command yourself with that feedback via `Bash` in blocking mode. The CLI will regenerate the spec and stop again at `spec_ready`. Read the new spec artifacts (steps 6–8) and present the approval gate again. If 5 retries are reached, inform the human and do not attempt more automatic rejections.
+    - Do not wait to detect a click on **Run in terminal**, because that terminal is external to the agent flow. If the human reports they already used the button, verify status with `npm run gaia -- --list` and continue without duplicating execution.
+12. Every actionable command you deliver during this flow must also appear in its own fenced `bash` block, single executable line, to get the **Run in terminal** button. Do not group different commands into a single block. Showing the button never replaces authoritative execution via `Bash` when the agent needs to read the output and continue.
+13. If the human asked for auto-approval from the start, still first run `npm run gaia -- <job.json>` **without** `--approve` so the CLI stops at `spec_ready`. Show the full artifacts per steps 6–8 and then show the executable block with `npm run gaia -- --id <REAL_JOB_ID> --approve`. Never run the full pipeline in a single call because it would hide the SpecAuthor artifacts until the end.
+14. Report the final result, the PR URL, and the next step.
+15. Update `progress/current.md` if applicable.
+16. At the end, deliver each handoff action separately with its own **Run in terminal** button:
+
+    **List recent jobs**
 
     ```bash
     npm run gaia -- --list
     ```
 
-    **Reanudar o reintentar el mismo job**
+    **Resume or retry the same job**
 
     ```bash
-    npm run gaia -- --id <JOB_ID_REAL> --retry
+    npm run gaia -- --id <REAL_JOB_ID> --retry
     ```
 
-    **Inspeccionar el repo generado**
+    **Inspect the generated repo**
 
     ```bash
-    git -C /tmp/gaia-workspace/<JOB_ID_REAL>/repo log --oneline -3
+    git -C /tmp/gaia-workspace/<REAL_JOB_ID>/repo log --oneline -3
     ```
 
-    **Empujar manualmente la rama si fuera necesario**
+    **Push the branch manually if needed**
 
     ```bash
-    git -C /tmp/gaia-workspace/<JOB_ID_REAL>/repo push -u origin <BRANCH_REAL>
+    git -C /tmp/gaia-workspace/<REAL_JOB_ID>/repo push -u origin <REAL_BRANCH>
     ```
 
-## Reglas importantes
+## Important rules
 
-- Una sola feature a la vez.
-- No edites `src/` ni `tests/` del harness; el CLI se encarga de eso.
-- Si hay `--approve`, la puerta humana sobre los `.feature` se salta; sin `--approve`, la respetas.
-- `feature_list.json` debe actualizarse si la feature termina (`status: done`).
+- One feature at a time.
+- Do not edit the harness `src/` or `tests/`; the CLI handles that.
+- If `--approve` is used, the human gate on `.feature` files is skipped; without `--approve`, respect it.
+- `feature_list.json` must be updated if the feature finishes (`status: done`).

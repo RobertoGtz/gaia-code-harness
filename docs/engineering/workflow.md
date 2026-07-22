@@ -1,109 +1,109 @@
-# Pipeline y flujo de trabajo — GAIA Code Harness
+# Pipeline and workflow — GAIA Code Harness
 
-> Pipeline completo del harness: fases, agentes, artefactos y mapeo entre los tres modos de operación.
+> Full harness pipeline: phases, agents, artifacts, and mapping across the three operating modes.
 
 ---
 
-## Los tres modos y su pipeline
+## The three modes and their pipeline
 
-| Modo             | Cómo arranca                 | Backend    | Aprobación de spec         | `tddMode` soportado                |
+| Mode             | How it starts                | Backend    | Spec approval              | `tddMode` supported                |
 | ---------------- | ---------------------------- | ---------- | -------------------------- | ---------------------------------- |
 | **A — HTTP API** | `POST /jobs`                 | PostgreSQL | `POST /jobs/:id/approve`   | ✅ `"tddMode": true`               |
 | **B — CLI**      | `npx ts-node src/cli/run.ts` | Disk JSON  | `--approve` / `--reject "feedback"` | ✅ `--tdd` flag                    |
-| **C — Webhook**  | `POST /webhook/trigger`      | PostgreSQL | Pausa en `spec_ready`; `POST /jobs/:id/approve` | ✅ `"tddMode": true` / label `tdd` |
+| **C — Webhook**  | `POST /webhook/trigger`      | PostgreSQL | Pause at `spec_ready`; `POST /jobs/:id/approve` | ✅ `"tddMode": true` / label `tdd` |
 
-Los tres modos comparten el mismo `leader.ts` (máquina de estados) y los mismos agentes.  
-La diferencia es en cómo entra el job, dónde persiste el estado y si la aprobación del spec es manual o automática.
-
----
-
-## El pipeline de un vistazo
-
-> El diagrama describe el flujo completo. La columna "Agente" muestra el agente Claude Code;
-> la columna "Equivalente TypeScript" muestra el módulo que ejecuta lo mismo en los Modos A, B y C.
-
-| Fase                | Agente (Claude Code)           | Equivalente TypeScript          | Artefacto                                       |
-| ------------------- | ------------------------------ | ------------------------------- | ----------------------------------------------- |
-| Spec                | `spec_partner`                 | `SpecAuthorAgent`               | `project-spec.md` / `TechnicalSpec` JSON        |
-| Gherkin             | `gherkin_author`               | `SpecAuthorAgent` (2ª LLM call) | `features/<name>.feature` / `scenarios.feature` |
-| ⏸ **PUERTA HUMANA** | `craftsman_lead` para          | `POST /jobs/:id/approve`        | —                                               |
-| Implementación      | `tdd_craftsman` (si `tddMode`) | `ImplementerAgent.executeTDD()` | `src/` + `tests/` + `handoff.md`                |
-| _(bulk)_            | _(bulk implementer)_           | `ImplementerAgent.execute()`    | `src/` + `tests/` + `handoff.md`                |
-| Review              | `judge` + `LLM evaluator`      | `ReviewerAgent`                 | `progress/judge_<name>.md` + `review_report.md` |
-| Mutación            | `mutation_tester`              | `MutationTesterAgent`           | `progress/mutation_<name>.md` + `handoff.md`    |
-
-Una sola feature a la vez. Una sola puerta de aprobación humana: sobre los
-escenarios Gherkin, **antes** de escribir producción.
+All three modes share the same `leader.ts` (state machine) and the same agents.  
+The difference is in how the job enters, where state persists, and whether spec approval is manual or automatic.
 
 ---
 
-## Por qué este orden
+## Pipeline at a glance
 
-### 1. La spec nace de una conversación, no de un dictado
+> The diagram describes the full flow. The "Agent" column shows the Claude Code agent;
+> the "TypeScript Equivalent" column shows the module that runs the same thing in Modes A, B, and C.
 
-El humano no entrega un documento cerrado. Debate con el `spec_partner`:
-casos límite, contratos de salida, alternativas descartadas. El resultado,
-`project-spec.md`, es el acuerdo razonado — incluidas las **decisiones** y
-su porqué.
+| Phase               | Agent (Claude Code)            | TypeScript equivalent             | Artifact                                        |
+| ------------------- | ------------------------------ | --------------------------------- | ----------------------------------------------- |
+| Spec                | `spec_partner`                 | `SpecAuthorAgent`                 | `project-spec.md` / `TechnicalSpec` JSON        |
+| Gherkin             | `gherkin_author`               | `SpecAuthorAgent` (2nd LLM call) | `features/<name>.feature` / `scenarios.feature` |
+| ⏸ **HUMAN GATE**    | `craftsman_lead`               | `POST /jobs/:id/approve`          | —                                               |
+| Implementation      | `tdd_craftsman` (if `tddMode`) | `ImplementerAgent.executeTDD()`   | `src/` + `tests/` + `handoff.md`                |
+| _(bulk)_            | _(bulk implementer)_           | `ImplementerAgent.execute()`      | `src/` + `tests/` + `handoff.md`                |
+| Review              | `judge` + `LLM evaluator`      | `ReviewerAgent`                   | `progress/judge_<name>.md` + `review_report.md` |
+| Mutation            | `mutation_tester`              | `MutationTesterAgent`             | `progress/mutation_<name>.md` + `handoff.md`    |
 
-### 2. Gherkin convierte la prosa en un contrato ejecutable
+One feature at a time. One human approval gate: over the Gherkin scenarios,
+**before** writing production code.
 
-Cada comportamiento se vuelve un `Scenario` con `Given/When/Then` verificable.
-Esto es lo que el humano firma. A partir de aquí, la ambigüedad es un bug
-del contrato, no del código. Ver `docs/engineering/gherkin.md`.
+---
 
-### 3. La puerta humana va sobre el contrato, no sobre el código
+## Why this order
 
-Aprobar tarde (cuando ya hay código) es caro. Aprobar el `.feature` es
-barato y es el punto de máximo apalancamiento: un escenario mal definido
-arrastra todo el TDD. El `craftsman_lead` **para** aquí y espera.
+### 1. The spec is born from conversation, not dictation
 
-### 4. TDD estricto: un test a la vez
+The human does not hand over a closed document. They debate with `spec_partner`:
+edge cases, exit contracts, discarded alternatives. The result,
+`project-spec.md`, is the reasoned agreement — including the **decisions**
+and their rationale.
 
-No se escriben todos los tests por adelantado. Se vive el ciclo pequeño:
-un test rojo → el mínimo verde → refactor en verde. Las Tres Leyes en
-`docs/engineering/tdd.md`. El código que ningún test pidió no existe.
+### 2. Gherkin turns prose into an executable contract
 
-### 5. El review es el juego entero
+Every behavior becomes a `Scenario` with verifiable `Given/When/Then`.
+This is what the human signs. From here on, ambiguity is a contract bug,
+not a code bug. See `docs/engineering/gherkin.md`.
+
+### 3. The human gate is on the contract, not the code
+
+Approving late (when code already exists) is expensive. Approving the `.feature` is
+cheap and is the point of maximum leverage: a poorly defined scenario
+drags down all of TDD. The `craftsman_lead` **stops** here and waits.
+
+### 4. Strict TDD: one test at a time
+
+Not all tests are written up front. You live the small cycle:
+red test → minimum green → refactor on green. The Three Laws in
+`docs/engineering/tdd.md`. Code that no test asked for does not exist.
+
+### 5. Review is the whole game
 
 > "Agents draft, judgment prunes."
 
-Generar borradores es barato. El valor escaso es el **juicio** que decide
-qué sobrevive. El `judge` no edita: poda. Si un escenario no tiene test, o
-hay código que nadie pidió, rechaza.
+Generating drafts is cheap. The scarce value is the **judgment** that decides
+what survives. The `judge` does not edit: it prunes. If a scenario has no test, or
+there is code nobody asked for, it rejects.
 
-En los Modos A/B/C, `ReviewerAgent` añade un evaluador LLM con few-shot
-examples entrenado para ser escéptico: devuelve un score 0-100 y issues
-concretas (no genéricos como "mejorar calidad"). Si el score está bajo, el
-pipeline cierra el loop: el feedback se guarda en `reviewFeedback` y el
-`Leader` devuelve el job a `ImplementerAgent` para iterar.
+In Modes A/B/C, `ReviewerAgent` adds an LLM evaluator with few-shot
+examples trained to be skeptical: it returns a 0-100 score and concrete issues
+(not generic ones like "improve quality"). If the score is low, the
+pipeline closes the loop: feedback is saved in `reviewFeedback` and the
+`Leader` returns the job to `ImplementerAgent` to iterate.
 
-### 6. La validación es compute-bound
+### 6. Validation is compute-bound
 
 > "Raw computer power is the limiting factor." / "Mutation testing is
 > resource-heavy, but the ROI on code correctness is worth every cycle."
 
-Una suite verde solo dice que el código no explota. La prueba de mutación
-introduce defectos y exige que algún test falle. Es cara en CPU pero es la
-medida real de si la red atrapa peces. Ver `docs/engineering/mutation-testing.md`.
+A green suite only says the code does not blow up. Mutation testing
+introduces defects and demands that some test fail. It is expensive in CPU but is the
+real measure of whether the net catches fish. See `docs/engineering/mutation-testing.md`.
 
 ---
 
-## Mapa de artefactos
+## Artifact map
 
-| Archivo                                 | Lo escribe                                    | Contiene                                                          |
+| File                                    | Written by                                    | Contains                                                          |
 | --------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------- |
-| `project-spec.md`                       | `spec_partner`                                | Spec conversada: propósito, contrato, decisiones                  |
-| `features/<name>.feature`               | `gherkin_author` (Claude Code)                | Escenarios Gherkin `@s1..@sn` (el contrato firmado)               |
-| `specs/{jobId}/scenarios.feature`       | `SpecAuthorAgent` (Modos A/B/C — 2ª LLM call) | Escenarios Gherkin generados automáticamente, non-blocking        |
-| `specs/{jobId}/design-figma-context.md` | `SpecAuthorAgent` (si `job.figmaUrl`)         | Resumen textual del frame/nodo de Figma (layout, textos, colores) |
-| `src/` (workspace job)                  | `tdd_craftsman` / `ImplementerAgent`          | Código tallado por TDD o generado en bulk                         |
-| `progress/tdd_<name>.md`                | `tdd_craftsman`                               | Bitácora de ciclos + mapa `@s → test`                             |
-| `progress/judge_<name>.md`              | `judge`                                       | Veredicto + checkpoints                                           |
-| `progress/mutation_<name>.md`           | `mutation_tester`                             | Score + mutantes sobrevivientes                                   |
-| `handoff.md`                            | Cada agente                                   | Resumen de estado para el siguiente agente                        |
-| `review_report.md`                      | `ReviewerAgent` (Modos A/B/C)                 | Score e issues del LLM review                                     |
+| `project-spec.md`                       | `spec_partner`                                | Conversational spec: purpose, contract, decisions                 |
+| `features/<name>.feature`               | `gherkin_author` (Claude Code)                | Gherkin scenarios `@s1..@sn` (the signed contract)                |
+| `specs/{jobId}/scenarios.feature`         | `SpecAuthorAgent` (Modes A/B/C — 2nd LLM call) | Automatically generated Gherkin scenarios, non-blocking           |
+| `specs/{jobId}/design-figma-context.md` | `SpecAuthorAgent` (if `job.figmaUrl`)         | Textual summary of Figma frame/node (layout, texts, colors)       |
+| `src/` (job workspace)                  | `tdd_craftsman` / `ImplementerAgent`          | Code carved by TDD or generated in bulk                           |
+| `progress/tdd_<name>.md`                | `tdd_craftsman`                               | Cycle log + `@s → test` map                                       |
+| `progress/judge_<name>.md`              | `judge`                                       | Verdict + checkpoints                                             |
+| `progress/mutation_<name>.md`             | `mutation_tester`                             | Score + surviving mutants                                         |
+| `handoff.md`                            | Each agent                                    | State summary for the next agent                                  |
+| `review_report.md`                      | `ReviewerAgent` (Modes A/B/C)                 | LLM review score and issues                                       |
 | `feature_list.json`                     | `craftsman_lead` / `tdd_craftsman`            | `pending → spec_ready → in_progress → done`                       |
 
-**Regla anti-teléfono-descompuesto:** los subagentes escriben en disco y
-devuelven una línea de referencia. El contenido no circula por chat.
+**Anti-broken-telephone rule:** subagents write to disk and
+return a reference line. Content does not circulate through chat.

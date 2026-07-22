@@ -1,129 +1,129 @@
-# Demo Speaker Script — Carrusel de Promociones (Flutter)
+# Demo Speaker Script — Promotion Carousel (Flutter)
 
-Guion para presentar GAIA Code Harness con una feature realista: **"Agregar banner de promociones"** en un módulo Flutter. Incluye ejecución en **modo CLI** y **modo `.claude`**, explicación de cada agente y textos para decir en cada fase.
+Script to present GAIA Code Harness with a realistic feature: **"Add promotion banner"** in a Flutter module. Includes execution in **CLI mode** and **`.claude` mode**, explanation of each agent, and talking points for each phase.
 
 ---
 
-## Diapositiva 1 — Título y hook (30 seg)
+## Slide 1 — Title and hook (30 sec)
 
-**Qué decir:**
+**What to say:**
 
-> "Hoy vamos a ver cómo GAIA Code Harness toma un requerimiento de producto —con Jira, Figma y criterios de aceptación— y lo convierte en un Pull Request real. La feature: un carrusel de promociones en la pantalla de inicio de una app Flutter."
+> "Today we will see how GAIA Code Harness takes a product requirement — with Jira, Figma, and acceptance criteria — and turns it into a real Pull Request. The feature: a promotion carousel on the home screen of a Flutter app."
 
-**Mostrar en pantalla:**
+**Show on screen:**
 
 ```text
 GAIA CODE HARNESS
 Controlled AI Code Generation
 
-Feature: Agregar banner de promociones (Flutter)
-Repo:    mi-org/mi-repo
+Feature: Add promotion banner (Flutter)
+Repo:    my-org/my-repo
 Ticket:  PROJ-123
 Figma:   https://figma.com/file/abc123/promo-banner
 ```
 
-**Frase clave:**
+**Key phrase:**
 
-> "No es magia: es un proceso con spec, aprobación humana, scope controlado y trazabilidad."
+> "It is not magic: it is a process with spec, human approval, controlled scope, and traceability."
 
 ---
 
-## Diapositiva 2 — ¿Qué es Harness Engineering? (1 min)
+## Slide 2 — What is Harness Engineering? (1 min)
 
-**Qué decir:**
+**What to say:**
 
-> "En lugar de pedirle a la IA que 'escriba código', le damos un arnés: primero debe proponer un plan, luego un humano lo aprueba, después escribe solo lo autorizado y finalmente pasa por review. Eso es Harness Engineering."
+> "Instead of asking the AI to 'write code', we give it a harness: first it must propose a plan, then a human approves it, then it writes only what is authorized, and finally it goes through review. That is Harness Engineering."
 
-**Mostrar el diagrama:**
+**Show the diagram:**
 
 ```text
-Requerimiento (Jira/Figma/ACs)
+Requirement (Jira/Figma/ACs)
           │
           ▼
    ┌──────────────┐
-   │  SpecAuthor   │  ← analiza el repo y propone plan
+   │  SpecAuthor   │  ← analyzes repo and proposes plan
    └──────────────┘
           │
           ▼
    ┌──────────────┐
-   │   Humano     │  ← aprueba/rechaza el spec
+   │   Human      │  ← approves/rejects the spec
    └──────────────┘
           │
           ▼
    ┌──────────────┐
-   │  Implementer │  ← escribe el código
+   │  Implementer │  ← writes the code
    └──────────────┘
           │
           ▼
    ┌──────────────┐
-   │   Reviewer   │  ← valida y crea PR
+   │   Reviewer   │  ← validates and creates PR
    └──────────────┘
           │
           ▼
    ┌──────────────┐
-   │MutationTester│  ← valida calidad de tests
+   │MutationTester│  ← validates test quality
    └──────────────┘
 ```
 
-**Puntos a destacar:**
+**Points to highlight:**
 
-- Especificación antes de código.
-- Dos checkpoints humanos: spec y PR.
-- La IA nunca mergea: solo abre el PR.
-- Scope limitado por `maxFilesToTouch` y el plan técnico.
+- Specification before code.
+- Two human checkpoints: spec and PR.
+- The AI never merges: it only opens the PR.
+- Scope limited by `maxFilesToTouch` and the technical plan.
 
 ---
 
-## Diapositiva 3 — Los agentes y qué hace cada uno (1 min)
+## Slide 3 — The agents and what each does (1 min)
 
-**Qué decir:**
+**What to say:**
 
-> "GAIA no es un solo prompt. Son agentes especializados que se encadenan. En el modo CLI/HTTP usamos los agentes TypeScript; en modo `.claude` usamos subagentes conversacionales, pero el trabajo es el mismo."
+> "GAIA is not a single prompt. It is specialized agents chained together. In CLI/HTTP mode we use the TypeScript agents; in `.claude` mode we use conversational subagents, but the work is the same."
 
-**Agentes del modo CLI / HTTP (TypeScript):**
+**CLI / HTTP mode agents (TypeScript):**
 
-| Agente                | Rol                                                         | Entrega                                                |
+| Agent                 | Role                                                        | Output                                                 |
 | --------------------- | ----------------------------------------------------------- | ------------------------------------------------------ |
-| `SpecAuthorAgent`     | Lee el repo, entiende convenciones y genera el plan técnico | `TechnicalSpec` JSON + escenarios Gherkin (`.feature`) |
-| `ImplementerAgent`    | Escribe/modifica archivos según el spec y los ACs           | Código en una rama feature + commits                   |
-| `ReviewerAgent`       | Valida scope, lint/tests y crea el Pull Request             | PR en GitHub con descripción y trazabilidad            |
-| `MutationTesterAgent` | Muta el código para ver si los tests detectan cambios       | Mutation score; si es bajo, pide reforzar tests        |
+| `SpecAuthorAgent`     | Reads the repo, understands conventions, generates technical plan | `TechnicalSpec` JSON + Gherkin scenarios (`.feature`) |
+| `ImplementerAgent`    | Writes/modifies files according to spec and ACs             | Code on a feature branch + commits                     |
+| `ReviewerAgent`       | Validates scope, lint/tests, and creates the Pull Request  | PR on GitHub with description and traceability         |
+| `MutationTesterAgent` | Mutates code to see if tests detect changes                 | Mutation score; if low, asks to strengthen tests       |
 
-**Agentes del modo `.claude`:**
+**`.claude` mode agents:**
 
-| Agente            | Rol                                                      | Entrega                           |
-| ----------------- | -------------------------------------------------------- | --------------------------------- |
-| `craftsman_lead`  | Coordina el pipeline desde el chat                       | Mensajes de progreso y decisiones |
-| `spec_partner`    | Conversa contigo para entender la feature                | `project-spec.md`                 |
-| `gherkin_author`  | Destila los criterios de aceptación a Gherkin            | `features/<name>.feature`         |
-| `tdd_craftsman`   | Implementa código (Red-Green-Refactor si `tddMode=true`) | Código + tests                    |
-| `judge`           | Revisa calidad del código                                | `progress/judge_<name>.md`        |
-| `mutation_tester` | Mide robustez de tests                                   | `progress/mutation_<name>.md`     |
+| Agent             | Role                                                      | Output                            |
+| ----------------- | --------------------------------------------------------- | --------------------------------- |
+| `craftsman_lead`  | Coordinates the pipeline from chat                        | Progress messages and decisions |
+| `spec_partner`    | Talks with you to understand the feature                  | `project-spec.md`                 |
+| `gherkin_author`  | Distills acceptance criteria into Gherkin                | `features/<name>.feature`         |
+| `tdd_craftsman`   | Implements code (Red-Green-Refactor if `tddMode=true`)   | Code + tests                      |
+| `judge`           | Reviews code quality                                       | `progress/judge_<name>.md`        |
+| `mutation_tester` | Measures test robustness                                   | `progress/mutation_<name>.md`     |
 
-**Frase clave:**
+**Key phrase:**
 
-> "Cada agente tiene una sola responsabilidad. Así podemos depurar, mejorar prompts y auditar qué pasó."
+> "Each agent has a single responsibility. That way we can debug, improve prompts, and audit what happened."
 
 ---
 
-## Diapositiva 4 — El job de ejemplo (45 seg)
+## Slide 4 — The example job (45 sec)
 
-**Qué decir:**
+**What to say:**
 
-> "Este es el input que le vamos a dar a GAIA. Tiene ticket de Jira, link de Figma, plataforma, branch objetivo y criterios de aceptación en formato EARS."
+> "This is the input we will give GAIA. It has a Jira ticket, Figma link, platform, target branch, and acceptance criteria in EARS format."
 
-**Mostrar el JSON:**
+**Show the JSON:**
 
 ```bash
 cat > /tmp/demo-promo-job.json <<'JSON'
 {
   "platform": "flutter",
-  "title": "Agregar banner de promociones",
+  "title": "Add promotion banner",
   "jiraTicketId": "PROJ-123",
-  "repo": "mi-org/mi-repo",
+  "repo": "my-org/my-repo",
   "module": "home_screen",
   "targetBranch": "develop",
-  "description": "Mostrar carrusel de promociones destacadas",
+  "description": "Display highlighted promotion carousel",
   "figmaUrl": "https://figma.com/file/abc123/promo-banner",
   "tddMode": false,
   "buildStrategy": "resolve",
@@ -137,173 +137,173 @@ cat > /tmp/demo-promo-job.json <<'JSON'
 JSON
 ```
 
-**Destacar mientras se ve el JSON:**
+**Highlight while viewing the JSON:**
 
-- `"platform": "flutter"` — GAIA carga el skill de Flutter y conoce la estructura del repo.
-- `"module": "home_screen"` — restringe el contexto a un módulo.
-- `"maxFilesToTouch": 6` — límite de seguridad de scope.
-- `"requireTests": true` — exige tests verdes antes de crear el PR.
-- `"tddMode": false` — genera el código de una vez; con `true` haría Red-Green-Refactor test por test.
-- `"buildStrategy": "resolve"` — para iOS/Tuist en repos grandes resuelve dependencias sin compilar todo; en Flutter se ajusta al skill.
+- `"platform": "flutter"` — GAIA loads the Flutter skill and knows the repo structure.
+- `"module": "home_screen"` — restricts context to one module.
+- `"maxFilesToTouch": 6` — scope safety limit.
+- `"requireTests": true` — requires green tests before creating the PR.
+- `"tddMode": false` — generates code all at once; with `true` it would Red-Green-Refactor test by test.
+- `"buildStrategy": "resolve"` — for iOS/Tuist in large repos resolves dependencies without building everything; in Flutter it adjusts to the skill.
 
 ---
 
-## Diapositiva 5 — Modo CLI: demo paso a paso (2 min)
+## Slide 5 — CLI mode: step-by-step demo (2 min)
 
-**Qué decir:**
+**What to say:**
 
-> "Primero vamos a correr el modo CLI. Es el más rápido para demos: un solo comando, no necesita servidor ni Postgres."
+> "First we will run CLI mode. It is the fastest for demos: a single command, no server or Postgres needed."
 
-### Paso 1 — Ejecutar sin aprobar (mostrar el spec)
+### Step 1 — Run without approving (show the spec)
 
-**Comando:**
+**Command:**
 
 ```bash
 cd ~/Desktop/gaia-code-harness
 npx ts-node src/cli/run.ts --job /tmp/demo-promo-job.json
 ```
 
-**Qué decir mientras corre:**
+**What to say while it runs:**
 
-> "El `SpecAuthor` está leyendo el repo, entendiendo convenciones y generando un plan técnico. No escribe código todavía."
+> "`SpecAuthor` is reading the repo, understanding conventions, and generating a technical plan. It does not write code yet."
 
-**Cuando se detenga en `spec_ready`, mostrar:**
+**When it stops at `spec_ready`, show:**
 
 ```bash
-# ID del job (copiar del output)
+# Job ID (copy from output)
 JOB_ID=<id>
 
-# Spec técnico generado
+# Generated technical spec
 cat /tmp/gaia-workspace/$JOB_ID/specs/$JOB_ID/spec.json | jq '.requirements, .design'
 
-# Escenarios Gherkin
+# Gherkin scenarios
 cat /tmp/gaia-workspace/$JOB_ID/specs/$JOB_ID/scenarios.feature
 ```
 
-**Frase clave:**
+**Key phrase:**
 
-> "Acá está la puerta humana: vemos el plan antes de que se escriba una línea de código."
+> "Here is the human gate: we see the plan before a single line of code is written."
 
-### Paso 2 — Aprobar y continuar
+### Step 2 — Approve and continue
 
-**Comando:**
+**Command:**
 
 ```bash
 npx ts-node src/cli/run.ts --id $JOB_ID --approve
 ```
 
-**Qué decir mientras corre:**
+**What to say while it runs:**
 
-> "Ahora el `Implementer` escribe el código en una rama nueva, el `Reviewer` valida y crea el PR. Todo se guarda en `progress/$JOB_ID.md`."
+> "Now the `Implementer` writes the code on a new branch, the `Reviewer` validates and creates the PR. Everything is saved in `progress/$JOB_ID.md`."
 
-**Cuando termine, mostrar:**
+**When it finishes, show:**
 
 ```bash
-# Abrir el PR
+# Open the PR
 open <PR_URL>
 
-# O ver el resumen
+# Or view the summary
 git -C /tmp/gaia-workspace/$JOB_ID/repo show --stat HEAD
 ```
 
-**Puntos a destacar:**
+**Points to highlight:**
 
-- Rama feature creada automáticamente.
-- Solo los archivos que el plan autorizó.
-- El PR tiene trazabilidad al job y al spec.
+- Feature branch created automatically.
+- Only files authorized by the plan.
+- The PR has traceability to the job and the spec.
 
 ---
 
-## Diapositiva 6 — Modo `.claude`: demo paso a paso (2 min)
+## Slide 6 — `.claude` mode: step-by-step demo (2 min)
 
-**Qué decir:**
+**What to say:**
 
-> "Ahora veamos el modo `.claude`. En lugar de un comando, conversamos con Claude Code. Es más artesanal y deja ver cada paso."
+> "Now let's look at `.claude` mode. Instead of a command, we chat with Claude Code. It is more artisanal and lets you see each step."
 
-### Paso 1 — Arrancar desde el chat
+### Step 1 — Start from chat
 
-**Opción A: automática (igual que CLI, desde el chat)**
+**Option A: automatic (same as CLI, from chat)**
 
 ```text
 /gaia_code_generator --job /tmp/demo-promo-job.json --approve
 ```
 
-**Opción B: paso a paso con control humano (ejemplo típico de `.claude/commands/gaia_code_generator.md`)**
+**Option B: step by step with human control (typical example from `.claude/commands/gaia_code_generator.md`)**
 
 ```text
-Implementá la siguiente feature pendiente
+Implement the following pending feature
 ```
 
-**Qué decir mientras corre:**
+**What to say while it runs:**
 
-> "Claude actúa como `craftsman_lead`. Lee `AGENTS.md`, `feature_list.json` y `progress/current.md`, ejecuta `./init.sh` y elige la siguiente feature pendiente. Primero delega en `spec_partner` para entender la feature y escribir `project-spec.md`."
+> "Claude acts as `craftsman_lead`. It reads `AGENTS.md`, `feature_list.json`, and `progress/current.md`, runs `./init.sh`, and picks the next pending feature. It first delegates to `spec_partner` to understand the feature and write `project-spec.md`."
 
-### Paso 2 — Mostrar los artefactos del spec
+### Step 2 — Show the spec artifacts
 
-**Archivos a abrir en el IDE:**
+**Files to open in the IDE:**
 
 ```bash
 open project-spec.md
-open features/agregar-banner-de-promociones.feature
+open features/add-promotion-banner.feature
 ```
 
-**Qué decir:**
+**What to say:**
 
-> "Acá Claude como `gherkin_author` convirtió los criterios de aceptación en escenarios Gherkin. El humano los lee y aprueba antes de continuar."
+> "Here Claude as `gherkin_author` turned the acceptance criteria into Gherkin scenarios. The human reads and approves them before continuing."
 
-**Mensaje de aprobación:**
+**Approval message:**
 
 ```text
-Aprobado, continuar con la implementación.
+Approved, continue with implementation.
 ```
 
-### Paso 3 — Implementación y review
+### Step 3 — Implementation and review
 
-**Qué decir mientras corre:**
+**What to say while it runs:**
 
-> "Ahora entra `tdd_craftsman` para escribir código. Si `tddMode` está activo, hará Red-Green-Refactor: test rojo, código mínimo, refactor. Luego `judge` revisa calidad y `mutation_tester` valida robustez."
+> "Now `tdd_craftsman` enters to write code. If `tddMode` is active, it will do Red-Green-Refactor: red test, minimal code, refactor. Then `judge` reviews quality and `mutation_tester` validates robustness."
 
-**Artefactos a mostrar:**
+**Artifacts to show:**
 
 ```bash
-open progress/judge_agregar-banner-de-promociones.md
-open progress/mutation_agregar-banner-de-promociones.md
+open progress/judge_add-promotion-banner.md
+open progress/mutation_add-promotion-banner.md
 ```
 
-**Frase clave:**
+**Key phrase:**
 
-> "En `.claude` la IA propone y el humano aprueba cada escenario. Es el mismo pipeline, pero con conversación."
+> "In `.claude` the AI proposes and the human approves each scenario. It is the same pipeline, but with conversation."
 
 ---
 
-## Diapositiva 7 — Comparación CLI vs `.claude` (1 min)
+## Slide 7 — CLI vs `.claude` comparison (1 min)
 
-**Mostrar tabla:**
+**Show table:**
 
 ```text
-| Aspecto          | Modo CLI                        | Modo .claude                      |
-| ---------------- | ------------------------------- | --------------------------------- |
-| Cómo arranca     | `npx ts-node src/cli/run.ts ...`| Chat o `/gaia_code_generator`                     |
-| Orquestador      | `src/cli/run.ts` + `leader.ts`    | `craftsman_lead` + subagentes    |
-| Aprobación spec  | `--approve` (auto)              | Pausa humana en Gherkin           |
-| Velocidad        | Más rápido                      | Más lento, más conversación       |
-| Ideal para       | Demos, CI/CD, tareas definidas  | Features ambiguas, debugging, TDD |
-| Mismo pipeline   | Si                              | Si                                |
+| Aspect          | CLI mode                        | .claude mode                      |
+| --------------- | ------------------------------- | --------------------------------- |
+| How it starts   | `npx ts-node src/cli/run.ts ...`| Chat or `/gaia_code_generator`    |
+| Orchestrator    | `src/cli/run.ts` + `leader.ts`  | `craftsman_lead` + subagents      |
+| Spec approval   | `--approve` (auto)              | Human pause on Gherkin            |
+| Speed           | Faster                          | Slower, more conversation         |
+| Best for        | Demos, CI/CD, defined tasks     | Ambiguous features, debugging, TDD  |
+| Same pipeline   | Yes                             | Yes                               |
 ```
 
-**Qué decir:**
+**What to say:**
 
-> "CLI es para velocidad y reproducibilidad. `.claude` es para cuando querés conversar la feature, revisar cada escenario y mostrar TDD. Ambos usan los mismos agentes TypeScript por detrás."
+> "CLI is for speed and reproducibility. `.claude` is for when you want to discuss the feature, review each scenario, and show TDD. Both use the same TypeScript agents behind the scenes."
 
 ---
 
-## Diapositiva 8 — Qué mostrar del repo resultante (1 min)
+## Slide 8 — What to show from the resulting repo (1 min)
 
-**Qué decir:**
+**What to say:**
 
-> "Una vez generado el PR, mostremos exactamente qué cambió. No hay caja negra."
+> "Once the PR is generated, let's show exactly what changed. There is no black box."
 
-**Comandos:**
+**Commands:**
 
 ```bash
 cd /tmp/gaia-workspace/<JOB_ID>/repo
@@ -312,13 +312,13 @@ git log --oneline -3
 git show --stat HEAD
 ```
 
-**Qué destacar:**
+**What to highlight:**
 
-- Archivos esperados: widget del carrusel, modelos de promoción, provider/StateNotifier, tests, exportaciones.
-- No se tocaron archivos de CI/CD, secrets ni infraestructura.
-- `pubspec_overrides.yaml`, `build/`, `.dart_tool/` no están en el commit.
+- Expected files: carousel widget, promotion models, provider/StateNotifier, tests, exports.
+- No CI/CD, secrets, or infrastructure files were touched.
+- `pubspec_overrides.yaml`, `build/`, `.dart_tool/` are not in the commit.
 
-**Ver el diff:**
+**View the diff:**
 
 ```bash
 git show HEAD -- packages/features/home_screen/lib/src/...
@@ -326,64 +326,64 @@ git show HEAD -- packages/features/home_screen/lib/src/...
 
 ---
 
-## Diapositiva 9 — Preguntas frecuentes (1 min)
+## Slide 9 — FAQ (1 min)
 
-### ¿Por qué `requireTests: true` en este ejemplo?
+### Why `requireTests: true` in this example?
 
-> "Porque es una feature real de producto. En demos rápidas podemos ponerlo en `false`, pero en producción queremos tests verdes y mutation score alto."
+> "Because it is a real product feature. In quick demos we can set it to `false`, but in production we want green tests and a high mutation score."
 
-### ¿Y si no tenemos Figma?
+### What if we don't have Figma?
 
-> "El `figmaUrl` es opcional. Sin él, el spec se basa solo en descripción y ACs. Con Figma, el agente puede referenciar diseño si hay integración."
+> "`figmaUrl` is optional. Without it, the spec is based only on description and ACs. With Figma, the agent can reference design if integration is available."
 
-### ¿El modo CLI puede leer Jira?
+### Can CLI mode read Jira?
 
-> "Sí. Podés pasar `--jira PROJ-123` y GAIA fetchea título, descripción y ACs. En el job.json también podés incluir `jiraTicketId`."
+> "Yes. You can pass `--jira PROJ-123` and GAIA fetches title, description, and ACs. You can also include `jiraTicketId` in job.json."
 
-### ¿Se puede ejecutar en CI?
+### Can it run in CI?
 
-> "Sí. Modo HTTP API o Webhook. Un GitHub Action puede hacer `POST /webhook/trigger` con el ticket."
+> "Yes. HTTP API or Webhook mode. A GitHub Action can `POST /webhook/trigger` with the ticket."
 
-### ¿Qué pasa si el spec no me gusta?
+### What if I don't like the spec?
 
-> "Lo rechazás con feedback y se regenera. En CLI: `curl -X POST .../approve -d '{"approved":false,"feedback":"..."}'`. En `.claude`: decís 'rechazado, falta ...'."
-
----
-
-## Diapositiva 10 — Cierre y próximos pasos (30 seg)
-
-**Qué decir:**
-
-> "Lo importante no es que la IA escriba código. Es que lo haga dentro de un proceso que entendemos, controlamos y podemos auditar: spec, aprobación, scope, review, mutation testing."
-
-**Preguntas para la audiencia:**
-
-- "¿Qué modo les interesa más para empezar: CLI, HTTP API o `.claude`?"
-- "¿Qué feature de su backlog podríamos pilotear primero?"
-- "¿Necesitan integración con Jira, Slack o GitHub Checks?"
-
-**Recursos:**
-
-- `docs/guides/demo-speaker-script-promo.md` — este guion.
-- `scripts/present-promo.sh` — script para mostrar las diapositivas.
-- `API.md` — referencia de la API REST.
-- `docs/guides/claude-mode.md` — guía del modo `.claude`.
+> "You reject it with feedback and it regenerates. In CLI: `curl -X POST .../approve -d '{"approved":false,"feedback":"..."}'`. In `.claude`: say 'rejected, missing ...'."
 
 ---
 
-## Comandos rápidos
+## Slide 10 — Closing and next steps (30 sec)
+
+**What to say:**
+
+> "The important thing is not that the AI writes code. It is that it does so inside a process we understand, control, and can audit: spec, approval, scope, review, mutation testing."
+
+**Questions for the audience:**
+
+- "Which mode interests you most to start with: CLI, HTTP API, or `.claude`?"
+- "What feature in your backlog could we pilot first?"
+- "Do you need integration with Jira, Slack, or GitHub Checks?"
+
+**Resources:**
+
+- `docs/guides/demo-speaker-script-promo.md` — this script.
+- `scripts/present-promo.sh` — script to show the slides.
+- `API.md` — REST API reference.
+- `docs/guides/claude-mode.md` — guide for `.claude` mode.
+
+---
+
+## Quick commands
 
 ```bash
-# Crear job JSON
+# Create job JSON
 cat > /tmp/demo-promo-job.json <<'JSON'
 {
   "platform": "flutter",
-  "title": "Agregar banner de promociones",
+  "title": "Add promotion banner",
   "jiraTicketId": "PROJ-123",
-  "repo": "mi-org/mi-repo",
+  "repo": "my-org/my-repo",
   "module": "home_screen",
   "targetBranch": "develop",
-  "description": "Mostrar carrusel de promociones destacadas",
+  "description": "Display highlighted promotion carousel",
   "figmaUrl": "https://figma.com/file/abc123/promo-banner",
   "tddMode": false,
   "buildStrategy": "resolve",
@@ -396,15 +396,15 @@ cat > /tmp/demo-promo-job.json <<'JSON'
 }
 JSON
 
-# Modo CLI paso a paso
+# CLI mode step by step
 npx ts-node src/cli/run.ts --job /tmp/demo-promo-job.json
 npx ts-node src/cli/run.ts --id <JOB_ID> --approve
 
-# Modo .claude
-# En Claude Code escribir: /gaia_code_generator --job /tmp/demo-promo-job.json --approve
-# O para paso a paso: "Implementá la feature PROJ-123: Agregar banner de promociones"
+# .claude mode
+# In Claude Code write: /gaia_code_generator --job /tmp/demo-promo-job.json --approve
+# Or step by step: "Implement feature PROJ-123: Add promotion banner"
 
-# Ver diff generado
+# View generated diff
 cd /tmp/gaia-workspace/<JOB_ID>/repo
 git show --stat HEAD
 git show HEAD

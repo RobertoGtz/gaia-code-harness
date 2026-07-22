@@ -1,87 +1,82 @@
-# TDD estricto — GAIA Code Harness
+# Strict TDD — GAIA Code Harness
 
-> Un test a la vez. Nunca toda la batería por delante. Nunca código de producción sin un test rojo que lo pida.
-
----
-
-## Las Tres Leyes del TDD
-
-1. **No escribes código de producción** salvo para hacer pasar un test que
-   está fallando.
-2. **No escribes más de un test del necesario para fallar** — y que no
-   compile o no importe cuenta como fallar.
-3. **No escribes más código de producción del necesario** para pasar el
-   único test que falla.
-
-El efecto: nunca tienes código sin un test que lo justifique, ni un test
-que no esté empujando código real. El alcance no se infla.
+> One test at a time. Never the whole battery up front. Never production code without a red test asking for it.
 
 ---
 
-## El ciclo
+## The Three Laws of TDD
+
+1. **You don't write production code** except to make a failing test pass.
+2. **You don't write more of a test than is sufficient to fail** — and not compiling or not importing counts as failing.
+3. **You don't write more production code than is necessary** to make the one failing test pass.
+
+The effect: you never have code without a test justifying it, nor a test
+that isn't driving real code. Scope does not inflate.
+
+---
+
+## The cycle
 
 ```
    ┌──────────────────────────────────────────────┐
    │                                              │
    ▼                                              │
- ROJO           VERDE               REFACTOR      │
- escribe UN  →  mínimo código    →  limpia con  ──┘
- test que       para ponerlo        la barra
- falla          verde               verde
+ RED            GREEN              REFACTOR      │
+ write ONE  →  minimum code      →  clean while  ──┘
+ failing       to make it           keeping
+ test          green                 green
 ```
 
-- **ROJO** — el test deriva del siguiente escenario `@s` del `.feature`.
-  Verifícalo fallando de verdad. Un test que pasa a la primera no demuestra
-  nada: ajústalo o sospecha del montaje.
-- **VERDE** — la implementación **mínima**. Está permitido devolver una
-  constante si aún no hay test que lo desmienta. El siguiente ciclo forzará
-  la generalización.
-- **REFACTOR** — solo en verde. Elimina duplicación, mejora nombres, parte
-  funciones largas. Vuelve a correr los tests tras cada cambio. Si algo se
-  pone rojo, no estás refactorizando: estás cambiando comportamiento.
+- **RED** — the test derives from the next `@s` scenario in the `.feature`.
+  Verify it really fails. A test that passes the first time proves nothing:
+  adjust it or suspect the setup.
+- **GREEN** — **minimum** implementation. Returning a constant is allowed if no
+  test disproves it yet. The next cycle will force generalization.
+- **REFACTOR** — only on green. Remove duplication, improve names, split long
+  functions. Re-run tests after every change. If something turns red, you're
+  not refactoring: you're changing behavior.
 
 ---
 
-## Granularidad: un escenario, uno o más ciclos
+## Granularity: one scenario, one or more cycles
 
-Cada `@s` del `.feature` se traduce en al menos un ciclo Rojo-Verde-Refactor.
-Un escenario con varias aristas puede necesitar dos ciclos para forzar la
-generalización del código.
+Each `@s` in the `.feature` translates into at least one Red-Green-Refactor cycle.
+A scenario with several edges may need two cycles to force generalization.
 
 ---
 
-## Trazabilidad obligatoria
+## Mandatory traceability
 
-Al cerrar, cada `@s` debe estar cubierto por al menos un test concreto.
-El `tdd_craftsman` escribe el mapa en `progress/tdd_<name>.md`:
+At close, every `@s` must be covered by at least one concrete test.
+The `tdd_craftsman` writes the map in `progress/tdd_<name>.md`:
 
 ```markdown
-## Trazabilidad
+## Traceability
 
-- @s1 (archivo vacío → 0) → test_count_archivo_vacio
-- @s2 (tres notas → 3) → test_count_varias_notas
-- @s3 (no modifica el archivo) → test_count_no_muta_archivo
+- @s1 (empty file → 0) → test_count_empty_file
+- @s2 (three notes → 3) → test_count_several_notes
+- @s3 (does not mutate file) → test_count_no_mutate_file
 ```
 
-El `judge` rechaza si algún `@s` queda sin test, y el `mutation_tester`
-rechaza si los tests existen pero no muerden.
+The `judge` rejects if any `@s` lacks a test, and the `mutation_tester`
+rejects if existing tests don't bite.
 
 ---
 
-## Cómo correr los tests por plataforma
+## How to run tests by platform
 
 ```bash
-# TypeScript (harness interno)
+# TypeScript (internal harness)
 npx jest --passWithNoTests
 
 # Swift / iOS
-swift test                               # en el workspace del job
+swift test                               # in the job workspace
 
 # Android / Kotlin
-./gradlew testDebugUnitTest              # en el directorio del proyecto
+./gradlew testDebugUnitTest              # in the project directory
 
 # Flutter
-flutter test                             # en el directorio del proyecto
+flutter test                             # in the project directory
 
 # Python (fallback)
 python3 -m unittest discover -s tests -v
@@ -89,10 +84,10 @@ python3 -m unittest discover -s tests -v
 
 ---
 
-## Olores que el `judge` busca
+## Smells the `judge` looks for
 
-- Código de producción que **ningún test rojo** pidió (viola la Ley 1).
-- Tests escritos "a futuro" para escenarios que aún no toca.
-- Refactors hechos en rojo.
-- Funciones largas o nombres opacos que sobrevivieron al REFACTOR.
-- Tests sin asserts (siempre verdes, no muerden nada).
+- Production code that **no red test** asked for (violates Law 1).
+- Tests written "for the future" for scenarios not yet being touched.
+- Refactors done on red.
+- Long functions or opaque names that survived REFACTOR.
+- Tests without asserts (always green, prove nothing).

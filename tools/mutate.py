@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Mutador determinístico sin dependencias para prueba de mutación.
+"""Dependency-free deterministic mutation testing tool.
 
-Introduce un defecto pequeño en un archivo de código fuente, corre la suite
-de tests y comprueba si algún test falla (mutante MUERTO) o si todos pasan
-(mutante SOBREVIVIENTE). Un sobreviviente es un agujero en la red de tests.
+Introduces a small defect into a source file, runs the test suite, and checks
+whether any test fails (mutant KILLED) or all tests pass (mutant SURVIVED).
+A survivor is a hole in the test net.
 
-Uso:
+Usage:
     # TypeScript / JavaScript
     python3 tools/mutate.py src/agents/implementer.ts
     python3 tools/mutate.py src/agents/implementer.ts --max 60 --cmd "npx jest --passWithNoTests"
@@ -21,14 +21,14 @@ Uso:
     # Python (fallback / harness internals)
     python3 tools/mutate.py src/cli.py --max 80
 
-Diseño:
-- Trabaja a nivel de *token* (módulo `tokenize` para Python, regex para TS/Swift/Kotlin),
-  por lo que NUNCA muta el contenido de strings ni comentarios.
-- Descarta los mutantes que producen errores de sintaxis antes de correr tests.
-- Restaura SIEMPRE el archivo original, incluso ante Ctrl-C (bloque `finally`).
-- Threshold por defecto: 80% (alineado con MutationTesterAgent.ts).
+Design:
+- Works at the *token* level (Python `tokenize` module, regex for TS/Swift/Kotlin),
+  so it NEVER mutates the contents of strings or comments.
+- Discards mutants that produce syntax errors before running tests.
+- ALWAYS restores the original file, even on Ctrl-C (`finally` block).
+- Default threshold: 80% (aligned with MutationTesterAgent.ts).
 
-Ver docs/mutation-testing.md.
+See docs/engineering/mutation-testing.md.
 """
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ import sys
 import tokenize
 from pathlib import Path
 
-# ─── Mutaciones de operador (aplican a TS, Swift, Kotlin, Python) ────────────
+# ─── Operator mutations (apply to TS, Swift, Kotlin, Python) ───────────────
 OP_MUTATIONS: dict[str, str] = {
     "<=": "<",
     ">=": ">",
@@ -56,7 +56,7 @@ OP_MUTATIONS: dict[str, str] = {
     "||": "&&",
 }
 
-# Mutaciones de nombre/constante (Python)
+# Name/constant mutations (Python)
 NAME_MUTATIONS: dict[str, str] = {
     "and": "or",
     "or": "and",
@@ -64,14 +64,14 @@ NAME_MUTATIONS: dict[str, str] = {
     "False": "True",
 }
 
-# Regex patterns para TS/Swift/Kotlin (nivel texto, fuera de strings/comments)
+# Regex patterns for TS/Swift/Kotlin (text level, outside strings/comments)
 TS_KEYWORD_MUTATIONS: list[tuple[re.Pattern, str]] = [
     (re.compile(r'\btrue\b'),  "false"),
     (re.compile(r'\bfalse\b'), "true"),
 ]
 
 
-# ─── Clase Mutant ─────────────────────────────────────────────────────────────
+# ─── Mutant class ────────────────────────────────────────────────────────────
 
 class Mutant:
     def __init__(self, row: int, col_start: int, col_end: int,
@@ -96,7 +96,7 @@ class Mutant:
                 f"({self.original!r} -> {self.replacement!r})")
 
 
-# ─── Generación de mutantes por lenguaje ──────────────────────────────────────
+# ─── Mutant generation per language ───────────────────────────────────────────
 
 def _int_mutation(literal: str) -> str | None:
     try:
@@ -107,7 +107,7 @@ def _int_mutation(literal: str) -> str | None:
 
 
 def generate_mutants_python(source: str) -> list[Mutant]:
-    """Mutaciones basadas en el tokenizer de Python (preciso, sin falsos positivos)."""
+    """Token-based mutations for Python (precise, no false positives)."""
     mutants: list[Mutant] = []
     try:
         tokens = list(tokenize.generate_tokens(io.StringIO(source).readline))
@@ -123,7 +123,7 @@ def generate_mutants_python(source: str) -> list[Mutant]:
 
         if tok.type == tokenize.OP and text in OP_MUTATIONS:
             mutants.append(Mutant(row, col_start, col_end, text,
-                                  OP_MUTATIONS[text], "operador"))
+                                  OP_MUTATIONS[text], "operator"))
         elif tok.type == tokenize.NAME and text in NAME_MUTATIONS:
             mutants.append(Mutant(row, col_start, col_end, text,
                                   NAME_MUTATIONS[text], "keyword"))
@@ -131,9 +131,9 @@ def generate_mutants_python(source: str) -> list[Mutant]:
             repl = _int_mutation(text)
             if repl:
                 mutants.append(Mutant(row, col_start, col_end, text,
-                                      repl, "número"))
+                                      repl, "number"))
 
-    # return <expr> → return None
+    # return <expr> -> return None
     lines = source.splitlines(keepends=True)
     for idx, raw in enumerate(lines, start=1):
         stripped = raw.lstrip()
@@ -145,23 +145,23 @@ def generate_mutants_python(source: str) -> list[Mutant]:
         indent = len(raw) - len(stripped)
         content = raw.rstrip("\n")
         mutants.append(Mutant(idx, indent, len(content),
-                              content[indent:], "return None", "retorno"))
+                              content[indent:], "return None", "return"))
     return mutants
 
 
 def _strip_strings_and_comments(source: str, lang: str) -> str:
-    """Reemplaza strings y comentarios con espacios para evitar mutaciones en ellos."""
+    """Replace strings and comments with spaces to avoid mutating them."""
     # Strings must be masked BEFORE comments so that // inside strings is not treated as a comment.
-    # Strings simples y dobles (no multiline)
+    # Single and double quotes (not multiline)
     result = re.sub(r'("(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\')',
                     lambda m: ' ' * len(m.group()), source)
-    # Template literals TS (multiline support)
+    # TS template literals (multiline support)
     if lang in ("ts", "js"):
         result = re.sub(r'`(?:[^`\\]|\\.)*`',
                         lambda m: ' ' * len(m.group()), result, flags=re.DOTALL)
-    # Comentarios de bloque (/* ... */) incluyendo JSDoc
+    # Block comments (/* ... */) including JSDoc
     result = re.sub(r'/\*[\s\S]*?\*/', lambda m: ' ' * len(m.group()), result)
-    # Comentarios de línea (//, #)
+    # Line comments (//, #)
     result = re.sub(r'(//[^\n]*|#[^\n]*)', lambda m: ' ' * len(m.group()), result)
     return result
 
@@ -233,14 +233,14 @@ def _mutant_in_regions(mutant: Mutant, lines: list[str], regions: list[tuple[int
 
 
 def generate_mutants_text(source: str, lang: str) -> list[Mutant]:
-    """Mutaciones via regex para TS/Swift/Kotlin — opera sobre copia sin strings/comments."""
+    """Regex-based mutations for TS/Swift/Kotlin — operates on a copy with strings/comments removed."""
     mutants: list[Mutant] = []
     masked = _strip_strings_and_comments(source, lang)
     lines_orig = source.splitlines(keepends=True)
     lines_mask = masked.splitlines(keepends=True)
     excluded = _get_excluded_regions(source, lang)
 
-    # Operadores
+    # Operators
     op_pattern = re.compile(
         r'(' + '|'.join(re.escape(k) for k in sorted(OP_MUTATIONS, key=len, reverse=True)) + r')'
     )
@@ -250,7 +250,7 @@ def generate_mutants_text(source: str, lang: str) -> list[Mutant]:
             if text not in OP_MUTATIONS:
                 continue
             mutant = Mutant(row, m.start(), m.end(), text,
-                            OP_MUTATIONS[text], "operador")
+                            OP_MUTATIONS[text], "operator")
             if not _mutant_in_regions(mutant, lines_orig, excluded):
                 mutants.append(mutant)
 
@@ -260,11 +260,11 @@ def generate_mutants_text(source: str, lang: str) -> list[Mutant]:
         for m in bool_pattern.finditer(mask_line):
             text = m.group()
             repl = "false" if text == "true" else "true"
-            mutant = Mutant(row, m.start(), m.end(), text, repl, "booleano")
+            mutant = Mutant(row, m.start(), m.end(), text, repl, "boolean")
             if not _mutant_in_regions(mutant, lines_orig, excluded):
                 mutants.append(mutant)
 
-    # return <expr> → return null / return nil (Swift) / return undefined (TS)
+    # return <expr> -> return null / return nil (Swift) / return undefined (TS)
     return_null = {"ts": "null", "js": "null", "swift": "nil",
                    "kt": "null"}.get(lang, "null")
     return_pat = re.compile(r'\breturn\s+(?!null\b|nil\b|undefined\b|None\b)(.+)')
@@ -276,7 +276,7 @@ def generate_mutants_text(source: str, lang: str) -> list[Mutant]:
             content = lines_orig[row - 1].rstrip("\n")
             mutant = Mutant(row, indent, len(content),
                             content[indent:],
-                            f"return {return_null}", "retorno")
+                            f"return {return_null}", "return")
             if not _mutant_in_regions(mutant, lines_orig, excluded):
                 mutants.append(mutant)
 
@@ -290,7 +290,7 @@ def generate_mutants(source: str, path: str) -> list[Mutant]:
     return generate_mutants_text(source, ext)
 
 
-# ─── Verificación de compilación ──────────────────────────────────────────────
+# ─── Compilation check ──────────────────────────────────────────────────────
 
 def compiles_python(source: str, path: str) -> bool:
     try:
@@ -304,13 +304,13 @@ def compiles(source: str, path: str, orig_source: str) -> bool:
     ext = Path(path).suffix.lstrip(".")
     if ext == "py":
         return compiles_python(source, path)
-    # Para otros lenguajes: heurística simple — si el mutante no cambió nada
-    # o introdujo un token malformado básico, lo rechazamos. La compilación
-    # real la detectará el runner de tests.
+    # For other languages: simple heuristic — reject the mutant if it changed
+    # nothing or introduced a basic malformed token. Real compilation will be
+    # caught by the test runner.
     return source != orig_source
 
 
-# ─── Runner de tests ──────────────────────────────────────────────────────────
+# ─── Test runner ─────────────────────────────────────────────────────────────
 
 def run_tests(cmd: list[str], cwd: str | None) -> bool:
     result = subprocess.run(
@@ -326,38 +326,38 @@ def run_tests(cmd: list[str], cwd: str | None) -> bool:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Prueba de mutación determinística para GAIA harness.",
+        description="Deterministic mutation testing for the GAIA harness.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    parser.add_argument("path", help="Archivo a mutar (src/ o workspace).")
+    parser.add_argument("path", help="File to mutate (src/ or workspace).")
     parser.add_argument(
         "--cmd",
         default="python3 -m unittest discover -s tests -q",
-        help='Comando para correr tests (default: python3 unittest). '
-             'Ej: "npx jest --passWithNoTests" / "swift test" / "./gradlew test"',
+        help='Command to run tests (default: python3 unittest). '
+             'E.g.: "npx jest --passWithNoTests" / "swift test" / "./gradlew test"',
     )
     parser.add_argument(
         "--cwd",
         default=None,
-        help="Directorio de trabajo para el comando de tests (default: directorio actual).",
+        help="Working directory for the test command (default: current directory).",
     )
     parser.add_argument(
         "--max",
         type=int,
         default=100,
-        help="Máximo de mutantes a evaluar (default 100).",
+        help="Maximum mutants to evaluate (default 100).",
     )
     parser.add_argument(
         "--threshold",
         type=float,
         default=80.0,
-        help="Porcentaje mínimo de mutantes muertos para PASS (default 80).",
+        help="Minimum percentage of killed mutants to PASS (default 80).",
     )
     parser.add_argument(
         "--json",
         action="store_true",
-        help="Emitir resultado en JSON (útil para MutationTesterAgent.ts).",
+        help="Emit result as JSON (useful for MutationTesterAgent.ts).",
     )
     args = parser.parse_args(argv)
 
@@ -367,9 +367,9 @@ def main(argv: list[str] | None = None) -> int:
         original = f.read()
     lines = original.splitlines(keepends=True)
 
-    # Cordura: suite debe estar verde antes de mutar
+    # Sanity: suite must be green before mutating
     if not run_tests(cmd, args.cwd):
-        msg = "[FAIL] La suite está roja sin mutar. Arregla los tests primero."
+        msg = "[FAIL] The suite is red before mutating. Fix the tests first."
         if args.json:
             import json
             print(json.dumps({"error": msg, "score": 0.0, "killed": 0,
@@ -391,8 +391,8 @@ def main(argv: list[str] | None = None) -> int:
     survived: list[Mutant] = []
 
     if not args.json:
-        print(f"── Mutando {args.path} ─ {len(valid)} mutantes válidos "
-              f"({skipped_noncompile} descartados por no compilar)")
+        print(f"── Mutating {args.path} ─ {len(valid)} valid mutants "
+              f"({skipped_noncompile} discarded because they do not compile)")
 
     try:
         for i, m in enumerate(valid, start=1):
@@ -400,14 +400,14 @@ def main(argv: list[str] | None = None) -> int:
                 f.write(m.apply(lines))
             if run_tests(cmd, args.cwd):
                 survived.append(m)
-                mark = "SOBREVIVE"
+                mark = "SURVIVES"
             else:
                 killed.append(m)
-                mark = "muerto   "
+                mark = "killed   "
             if not args.json:
                 print(f"  [{i:3}/{len(valid)}] {mark}  {m.describe(args.path)}")
     finally:
-        # Siempre restauramos el archivo original
+        # Always restore the original file
         with open(args.path, "w", encoding="utf-8") as f:
             f.write(original)
 
@@ -433,7 +433,7 @@ def main(argv: list[str] | None = None) -> int:
             ],
         }))
     else:
-        print("\n── Resumen ──────────────────────────────────────────")
+        print("\n── Summary ──────────────────────────────────────────")
         print(f"  total:    {total}")
         print(f"  killed:   {len(killed)}")
         print(f"  survived: {len(survived)}")
@@ -441,10 +441,10 @@ def main(argv: list[str] | None = None) -> int:
         status = "✅ PASS" if passed else "❌ FAIL"
         print(f"  result:   {status}")
         if truncated:
-            print(f"  [WARN] {truncated} mutantes válidos NO evaluados "
-                  f"(límite --max={args.max}). Sube --max para cobertura total.")
+            print(f"  [WARN] {truncated} valid mutants NOT evaluated "
+                  f"(limit --max={args.max}). Increase --max for full coverage.")
         if survived:
-            print("\n  Mutantes sobrevivientes (agujeros en la red):")
+            print("\n  Surviving mutants (holes in the net):")
             for m in survived:
                 print(f"   - {m.describe(args.path)}")
 

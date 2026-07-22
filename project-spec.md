@@ -1,177 +1,123 @@
 # Project Spec
 
-Mantenido por `spec_partner`. Cada sección captura las decisiones tomadas durante la conversación de especificación.
+Maintained by `spec_partner`. Each section captures decisions made during the specification conversation.
 
 ---
 
 ## Feature #2: iOS build strategy for large Tuist monorepos
 
-### Propósito
+### Purpose
 
-El harness GAIA debe poder ejecutar jobs de generación de código iOS contra
-diferentes tipos de repositorios:
+The GAIA harness must be able to run iOS code-generation jobs against different repository shapes:
 
-- Grandes monorepos Tuist (Rappi iOS) con decenas de miles de archivos,
-  symlinks rotos y dependencias privadas.
-- Módulos Tuist individuales dentro de esos monorepos.
-- Proyectos iOS no-Tuist (SPM o Xcode puro) que no usan Tuist.
+- Large Tuist monorepos with tens of thousands of files, broken symlinks and private dependencies.
+- Individual Tuist modules inside those monorepos.
+- Non-Tuist iOS projects (SPM or plain Xcode) that do not use Tuist.
 
-La elección de estrategia de build (`buildStrategy`) permite adaptar la
-validación sin cambiar el resto del pipeline.
+Choosing a build strategy (`buildStrategy`) lets the harness adapt validation without changing the rest of the pipeline.
 
-### Estrategias soportadas
+### Supported strategies
 
-| Estrategia   | Cuándo usar                      | Comportamiento esperado                                                                                                      |
-| ------------ | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `resolve`    | Monorepos Tuist grandes          | Solo ejecuta `swift package resolve` / tuist install para validar dependencias. Rápido.                                      |
-| `tuist`      | Módulo Tuist con `Project.swift` | Genera el proyecto (`tuist generate`) si es necesario y ejecuta `tuist build`.                                               |
-| `xcodebuild` | Proyecto Xcode/SPM sin Tuist     | Compila con `xcodebuild` directamente, descubriendo `.xcodeproj` o `.xcworkspace`.                                           |
-| `auto`       | Default                          | Intenta `tuist build`; si falla, `xcodebuild`; si falla, `resolve`. Si no hay Tuist, salta a `xcodebuild` y luego `resolve`. |
+| Strategy     | When to use                      | Expected behavior                                                                                                           |
+| ------------ | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `resolve`    | Large Tuist monorepos            | Only runs `swift package resolve` / `tuist install` to validate dependencies. Fast.                                          |
+| `tuist`      | Tuist module with `Project.swift`| Generates the project (`tuist generate`) if needed and runs `tuist build`.                                                   |
+| `xcodebuild` | Xcode/SPM project without Tuist  | Builds with `xcodebuild` directly, discovering `.xcodeproj` or `.xcworkspace`.                                              |
+| `auto`       | Default                          | Tries `tuist build`; if it fails, `xcodebuild`; if it fails, `resolve`. If no Tuist, jumps to `xcodebuild` then `resolve`.  |
 
-### Decisiones de diseño
+### Design decisions
 
-1. **Resolver por default en monorepos grandes.** Compilar toda la app Rappi
-   toma > 20 minutos. `resolve` valida que las dependencias sean resolubles
-   sin pagar el costo de compilación completa. El agente LLM sigue teniendo
-   feedback real de tipos y módulos via `tuist build` / `swift package resolve`.
+1. **Resolve by default for large monorepos.** Building the whole app can take > 20 minutes. `resolve` validates that dependencies are resolvable without paying the full build cost. The LLM agent still gets real type/module feedback via `tuist build` / `swift package resolve`.
 
-2. **Preservar el upstream real de GitHub.** En la Rappi setup usan un
-   `LOCAL_REPOS_PATH` con clones locales. Si no se restaura la URL de GitHub
-   en `origin`, el `ReviewerAgent` intenta crear el PR contra el dueño
-   definido por `GITHUB_OWNER`, que puede no coincidir con el upstream real.
-   `setupRepository` guarda la URL original de GitHub antes de copiar y la
-   restaura después.
+2. **Preserve the real GitHub upstream.** In setups with a `LOCAL_REPOS_PATH` using local clones, if the original GitHub URL is not restored on `origin`, the `ReviewerAgent` will try to create the PR against the owner defined by `GITHUB_OWNER`, which may not match the real upstream. `setupRepository` saves the original GitHub URL before copying and restores it after.
 
-3. **Copiar `Tuist/.build` del repo local.** Las dependencias de plugins Tuist
-   y paquetes resueltos ya están en el clone local. Copiar el cache ahorra
-   descargas y evita fallos de autenticación contra repos privados. Si el
-   destino ya existe, se omite la copia para no sobreescribir.
+3. **Copy `Tuist/.build` from the local repo.** Tuist plugin dependencies and resolved packages are already present in the local clone. Copying the cache avoids re-downloads and authentication failures against private repos. If the destination already exists, the copy is skipped to avoid overwriting.
 
-4. **Evitar generación Tuist innecesaria para proyectos no-Tuist.** Si el
-   workspace del job no contiene `Tuist.swift`, `Workspace.swift` ni
-   `Project.swift`, `auto` salta directamente a `xcodebuild` y luego a
-   `resolve`, sin invocar `tuist generate`.
+4. **Avoid unnecessary Tuist generation for non-Tuist projects.** If the job workspace does not contain `Tuist.swift`, `Workspace.swift` or `Project.swift`, `auto` jumps directly to `xcodebuild` and then `resolve`, without invoking `tuist generate`.
 
-5. **Manejo de symlinks rotos y estructuras gigantes.** El monorepo Rappi
-   tiene ~14k archivos a profundidad 3 y symlinks rotos. `getDirectoryStructure`
-   y `searchFiles` ahora los ignoran y limitan la estructura a 500 archivos
-   para no saturar el contexto del LLM.
+5. **Handle broken symlinks and huge structures.** Large monorepos can have ~14k files at depth 3 and broken symlinks. `getDirectoryStructure` and `searchFiles` ignore them and limit the structure to 500 files so the LLM context is not saturated.
 
-### Casos límite
+### Edge cases
 
-- Repo no existe localmente: se clona desde GitHub con `GITHUB_TOKEN`.
-- Repo existe pero no es el esperado: se reutiliza si `repoPath` ya existe.
-- `tuist build` falla por plugin no resuelto: `auto` cae a `xcodebuild`.
-- `xcodebuild` falla por dependencias externas (CocoaPods/script): se cae a
-  `resolve`.
-- No hay toolset iOS instalado: `verifyIosEnvironment` falla antes de build.
+- Repo does not exist locally: clone from GitHub with `GITHUB_TOKEN`.
+- Repo exists but is not the expected one: reuse it if `repoPath` already exists.
+- `tuist build` fails because a plugin is unresolved: `auto` falls back to `xcodebuild`.
+- `xcodebuild` fails because of external dependencies (CocoaPods/script): fall back to `resolve`.
+- No iOS toolset installed: `verifyIosEnvironment` fails before the build.
 
-### Artefactos
+### Artifacts
 
-- `src/plugins/ios/index.ts` — selección de estrategia y orquestación.
+- `src/plugins/ios/index.ts` — strategy selection and orchestration.
 - `src/tools/xcode-runner.ts` — `runTuistBuild`, `runXcodeBuild`, `ensureTuistGenerated`, etc.
-- `src/tools/repo.ts` — `setupRepository` con cache y upstream preservation.
+- `src/tools/repo.ts` — `setupRepository` with cache and upstream preservation.
 - `src/tools/git.ts` — remote parsing, PR creation, token injection.
-- `src/types/index.ts` y `src/db/index.ts` — campo `buildStrategy`.
-- `src/api/routes/jobs.ts` y `src/cli/run.ts` — aceptan `buildStrategy` en requests.
+- `src/types/index.ts` and `src/db/index.ts` — `buildStrategy` field.
+- `src/api/routes/jobs.ts` and `src/cli/run.ts` — accept `buildStrategy` in requests.
 
-## Feature #3: Update Flutter Web skill for RPP multiplatform monorepos
+## Feature #3: Update Flutter Web skill for multiplatform monorepos
 
-### Propósito
+### Purpose
 
-El skill de Flutter Web del harness GAIA debe reflejar la estructura real de
-los repositorios multiplataforma de RPP, que son monorepos `melos` con FVM,
-dependencias privadas en Bitbucket y aplicaciones web desplegadas en
-subrutas específicas. Hasta ahora el skill asumía navegación con `go_router`
-y estructura `lib/src/web/`, lo cual no coincide con el código real de RPP.
+GAIA's Flutter Web skill must support multiplatform Flutter Web monorepos: `melos` monorepos with FVM, private git dependency overrides, and web apps deployed under specific subpaths. Previously the skill assumed `go_router` navigation and a `lib/src/web/` structure, which does not match real multiplatform codebases.
 
-### Repo de referencia
+### Reference repo
 
-- `rpp-co/rpp-account-basics-multiplatform-pyme` (GitHub, owner `rpp-co`)
-- App principal: `apps/app` (`rpp_pyme_app`)
-- Features: `packages/features/{account_summary,breb,certificates,limits,vaults}`
-- Shared base: `packages/base/pay_multiplatform_account_basics_common`
+A representative monorepo shape:
+
+- `sample-org/sample-flutter-web-app` (GitHub)
+- Main app: `apps/app`
+- Features: `packages/features/{home,settings,profile,...}`
+- Shared base: `packages/base/shared_*` (git overrides)
 - Flutter SDK: `3.35.7` (FVM `.fvmrc`)
 - Dart SDK: `3.9.2` (`melos.yaml` environment)
 - Melos: `6.3.2`
 
-### Estructura de paquete de feature
+### Feature package structure
 
-Cada feature publica su API desde `lib/{feature}.dart` y organiza el código:
+Each feature publishes its API from `lib/{feature}.dart` and organizes code as:
 
 ```
 lib/
-  {feature}.dart              # exporta router + routes
+  {feature}.dart              # exports router + routes
   src/
     core/{feature}_router.dart  # fluro Handler + configuration map
-    core/{feature}_routes.dart  # constantes de ruta
+    core/{feature}_routes.dart  # route constants
     data/models/...             # freezed/json_serializable models
-    data/repositories/...       # repositories abstract + impl
-    presentation/...            # widgets, providers, hooks
+    data/repositories/...       # abstract + impl repositories
+    presentation/...          # widgets, providers, hooks
 ```
 
-### Decisiones de diseño
+### Design decisions
 
-1. **Melos bootstrap es el primer paso.** Los paquetes dependen entre sí y
-   de paquetes base compartidos vía `pubspec_overrides.yaml`. Ejecutar
-   `melos bootstrap` primero vincula los paquetes locales antes de que
-   `flutter pub get` resuelva las dependencias externas.
+1. **Melos bootstrap is the first step.** Packages depend on each other and on shared base packages via `pubspec_overrides.yaml`. Running `melos bootstrap` first links local packages before `flutter pub get` resolves external dependencies.
 
-2. **Navegación con `fluro`, no `go_router`.** El router expone un `Map<String,
-Handler>` con la ruta como clave y un `Handler` de fluro. El root app
-   (`apps/app`) reúne las configuraciones de todas las features y las pasa al
-   `router.configureRoutes(...)`. El skill no debe generar `Navigator.push` ni
-   `MaterialPageRoute` directamente.
+2. **Navigation with `fluro`, not `go_router`.** The router exposes a `Map<String, Handler>` keyed by route, using a fluro `Handler`. The root app (`apps/app`) collects every feature's configuration and passes it to `router.configureRoutes(...)`. The skill must not generate `Navigator.push` or `MaterialPageRoute` directly.
 
-3. **Paquetes compartidos vienen de Bitbucket.** `pubspec_overrides.yaml`
-   apunta a `bitbucket.org/rappinc/rappi-pay-multiplatform-app.git` y a
-   `bitbucket.org/rappinc/rpp-multiplatform-common-web.git`. Las credenciales
-   se inyectan en CI con `USERNAME_REPOSITORY` y `PASSWORD_REPOSITORY`. Esto es
-   independiente del `GITHUB_TOKEN` usado para crear PRs en GitHub. El skill
-   debe documentar que existen dos sets de credenciales: GitHub para PRs y
-   Bitbucket para dependencias privadas.
+3. **Shared packages come from private git overrides.** `pubspec_overrides.yaml` points to private git URLs. CI injects credentials with `USERNAME_REPOSITORY` and `PASSWORD_REPOSITORY`. This is independent of `GITHUB_TOKEN` used to create PRs on GitHub. The skill documents that there are two credential sets: GitHub for PRs and private git overrides for dependencies.
 
-4. **Build web requiere `--base-href` y `dart-define`.** El Dockerfile usa
-   `--base-href=/banking-accounts/pyme/account-basics/` y define variables
-   `BACKEND_API`, `FIREBASE_*`, `AMPLITUD_*`, `SHARED_SERVICES_API`, `BRAZE_*`
-   y `FLUTTER_WEB_USE_SKIA=true`. El skill debe pasar estos valores si están
-   disponibles en el job.
+4. **Web build needs `--base-href` and `dart-define`.** The Dockerfile uses `--base-href=/demo/app/` and defines variables `BACKEND_API`, `FIREBASE_*`, `AMPLITUD_*`, `SHARED_SERVICES_API`, `BRAZE_*` and `FLUTTER_WEB_USE_SKIA=true`. The skill passes these values if available in the job.
 
-5. **Tests y coverage son por paquete de feature.** `scripts/coverage.sh` corre
-   `flutter test --coverage` dentro de cada `packages/features/<feature>` y
-   luego mergea los `lcov.info`. El skill no corre todos los tests desde la
-   raíz, sino que ejecuta en el paquete objetivo.
+5. **Tests and coverage are per feature package.** `scripts/coverage.sh` runs `flutter test --coverage` inside each `packages/features/<feature>` and then merges the `lcov.info` files. The skill runs tests in the target package, not from the repo root.
 
-6. **Análisis estático excluye archivos generados.** `*.g.dart`,
-   `*.freezed.dart` y `*.config.dart` deben ignorarse. El linter base es
-   `very_good_analysis` (aunque se puede heredar de
-   `pay_multiplatform_analysis` en los paquetes que lo usan).
+6. **Static analysis excludes generated files.** `*.g.dart`, `*.freezed.dart` and `*.config.dart` must be ignored. The base linter is `very_good_analysis`.
 
-7. **Estructura de monorepo con apps/ y packages/.** No es un proyecto plano
-   con `lib/` en la raíz. Si hay `melos.yaml`, el skill debe tratar el repo
-   como monorepo y resolver módulos con `packages/features/<module>` y la app
-   con `apps/app`.
+7. **Monorepo layout uses `apps/` and `packages/`.** It is not a flat project with `lib/` at the root. If `melos.yaml` is present, the skill treats the repo as a monorepo and resolves modules under `packages/features/<module>` and the app under `apps/app`.
 
-### Casos límite
+### Edge cases
 
-- `.fvmrc` presente pero `flutter` en PATH no coincide con la versión: se
-  advierte que FVM puede seleccionar la versión correcta si está activado.
-- `pubspec_overrides.yaml` con placeholders de credenciales: el build de CI
-  las reemplaza, pero en local se necesita exportar credenciales de Bitbucket.
-- Feature package sin `test/`: el skill reporta "no tests" sin fallar el job.
-- App con rutas en `apps/app` y features en `packages/features/`: la build web
-  siempre corre desde `apps/app`, mientras que tests y analyze corren desde el
-  paquete de feature.
-- Repo owner distinto (`rpp-co` vs `rappi-inc`): el skill hereda owner y token
-  del job, no del default global.
+- `.fvmrc` present but the `flutter` in PATH does not match the version: warn that FVM can select the correct version if activated.
+- `pubspec_overrides.yaml` with credential placeholders: CI replaces them, but locally private git credentials must be exported.
+- Feature package without `test/`: the skill reports "no tests" without failing the job.
+- App routes live in `apps/app` and features in `packages/features/`: the web build always runs from `apps/app`, while tests and analyze run from the feature package.
+- Repo owner different from the default (`sample-org` vs `my-org`): the skill inherits owner and token from the job, not the global default.
 
-### Artefactos
+### Artifacts
 
-- `src/plugins/flutter_web/index.ts` — prompt context, verificación, build, test, analyze.
+- `src/plugins/flutter_web/index.ts` — prompt context, verification, build, test, analyze.
 - `src/tools/test-runner.ts` — `runMelosBootstrap`, `runFlutterPubGet`, `runFlutterTests`, `runDartAnalyze`.
-- `feature_list.json` — feature `flutter-web-skill`.
-- `features/flutter-web-skill.feature` — contrato Gherkin.
-- `progress/tdd_flutter-web-skill.md` — mapa de escenarios a tests.
-- `progress/mutation_flutter-web-skill.md` — resultados de mutación.
+- `feature_list.json` — `flutter-web-skill` feature.
+- `features/flutter-web-skill.feature` — Gherkin contract.
+- `progress/tdd_flutter-web-skill.md` — scenario-to-test map.
+- `progress/mutation_flutter-web-skill.md` — mutation results.
 
-<!-- spec_partner añade una sección por feature aquí -->
+<!-- spec_partner adds one section per feature here -->

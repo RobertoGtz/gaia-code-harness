@@ -1,21 +1,21 @@
-# Arquitectura — GAIA Code Harness
+# Architecture — GAIA Code Harness
 
-> Documentación técnica interna: máquina de estados, agentes, skills, notifiers y backends.
+> Internal technical documentation: state machine, agents, skills, notifiers, and backends.
 
 ---
 
-## Diagrama de Arquitectura
+## Architecture Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         CLIENTE / CI / JIRA WEBHOOK                          │
-│  (Postman, cURL, CI pipeline, o webhook automático)                          │
+│                         CLIENT / CI / JIRA WEBHOOK                          │
+│  (Postman, cURL, CI pipeline, or automatic webhook)                          │
 └─────────────────────────────┬─────────────────────────────────────────────────┘
                               │ POST /jobs
                               │ { acceptanceCriteria, repo, module }
                               ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         API REST (Fastify)                                   │
+│                         REST API (Fastify)                                   │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
 │  │ POST /jobs  │  │GET /jobs/:id│  │POST /approve│  │ POST /retry         │ │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────────────┘ │
@@ -25,7 +25,7 @@
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                         LEADER / ORCHESTRATOR                                │
 │                                                                              │
-│  Máquina de estados:                                                         │
+│  State machine:                                                              │
 │                                                                              │
 │  pending ──► fetching_jira ──► spec_generating ──► spec_ready              │
 │                                                          │                   │
@@ -35,17 +35,17 @@
 │       │          │              │                   (closed-loop)            │
 │       │          │              │                                            │
 │       │          │              └─ REVIEW_ERROR / TEST_ERROR → retry        │
-│       │          │                 (max 5 intentos)                          │
+│       │          │                 (max 5 attempts)                          │
 │       │          │                                                          │
 │       │          └─ Mutation TEST_ERROR → retry                             │
-│       │             (max 2 intentos)                                       │
+│       │             (max 5 attempts)                                       │
 │       │                                                                    │
 │       └── Mutation pass → done                                              │
 │                                                                              │
-│  Estados de error: env_error, repo_error, build_error, spec_error, failed    │
-│  (todos aceptan POST /retry → pending)                                       │
+│  Error states: env_error, repo_error, build_error, spec_error, failed        │
+│  (all accept POST /retry → pending)                                          │
 │                                                                              │
-│  Todos los estados de error aceptan POST /retry → vuelven a pending          │
+│  All error states accept POST /retry → return to pending                     │
 └──────────┬─────────────────┬─────────────────┬──────────────────────────────┘
            │                 │                 │
            ▼                 ▼                 ▼
@@ -81,42 +81,42 @@
                            │
                            ▼
               ┌──────────────────────┐
-              │   PostgreSQL DB      │
-              │   code_generation_jobs│
+              │   PostgreSQL DB        │
+              │   code_generation_jobs │
               └──────────────────────┘
 ```
 
 ---
 
-## Flujo de Datos
+## Data Flow
 
-### 0. Modo de Orquestación
+### 0. Orchestration Mode
 
-El harness soporta tres modos; todos usan la misma máquina de estados internamente:
+The harness supports three modes; all use the same internal state machine:
 
-| Modo                      | Entry point                        | State backend        | Casos de uso                      |
+| Mode                      | Entry point                        | State backend        | Use cases                         |
 | ------------------------- | ---------------------------------- | -------------------- | --------------------------------- |
-| **A — HTTP API**          | `npm run dev` → `POST /jobs`       | `PostgresBackend`    | CI/CD, Postman, integraciones     |
-| **B — CLI**               | `npx ts-node src/cli/run.ts --job` | `DiskBackend` (JSON) | Desarrollo local, demos, sin DB   |
-| **C — Webhook**           | `POST /webhook/trigger`            | `PostgresBackend`    | Jira, Slack, automatización total |
-| **Claude Code (agentes)** | `.claude/agents/craftsman_lead`    | Archivos en disco    | Ciclo conversacional SDD          |
+| **A — HTTP API**          | `npm run dev` → `POST /jobs`       | `PostgresBackend`    | CI/CD, Postman, integrations      |
+| **B — CLI**               | `npx ts-node src/cli/run.ts --job` | `DiskBackend` (JSON) | Local development, demos, no DB   |
+| **C — Webhook**           | `POST /webhook/trigger`            | `PostgresBackend`    | Jira, Slack, full automation      |
+| **Claude Code (agents)**  | `.claude/agents/craftsman_lead`    | Disk files           | Conversational SDD cycle          |
 
-`StateBackend` es una interfaz en `src/state/index.ts`; el Leader y las rutas HTTP importan de `state/` — nunca directamente de `db/`.
+`StateBackend` is an interface in `src/state/index.ts`; the Leader and HTTP routes import from `state/` — never directly from `db/`.
 
-### 1. Creación de Job
+### 1. Job creation
 
-El punto de entrada varía por modo, pero todos llegan al mismo `orchestrateJob()`:
+The entry point varies by mode, but all reach the same `orchestrateJob()`:
 
 ```
-Modo A  POST /jobs              → PostgresBackend.createJob() → orchestrateJob() [async]
-Modo B  src/cli/run.ts --job    → DiskBackend.createJob()     → orchestrateJob() [blocking]
-Modo C  POST /webhook/trigger   → PostgresBackend.createJob() → orchestrateJob() [async]
+Mode A  POST /jobs              → PostgresBackend.createJob() → orchestrateJob() [async]
+Mode B  src/cli/run.ts --job    → DiskBackend.createJob()     → orchestrateJob() [blocking]
+Mode C  POST /webhook/trigger   → PostgresBackend.createJob() → orchestrateJob() [async]
 ```
 
-> Todos los campos opcionales (`figmaUrl`, `jiraEpicId`, `description`, `module`) son
-> soportados en los tres modos. El webhook Jira los enriquece automáticamente desde el ticket.
+> All optional fields (`figmaUrl`, `jiraEpicId`, `description`, `module`) are
+> supported in all three modes. The Jira webhook enriches them automatically from the ticket.
 
-### 2. Generación de Spec
+### 2. Spec Generation
 
 ```
 Leader → SpecAuthorAgent.execute()
@@ -132,24 +132,24 @@ Leader → SpecAuthorAgent.execute()
     Waits: POST /approve
 ```
 
-### 3. Aprobación Humana
+### 3. Human Approval
 
-El mecanismo varía por modo:
-
-```
-Modo A  Tech Lead → POST /jobs/:id/approve   [manual, bloqueante hasta llamada]
-Modo B  CLI flag --approve                   [automática al arrancar]
-Modo C  Automática                           [no hay pausa; webhook dispara el pipeline completo]
-```
-
-En los tres casos, al aprobarse el spec:
+The mechanism varies by mode:
 
 ```
-DB/Disco: status='spec_approved'
+Mode A  Tech Lead → POST /jobs/:id/approve   [manual, blocks until called]
+Mode B  CLI flag --approve                   [automatic on startup]
+Mode C  Automatic                            [no pause; webhook triggers full pipeline]
+```
+
+In all three cases, once the spec is approved:
+
+```
+DB/Disk: status='spec_approved'
 Leader.continue() → ImplementerAgent.execute()
 ```
 
-### 4. Implementación
+### 4. Implementation
 
 ```
 ImplementerAgent:
@@ -159,7 +159,7 @@ ImplementerAgent:
     3. Create branch → GaiaRepoError if branch creation fails
     4. skill.build() → GaiaBuildError if dependency resolution fails
     5. For each task (bulk): generate/modify code with LLM
-    6. skill.test() → GaiaTestError if tests fail (up to 3 fix loops)
+    6. skill.test() → GaiaTestError if tests fail (up to 5 fix loops)
     7. commit & push → GaiaRepoError if push fails
 
   job.tddMode=true → executeTDD() [Red-Green-Refactor]
@@ -169,7 +169,7 @@ ImplementerAgent:
     7. For each test task (one at a time):
        RED   → write test → confirm it fails
        GREEN → fixAllFiles() with LLM → confirm it passes
-    8. Final fix loop (up to 3) to cover any remaining failures
+    8. Final fix loop (up to 5) to cover any remaining failures
     9. commit & push
 
   → success: DB status='reviewing'
@@ -177,7 +177,7 @@ ImplementerAgent:
   Leader → ERROR_STATUS[errorCode] → granular error state
 ```
 
-### 5. Review y Mutation Testing
+### 5. Review and Mutation Testing
 
 ```
 ReviewerAgent:
@@ -213,7 +213,7 @@ When `ImplementerAgent` returns `test_error` during implementation, when `Review
 
 ---
 
-## Estructura de Datos
+## Data Structure
 
 ### PostgreSQL Schema
 
@@ -270,49 +270,49 @@ CREATE INDEX idx_jobs_status ON code_generation_jobs(status);
 CREATE INDEX idx_jobs_initiative ON code_generation_jobs(initiative_id);
 ```
 
-### ErrorContext (columna `error_context` JSONB)
+### ErrorContext (`error_context` JSONB column)
 
-Cuando un job falla, el Leader persiste un objeto estructurado con toda la información de diagnóstico:
+When a job fails, the Leader persists a structured object with all diagnostic information:
 
 ```json
 {
   "code": "BUILD_ERROR",
   "stage": "implementing",
-  "message": "[Flutter] `flutter pub get` failed — dependency resolution error in mi-org/mi-repo",
+  "message": "[Flutter] `flutter pub get` failed — dependency resolution error in my-org/my-repo",
   "detail": "Because dependency_x >=2.0.0 requires sdk >=3.0.0…\n… (truncated at 1500 chars)",
   "timestamp": "2026-06-16T19:00:00.000Z",
   "retryCount": 1
 }
 ```
 
-| Campo        | Tipo        | Descripción                                                    |
+| Field        | Type        | Description                                                    |
 | ------------ | ----------- | -------------------------------------------------------------- |
-| `code`       | `ErrorCode` | Categoría machine-readable (`ENV_ERROR`, `REPO_ERROR`, etc.)   |
-| `stage`      | `JobStatus` | Estado en el que falló el job                                  |
-| `message`    | `string`    | Resumen legible con plataforma y comando fallido               |
-| `detail`     | `string?`   | stderr recortado (máx 1 500 chars) vía `trim()` en `errors.ts` |
+| `code`       | `ErrorCode` | Machine-readable category (`ENV_ERROR`, `REPO_ERROR`, etc.)    |
+| `stage`      | `JobStatus` | Status in which the job failed                                 |
+| `message`    | `string`    | Human-readable summary with platform and failed command        |
+| `detail`     | `string?`   | Trimmed stderr (max 1 500 chars) via `trim()` in `errors.ts`   |
 | `timestamp`  | `string`    | ISO 8601                                                       |
-| `retryCount` | `number`    | Reintentos automáticos antes de entrar en estado de error      |
+| `retryCount` | `number`    | Automatic retries before entering an error state               |
 
 ---
 
 ## Error Handling
 
-### Estados de error granulares
+### Granular error states
 
-En lugar de un estado genérico `failed`, el Leader transiciona a estados específicos según el tipo de error reportado por el agente:
+Instead of a generic `failed` state, the Leader transitions to specific states according to the error type reported by the agent:
 
-| Estado         | `ErrorCode`    | Causa                                                     | Retry automático                         |
-| -------------- | -------------- | --------------------------------------------------------- | ---------------------------------------- |
-| `env_error`    | `ENV_ERROR`    | SDK no instalado (Flutter, Xcode, JDK/Android SDK)        | No                                       |
-| `repo_error`   | `REPO_ERROR`   | Clone, branch creation o push fallaron                    | No                                       |
-| `build_error`  | `BUILD_ERROR`  | `pub get` / `gradle sync` / `swift package resolve` falló | No                                       |
-| `test_error`   | `TEST_ERROR`   | Tests o lint fallaron tras implementación o mutación      | Sí (hasta 5× closed-loop)                |
-| `review_error` | `REVIEW_ERROR` | LLM review, file count o spec traceability fallaron       | Sí (hasta 5×) closed-loop → implementing |
-| `spec_error`   | `SPEC_ERROR`   | LLM no pudo generar un spec válido                        | No                                       |
-| `failed`       | `UNKNOWN`      | Error inesperado                                          | Sí (hasta 5×)                            |
+| State          | `ErrorCode`    | Cause                                                        | Auto retry                               |
+| -------------- | -------------- | ------------------------------------------------------------ | ---------------------------------------- |
+| `env_error`    | `ENV_ERROR`    | SDK not installed (Flutter, Xcode, JDK/Android SDK)        | No                                       |
+| `repo_error`   | `REPO_ERROR`   | Clone, branch creation or push failed                        | No                                       |
+| `build_error`  | `BUILD_ERROR`  | `pub get` / `gradle sync` / `swift package resolve` failed | No                                       |
+| `test_error`   | `TEST_ERROR`   | Tests or lint failed after implementation or mutation      | Yes (up to 5× closed-loop)               |
+| `review_error` | `REVIEW_ERROR` | LLM review, file count or spec traceability failed           | Yes (up to 5×) closed-loop → implementing |
+| `spec_error`   | `SPEC_ERROR`   | LLM could not generate a valid spec                          | No                                       |
+| `failed`       | `UNKNOWN`      | Unexpected error                                             | Yes (up to 5×)                           |
 
-### Flujo de errores
+### Error flow
 
 ```
 Skill throws GaiaError (typed subclass)
@@ -329,9 +329,9 @@ Leader.handleImplementing() / handleReviewing()
   6. printErrorBox(job, ctx)  ← error box in terminal
 ```
 
-### Clases de error (`src/errors.ts`)
+### Error classes (`src/errors.ts`)
 
-| Clase             | `ErrorCode`    | Lanzada desde                                   |
+| Class             | `ErrorCode`    | Thrown from                                     |
 | ----------------- | -------------- | ----------------------------------------------- |
 | `GaiaEnvError`    | `ENV_ERROR`    | `skill.verifyEnvironment()`                     |
 | `GaiaRepoError`   | `REPO_ERROR`   | `setupRepository()`, `createBranch()`, `push()` |
@@ -340,11 +340,11 @@ Leader.handleImplementing() / handleReviewing()
 | `GaiaReviewError` | `REVIEW_ERROR` | File count guard, traceability check            |
 | `GaiaSpecError`   | `SPEC_ERROR`   | `SpecAuthorAgent` (LLM failures)                |
 
-Todas heredan de `GaiaError` que expone `code: ErrorCode`, `message`, y `detail?`.
+All inherit from `GaiaError` which exposes `code: ErrorCode`, `message`, and `detail?`.
 
 ### Terminal error box
 
-Cuando un job entra en estado de error, se imprime:
+When a job enters an error state, this is printed:
 
 ```
 ╔══════════════════════════════════════════════════════════════════╗
@@ -357,13 +357,13 @@ Cuando un job entra en estado de error, se imprime:
 ║  ────────────────────────────────────────────────────────────  ║
 ║ 📦  BUILD ERROR  — Dependency resolution failed                  ║
 ║ Stage:   implementing                                           ║
-║ Message: [Flutter] `flutter pub get` failed — mi-org/mi-repo    ║
+║ Message: [Flutter] `flutter pub get` failed — my-org/my-repo    ║
 ║                                                                  ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║ JOB                                                              ║
 ║ ID:       3f2a1b4c-...                                          ║
 ║ Platform: flutter                                               ║
-║ Repo:     mi-org/mi-repo                                        ║
+║ Repo:     my-org/my-repo                                        ║
 ║                                                                  ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║ NEXT STEP                                                        ║
@@ -375,19 +375,19 @@ Cuando un job entra en estado de error, se imprime:
 
 ---
 
-## Agentes y Plugins
+## Agents and Plugins
 
-### Arquitectura Genérica + Plugins
+### Generic Architecture + Plugins
 
-Todos los jobs comparten **tres agentes genéricos**. La lógica específica de plataforma vive en `src/plugins/{platform}/`. Los agentes cargan el plugin correcto en runtime con `loadSkill(job.platform, repoPath)`:
+All jobs share **three generic agents**. Platform-specific logic lives in `src/plugins/{platform}/`. Agents load the right plugin at runtime with `loadSkill(job.platform, repoPath)`:
 
 ```
 src/
 ├── agents/
-│   ├── spec-author.ts      ← único para todas las plataformas
+│   ├── spec-author.ts      ← unique for all platforms
 │   ├── implementer.ts      ← execute() + executeTDD()
-│   ├── reviewer.ts         ← único para todas las plataformas
-│   ├── mutation-tester.ts  ← corre automáticamente post-review
+│   ├── reviewer.ts         ← unique for all platforms
+│   ├── mutation-tester.ts  ← runs automatically post-review
 │   └── registry.ts         ← PlatformAgents: specAuthor, implementer, reviewer, mutationTester
 ├── state/
 │   ├── index.ts            ← StateBackend interface + setStateBackend()/getStateBackend()
@@ -396,14 +396,14 @@ src/
 ├── cli/
 │   └── run.ts              ← CLI entry point: --list, --job, --id
 └── plugins/
-    ├── index.ts            ← loadSkill() con override logic
-    ├── flutter/index.ts    ← PlatformSkill built-in
+    ├── index.ts            ← loadSkill() with override logic
+    ├── flutter/index.ts    ← built-in PlatformSkill
     ├── flutter_web/index.ts
     ├── ios/index.ts
     └── android/index.ts
 ```
 
-**Flujo de ejecución:**
+**Execution flow:**
 
 ```typescript
 const agents = getAgentsForPlatform(job.platform);
@@ -428,21 +428,21 @@ await agents.mutationTester.execute(context);
 
 1. Create `src/plugins/{new_platform}/index.ts` implementing `PlatformSkill`
 2. Add the `case` in `loadSkill()` inside `src/plugins/index.ts`
-3. All three generic agents use it automatically — no agent changes needed
+3. All generic agents use it automatically — no agent changes needed
 
 ---
 
 ### PlatformSkill Interface
 
-Define el contrato que cada plugin debe cumplir (`src/plugins/index.ts`):
+Defines the contract every plugin must fulfill (`src/plugins/index.ts`):
 
-| Método                        | Responsabilidad                                            |
-| ----------------------------- | ---------------------------------------------------------- |
-| `verifyEnvironment(repoPath)` | Verify toolchain is available                              |
-| `build(repoPath, module?)`    | Resolve dependencies (pub get, gradle sync, spm resolve…)  |
-| `test(repoPath, module?)`     | Run the full test suite                                    |
-| `analyze(repoPath, module?)`  | Lint / static analysis (module-aware for monorepos)        |
-| `getPromptContext(job)`       | Return system prompts + file patterns + forbidden packages |
+| Method                        | Responsibility                                               |
+| ----------------------------- | ------------------------------------------------------------ |
+| `verifyEnvironment(repoPath)` | Verify toolchain is available                                |
+| `build(repoPath, module?)`    | Resolve dependencies (pub get, gradle sync, spm resolve…)    |
+| `test(repoPath, module?)`     | Run the full test suite                                      |
+| `analyze(repoPath, module?)`  | Lint / static analysis (module-aware for monorepos)          |
+| `getPromptContext(job)`       | Return system prompts + file patterns + forbidden packages     |
 
 ---
 
@@ -450,13 +450,13 @@ Define el contrato que cada plugin debe cumplir (`src/plugins/index.ts`):
 
 **Process:**
 
-1. `loadSkill(platform, repoPath)` → get `promptCtx` (con override si existe `<repo>/.gaia/plugins/<platform>/index.js`)
+1. `loadSkill(platform, repoPath)` → get `promptCtx` (with override if `<repo>/.gaia/plugins/<platform>/index.js` exists)
 2. Setup repo via `setupRepository`
 3. Explore repo structure
 4. Identify relevant files
-5. `createPluginLoader(repoPath)` → lee `docs/RULES.md` + `docs/UNIT_TESTS.md` + `docs/gaia.json` del repo clonado
+5. `createPluginLoader(repoPath)` → reads cloned repo's `docs/RULES.md` + `docs/UNIT_TESTS.md` + `docs/gaia.json`
 6. LLM call → `TechnicalSpec` JSON (requirements, design, tasks)
-7. LLM call → `scenarios.feature` (Gherkin) — **non-blocking**: si falla se loggea como warning y el pipeline continúa
+7. LLM call → `scenarios.feature` (Gherkin) — **non-blocking**: if it fails, logged as warning and pipeline continues
 8. Save to disk: `requirements.json`, `design.json`, `tasks.json`, `scenarios.feature`
 9. Write `handoff.md` for `ImplementerAgent`
 
@@ -470,11 +470,11 @@ Define el contrato que cada plugin debe cumplir (`src/plugins/index.ts`):
 4. Read `handoff.md` from previous agent and `reviewFeedback` from prior reviewer/mutation loop
 5. Inject into `implementerSystem`: `[reviewFeedback +] [handoff +] [gherkinScenarios +] [repoRules +] promptCtx.implementerSystem`
 6. For each task: generate/modify code with LLM (bulk)
-7. `skill.test()` → up to 3 LLM fix loops if tests fail
+7. `skill.test()` → up to 5 LLM fix loops if tests fail
 8. Commit & push
 9. Write `handoff.md` for `ReviewerAgent`
 
-**`executeTDD()` — Red-Green-Refactor mode (mismo PluginLoader aplicado):**
+**`executeTDD()` — Red-Green-Refactor mode (same PluginLoader applied):**
 
 1–3. Same setup as `execute()`.  
 4. Read `handoff.md` and `reviewFeedback` (same as bulk).  
@@ -484,7 +484,7 @@ Define el contrato que cada plugin debe cumplir (`src/plugins/index.ts`):
 - **RED**: write test → confirm it fails for the right reason
 - **GREEN**: `fixAllFiles()` with LLM → confirm it passes
 
-7. Final fix loop (up to 3) to cover any remaining failures
+7. Final fix loop (up to 5) to cover any remaining failures
 8. Commit & push
 9. Write `handoff.md` for `ReviewerAgent`
 
@@ -522,7 +522,7 @@ Define el contrato que cada plugin debe cumplir (`src/plugins/index.ts`):
 
 ---
 
-### Toolchains por plataforma
+### Toolchains by platform
 
 | Platform      | build                                                                | test                        | analyze                              | Tool file          |
 | ------------- | -------------------------------------------------------------------- | --------------------------- | ------------------------------------ | ------------------ |
@@ -533,90 +533,90 @@ Define el contrato que cada plugin debe cumplir (`src/plugins/index.ts`):
 
 ---
 
-### Plugin iOS (`src/plugins/ios/index.ts`)
+### iOS Plugin (`src/plugins/ios/index.ts`)
 
-El skill de iOS está calibrado para un monorepo de gran escala basado en **Tuist + Swift Package Manager** (por ejemplo, el repositorio de Rappi iOS). Sus responsabilidades:
+The iOS skill is calibrated for a large-scale monorepo based on **Tuist + Swift Package Manager**. Its responsibilities:
 
-1. **Detectar el tipo de proyecto**
-   - Si el directorio raíz contiene `.xcodeproj`, `.xcworkspace`, `Tuist.swift` o `Workspace.swift`, asume un monorepo Tuist.
-   - Si solo existe `Package.swift`, cae a un proyecto SPM plano.
+1. **Detect project type**
+   - If the root directory contains `.xcodeproj`, `.xcworkspace`, `Tuist.swift` or `Workspace.swift`, assume a Tuist monorepo.
+   - If only `Package.swift` exists, fall back to a flat SPM project.
 
-2. **Build strategy (`buildStrategy` en el job: `resolve` | `xcodebuild` | `tuist` | `auto`)**
-   - `resolve` (default recomendado para grandes monorepos Tuist): solo ejecuta `swift package resolve`. Rápido, no compila el módulo; deja la validación de compilación para CI.
-   - `tuist`: ejecuta `tuist build [scheme]` (con `tuist generate` previo si es necesario). Elige esta opción cuando quieras validación local completa y el repo soporte simulador.
-   - `xcodebuild`: ejecuta `xcodebuild build` con el scheme `module` (o `App`).
-   - `auto` (default): intenta `tuist build`, luego `xcodebuild build`, y finalmente cae a `swift package resolve` si todo falla.
-   - `xcode-runner.ts` descubre el flag correcto (`-workspace` raíz si existe, luego `-project` del módulo) y elige un simulador iOS disponible con `xcrun simctl list devices`.
+2. **Build strategy (`buildStrategy` in job: `resolve` | `xcodebuild` | `tuist` | `auto`)**
+   - `resolve` (recommended default for large Tuist monorepos): only runs `swift package resolve`. Fast, does not compile the module; leaves compilation validation for CI.
+   - `tuist`: runs `tuist build [scheme]` (with prior `tuist generate` if needed). Choose this when you want full local validation and the repo supports a simulator.
+   - `xcodebuild`: runs `xcodebuild build` with the `module` (or `App`) scheme.
+   - `auto` (default): tries `tuist build`, then `xcodebuild build`, and finally falls back to `swift package resolve` if everything fails.
+   - `xcode-runner.ts` discovers the correct flag (root `-workspace` if it exists, then module `-project`) and picks an available iOS simulator with `xcrun simctl list devices`.
 
 3. **Test**
-   - `skill.test(repoPath, module)` ejecuta `xcodebuild test` con el mismo descubrimiento de workspace/proyecto y scheme.
-   - Para SPM plano usa `swift build` como proxy de prueba (no hay un commando de test cross-plataforma sin Xcode).
+   - `skill.test(repoPath, module)` runs `xcodebuild test` with the same workspace/project and scheme discovery.
+   - For flat SPM it uses `swift build` as a test proxy (there is no cross-platform test command without Xcode).
 
 4. **Analyze (lint)**
-   - `skill.analyze(repoPath, module)` ejecuta `swiftlint lint`.
-   - Si `module` se provee y existe un `.swiftlint.yml` dentro de la carpeta del módulo (`features/{Module}/{Module}Feature/.swiftlint.yml`), el linter corre desde ese directorio para aplicar la configuración local del módulo. Si no, lintea desde raíz.
+   - `skill.analyze(repoPath, module)` runs `swiftlint lint`.
+   - If `module` is provided and a `.swiftlint.yml` exists inside the module folder (`features/{Module}/{Module}Feature/.swiftlint.yml`), the linter runs from that directory to apply the module's local configuration. Otherwise it lints from root.
 
 5. **Prompt context (`getPromptContext`)**
-   - Incluye reglas arquitectónicas específicas del monorepo: MVVM + Coordinator, VIPER, SwiftUI Feature, `Feature`/ `FeatureInterface` modules, `@Inject` + `MainComponent.resolve`, Design System, y prohibiciones (no force unwrap, no UIKit en lógica de negocio, etc.).
-   - Los placeholders de paths usan la convención `{Module}Feature/Sources/...` y `{Module}FeatureInterface/Sources/...`.
+   - Includes monorepo-specific architectural rules: MVVM + Coordinator, VIPER, SwiftUI Feature, `Feature` / `FeatureInterface` modules, `@Inject` + `MainComponent.resolve`, Design System, and prohibitions (no force unwrap, no UIKit in business logic, etc.).
+   - Path placeholders use the convention `{Module}Feature/Sources/...` and `{Module}FeatureInterface/Sources/...`.
 
-El runner de Xcode está testeado en `tests/xcode-runner.test.ts` y el plugin en `tests/ios-skill.test.ts`, ambos con mocks de `child_process` y `fs/promises`.
+The Xcode runner is tested in `tests/xcode-runner.test.ts` and the plugin in `tests/ios-skill.test.ts`, both with mocks of `child_process` and `fs/promises`.
 
 ---
 
 ## Plugin System
 
-### ¿Cómo funciona?
+### How it works
 
-Cada agente llama a `loadSkill(platform, repoPath)` **después** de clonar el repo. La función sigue esta precedencia:
-
-```
-1. <repo>/.gaia/plugins/<platform>/index.js   ← override completo del skill (build, test, analyze, prompts)
-2. src/plugins/<platform>                      ← built-in del harness (fallback)
-```
-
-Además, si el repo contiene archivos en `docs/`, el `PluginLoader` los inyecta como contexto adicional en los prompts LLM:
+Each agent calls `loadSkill(platform, repoPath)` **after** cloning the repo. The function follows this precedence:
 
 ```
-3. <repo>/docs/RULES.md        ← reglas de código en markdown libre
-4. <repo>/docs/UNIT_TESTS.md   ← convenciones de tests
-5. <repo>/docs/gaia.json       ← config estructurada (patrones, naming, reglas)
+1. <repo>/.gaia/plugins/<platform>/index.js   ← complete skill override (build, test, analyze, prompts)
+2. src/plugins/<platform>                      ← harness built-in (fallback)
 ```
 
-### Estructura en el repo del proyecto
+In addition, if the repo contains files in `docs/`, the `PluginLoader` injects them as extra context in LLM prompts:
 
 ```
-mi-repo/
+3. <repo>/docs/RULES.md        ← free-form code rules in markdown
+4. <repo>/docs/UNIT_TESTS.md   ← testing conventions
+5. <repo>/docs/gaia.json       ← structured config (patterns, naming, rules)
+```
+
+### Structure in the project repo
+
+```
+my-repo/
 ├── .gaia/
 │   └── plugins/
 │       └── ios/
-│           └── index.js     ← override completo (opcional)
+│           └── index.js     ← complete override (optional)
 └── docs/
-    ├── gaia.json            ← manifest + config (opcional)
-    ├── RULES.md             ← reglas de código (opcional)
-    └── UNIT_TESTS.md        ← convenciones de tests (opcional)
+    ├── gaia.json            ← manifest + config (optional)
+    ├── RULES.md             ← code rules (optional)
+    └── UNIT_TESTS.md        ← testing conventions (optional)
 ```
 
-### Archivos que lee el harness en el repo del proyecto
+### Files the harness reads in the project repo
 
-| Archivo                             | Requerido | Para qué                                                              |
+| File                                | Required | For what                                                              |
 | ----------------------------------- | --------- | --------------------------------------------------------------------- |
-| `.gaia/plugins/<platform>/index.js` | No        | Override completo del skill: build, test, analyze, getPromptContext   |
-| `docs/gaia.json`                    | No        | Manifest: nombre, versión, config (patrones, naming, codeRules...)    |
-| `docs/RULES.md`                     | No        | Reglas de código/tests en texto libre — se inyectan como contexto LLM |
-| `docs/UNIT_TESTS.md`                | No        | Reglas de testing específicas — se inyectan como contexto LLM         |
+| `.gaia/plugins/<platform>/index.js` | No        | Complete skill override: build, test, analyze, getPromptContext       |
+| `docs/gaia.json`                    | No        | Manifest: name, version, config (patterns, naming, codeRules...)     |
+| `docs/RULES.md`                     | No        | Free-form code/test rules — injected as LLM context                    |
+| `docs/UNIT_TESTS.md`                | No        | Specific testing rules — injected as LLM context                       |
 
-> Si existe `docs/RULES.md`, los campos `codeRules`, `testRules` y `forbidden` de `gaia.json` se omiten para evitar duplicación. `RULES.md` tiene prioridad.
+> If `docs/RULES.md` exists, the `codeRules`, `testRules`, and `forbidden` fields in `gaia.json` are omitted to avoid duplication. `RULES.md` takes priority.
 
-### Sin archivos en el repo
+### No files in the repo
 
-Si el repo no tiene ninguno de estos archivos, el harness usa el built-in `src/plugins/<platform>` con su contexto de prompts por defecto. **El comportamiento es idéntico al de antes**.
+If the repo has none of these files, the harness uses the built-in `src/plugins/<platform>` with its default prompt context. **Behavior is identical to before**.
 
-### Ejemplo gaia.json completo
+### Complete gaia.json example
 
 ```json
 {
-  "name": "mi-proyecto-flutter",
+  "name": "my-flutter-project",
   "platform": "flutter",
   "version": "1.0.0",
   "agents": {
@@ -639,12 +639,12 @@ Si el repo no tiene ninguno de estos archivos, el harness usa el built-in `src/p
       "test": "snake_case_test"
     },
     "codeRules": [
-      "Usar BLoC para state management",
-      "No lógica de negocio en widgets"
+      "Use BLoC for state management",
+      "No business logic in widgets"
     ],
     "testRules": [
-      "Cada widget tiene golden test",
-      "Mocks con mocktail, no mockito"
+      "Every widget has a golden test",
+      "Mocks with mocktail, not mockito"
     ],
     "forbidden": ["lib/src/core/di/injection.dart", "pubspec.yaml"]
   }
@@ -653,61 +653,61 @@ Si el repo no tiene ninguno de estos archivos, el harness usa el built-in `src/p
 
 ---
 
-## Seguridad y Control
+## Security and Control
 
 ### Human-in-the-Loop
 
-| Checkpoint    | Quién     | Qué decide                    |
-| ------------- | --------- | ----------------------------- |
-| Spec approval | Tech Lead | ¿El spec técnico es correcto? |
-| PR review     | Dev Team  | ¿El código cumple estándares? |
+| Checkpoint    | Who       | What they decide                |
+| ------------- | --------- | ------------------------------- |
+| Spec approval | Tech Lead | Is the technical spec correct?  |
+| PR review     | Dev Team  | Does the code meet standards?  |
 
-### Límites Automáticos
+### Automatic Limits
 
-- `maxFilesToTouch`: Previene cambios masivos no revisables
-- `requireTests`: Fuerza tests para cada feature
-- `tddMode`: Activa Red-Green-Refactor (un test a la vez)
-- Lint obligatorio: dart analyze (Flutter) / swiftlint (iOS) / lintDebug (Android)
-- Tests obligatorios: flutter test / swift test / gradle test
-- **Mutation Tester**: valida automáticamente que los tests detecten defectos reales (≥80% kill rate)
+- `maxFilesToTouch`: Prevents massive, unreviewable changes
+- `requireTests`: Enforces tests for each feature
+- `tddMode`: Activates Red-Green-Refactor (one test at a time)
+- Mandatory lint: dart analyze (Flutter) / swiftlint (iOS) / lintDebug (Android)
+- Mandatory tests: flutter test / swift test / gradle test
+- **Mutation Tester**: automatically validates that tests catch real defects (≥80% kill rate)
 
-### Auditoría
+### Audit
 
-Todo se guarda en DB:
+Everything is saved in DB:
 
-- Cada cambio de estado
-- Cada log de progreso
-- Spec generado
-- Archivos modificados
-- PR creado
+- Every status change
+- Every progress log
+- Generated spec
+- Modified files
+- Created PR
 
 ---
 
-## Escalabilidad
+## Scalability
 
-### Vertical (más recursos)
+### Vertical (more resources)
 
-- PostgreSQL puede escalar verticalmente
-- Leader procesa un job a la vez (por diseño)
-- Cada job es independiente
+- PostgreSQL can scale vertically
+- Leader processes one job at a time (by design)
+- Each job is independent
 
-### Horizontal (más instancias)
+### Horizontal (more instances)
 
-- Múltiples instancias del API server
-- Load balancer distribuye requests
-- Todos leen/escriben a la misma DB
+- Multiple API server instances
+- Load balancer distributes requests
+- All read/write to the same DB
 
 ### Async Processing
 
-- Leader corre async después de POST /jobs
-- Response inmediata al cliente
-- Polling para status updates
+- Leader runs async after POST /jobs
+- Immediate response to client
+- Polling for status updates
 
 ---
 
-## Configuración
+## Configuration
 
-### Variables de Entorno Críticas
+### Critical Environment Variables
 
 ```bash
 # Server
@@ -716,29 +716,29 @@ PORT=3000
 # Database
 DATABASE_URL=postgresql://...
 
-# GitHub (para crear PRs)
+# GitHub (to create PRs)
 GITHUB_TOKEN=ghp_...
-GITHUB_OWNER=tu-org
+GITHUB_OWNER=your-org
 
-# Jira (opcional)
-JIRA_BASE_URL=https://tu-org.atlassian.net
+# Jira (optional)
+JIRA_BASE_URL=https://your-org.atlassian.net
 JIRA_EMAIL=...
 JIRA_API_TOKEN=...
 
-# LLM (para generación real de código)
+# LLM (for real code generation)
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 
 # Workspace
 REPOS_BASE_PATH=/tmp/gaia-workspace
 
-# Modo B (CLI) — no requiere DB
-LOCAL_REPOS_PATH=/path/to/repos   # repos locales en lugar de clonar desde GitHub
+# Mode B (CLI) — no DB required
+LOCAL_REPOS_PATH=/path/to/repos   # local repos instead of cloning from GitHub
 
-# Modo C (Webhook)
-WEBHOOK_SECRET=...                # HMAC-SHA256 para verificar firma X-GAIA-Signature
-DEFAULT_REPO=tu-org/tu-repo      # repo por defecto si el ticket Jira no tiene label repo:
-DEFAULT_PLATFORM=flutter          # plataforma por defecto si el ticket no tiene label
+# Mode C (Webhook)
+WEBHOOK_SECRET=...                # HMAC-SHA256 to verify X-GAIA-Signature
+DEFAULT_REPO=your-org/your-repo   # default repo if Jira ticket has no repo label
+DEFAULT_PLATFORM=flutter          # default platform if ticket has no label
 ```
 
 ---
@@ -768,65 +768,65 @@ CMD ["npm", "start"]
 
 ### AWS ECS + RDS
 
-- Tarea ECS con variable `DATABASE_URL` apuntando a RDS PostgreSQL
-- Secrets en AWS Secrets Manager, no en variables de entorno planas
-- Ver `docs/guides/production.md` para el checklist completo
+- ECS task with `DATABASE_URL` pointing to RDS PostgreSQL
+- Secrets in AWS Secrets Manager, not plain environment variables
+- See `docs/guides/production.md` for the full checklist
 
 ---
 
-## Métricas
+## Metrics
 
-| Métrica           | Valor Actual   | Target       |
+| Metric            | Current Value  | Target       |
 | ----------------- | -------------- | ------------ |
-| Jobs/hour         | 10 (estimado)  | 50+          |
-| Success rate      | 80% (estimado) | 95%+         |
+| Jobs/hour         | 10 (estimated) | 50+          |
+| Success rate      | 80% (estimated)| 95%+         |
 | Avg time          | 5 min          | 2 min        |
-| Human checkpoints | 2              | 2 (mantener) |
+| Human checkpoints | 2              | 2 (keep)     |
 
 ---
 
-## Decisiones de Diseño
+## Design Decisions
 
-### ¿Por qué PostgreSQL y no SQLite?
+### Why PostgreSQL instead of SQLite?
 
-- Persistencia real entre reinicios
-- Concurrencia mejor manejada
-- Escalabilidad horizontal
-- Backups estándar
+- Real persistence between restarts
+- Better concurrency handling
+- Horizontal scalability
+- Standard backups
 
-### ¿Por qué Fastify y no Express?
+### Why Fastify instead of Express?
 
-- Mejor performance
-- Async/await nativo
-- Schema validation integrado
-- Menos overhead
+- Better performance
+- Native async/await
+- Integrated schema validation
+- Less overhead
 
-### ¿Por qué state machine explícita?
+### Why explicit state machine?
 
-- Debugging más fácil
-- Recuperación de errores clara
-- Visibilidad del proceso
-- Testing más simple
+- Easier debugging
+- Clear error recovery
+- Process visibility
+- Simpler testing
 
-### ¿Por qué tres modos?
+### Why three modes?
 
-- **Modo A** (HTTP): integrable en cualquier CI/CD, permite monitoreo y aprobación remota.
-- **Modo B** (CLI): cero infraestructura, ideal para desarrollo local y demostraciones rápidas.
-- **Modo C** (Webhook): totalmente automático; sistemas externos (Jira, Slack) disparan el pipeline sin intervención manual.
+- **Mode A** (HTTP): integrable into any CI/CD, allows remote monitoring and approval.
+- **Mode B** (CLI): zero infrastructure, ideal for local development and quick demos.
+- **Mode C** (Webhook): fully automatic; external systems (Jira, Slack) trigger the pipeline without manual intervention.
 
-Los tres comparten el mismo `leader.ts` y agentes — la diferencia es solo el adaptador de entrada y el backend de estado.
+All three share the same `leader.ts` and agents — the difference is only the input adapter and state backend.
 
-### ¿Por qué human-in-the-loop?
+### Why human-in-the-loop?
 
-- Calidad > Velocidad
-- Responsabilidad humana
-- Reduce riesgo de errores
-- Cumplimiento de procesos
+- Quality > Speed
+- Human accountability
+- Reduces risk of errors
+- Process compliance
 
 ---
 
-**Documentación relacionada:**
+**Related documentation:**
 
-- [`API.md`](../API.md) — Referencia completa de endpoints REST + Webhook
-- [`docs/guides/setup.md`](../guides/setup.md) — Instalación y configuración por plataforma
-- [`docs/guides/production.md`](../guides/production.md) — Checklist pre-producción
+- [`API.md`](../API.md) — Complete REST + Webhook endpoint reference
+- [`docs/guides/setup.md`](../guides/setup.md) — Installation and configuration per platform
+- [`docs/guides/production.md`](../guides/production.md) — Pre-production checklist

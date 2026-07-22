@@ -1,8 +1,8 @@
 /**
- * @fileoverview iOS / Swift Platform Skill — Rappi monorepo edition
+ * @fileoverview iOS / Swift Platform Skill — large mobile monorepo edition
  * @description Toolchain and prompt context for iOS/Swift projects.
  *              Supports both single-module Swift Package Manager demos and large
- *              Tuist-based modular monorepos (e.g. Rappi iOS) with feature
+ *              Tuist-based modular monorepos (e.g. a large mobile iOS monorepo) with feature
  *              interfaces, dependency injection, VIPER/MVVM, and a shared
  *              Design System.
  */
@@ -149,7 +149,7 @@ export class IosSkill implements PlatformSkill {
       '- apps/                        App targets',
       '- features/                    Feature implementations (e.g. features/PayInsurance/PayInsuranceFeature)',
       '- feature_interfaces/          Public protocols only (e.g. feature_interfaces/PayInsurance/PayInsuranceFeatureInterface)',
-      '- services/                    Shared services (e.g. services/CoreMobile/RappiInjection)',
+      '- services/                    Shared services (e.g. services/CoreMobile/ProjectInjection)',
       '- libraries/                   Reusable libraries',
       '- foundations/                 Low-level utilities',
       '- ui/                          Design System and server-driven UI components',
@@ -183,7 +183,7 @@ export class IosSkill implements PlatformSkill {
     const implementerLines = [
       'You are a senior iOS/Swift developer in a large Tuist modular monorepo.',
       '',
-      `MODULE LAYOUT FOR "${moduleName}" (concrete Rappi example with PayInsurance):`,
+      `MODULE LAYOUT FOR "${moduleName}" (concrete example with PayInsurance):`,
       '- {Vertical} is the parent folder, e.g. features/PayInsurance/ or feature_interfaces/PayInsurance/.',
       `- The feature module name is "${moduleName}Feature" (e.g. PayInsuranceFeature).`,
       `- The feature interface module name is "${moduleName}FeatureInterface" (e.g. PayInsuranceFeatureInterface).`,
@@ -196,14 +196,14 @@ export class IosSkill implements PlatformSkill {
       '',
       'ARCHITECTURE PATTERNS — inspect the existing feature and match its pattern; do not invent a new one:',
       '- VIPER: PayInsuranceFeature.swift (entry), PayInsurancePresenter, PayInsuranceInteractor, PayInsuranceWireframe, PayInsuranceViewController.',
-      '- MVVM: RappiCreditsHomeV2Feature.swift, HomeVM/ViewModel, Repository, NetworkManager, Entities.',
+      '- MVVM: ExampleCreditsHomeV2Feature.swift, HomeVM/ViewModel, Repository, NetworkManager, Entities.',
       '- SwiftUI Feature: conform to Feature = SwiftUIFeature & UIKitFeature from BaseFeatureInterface.',
       '',
       'DEPENDENCY INJECTION:',
-      '- Use RappiInjection/Swinject: @Inject var service: SomeServiceProtocol?',
+      '- Use ProjectInjection/Swinject: @Inject var service: SomeServiceProtocol?',
       '- Resolve via MainComponent.resolve(SomeFeatureProtocol.self) or the feature\'s ResolverHelper.',
       `- Register features in ${moduleName}FeatureRegistrable: register (any ${moduleName}FeatureProtocol).self.`,
-      '- Feature interface imports BaseFeatureInterface and RappiInjection.',
+      '- Feature interface imports BaseFeatureInterface and ProjectInjection.',
       '',
       'CROSS-FEATURE COMMUNICATION:',
       '- NEVER import another feature module directly.',
@@ -235,7 +235,7 @@ export class IosSkill implements PlatformSkill {
       'TESTING:',
       `- Use XCTest. Import @testable import ${moduleName}Feature and ${moduleName}FeatureInterface.`,
       '- Mock dependencies via protocols.',
-      '- Use RappiTesting for XCTestCase helpers (trackForMemoryLeaks, XCTAssertThrowsError async).',
+      '- Use ProjectTesting for XCTestCase helpers (trackForMemoryLeaks, XCTAssertThrowsError async).',
       '- Cover public methods, edge cases, and decoding.',
       '',
       'RESPONSE FORMAT:',
@@ -261,7 +261,7 @@ export class IosSkill implements PlatformSkill {
       '- SwiftLint compliance and no hardcoded constants.',
       '- Git: branch from develop, commit messages reference task/TICKET_ID.',
       '',
-      'Flag any violation with a concrete file path and a suggested fix aligned with the Rappi standards.',
+      'Flag any violation with a concrete file path and a suggested fix aligned with the project standards.',
     ];
 
     return {

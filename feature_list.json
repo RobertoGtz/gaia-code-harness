@@ -4,16 +4,16 @@
     "name": "demo-analytics",
     "status": "pending",
     "initiativeId": "demo",
-    "title": "Demo: add DemoAnalytics feature with event model and repository to bre_b core",
+    "title": "Demo: add DemoAnalytics feature with event model and repository to core",
     "platform": "flutter_web",
-    "repo": "rpp-co/rpp-cashflow-multiplatform-pyme",
+    "repo": "sample-org/sample-flutter-web-app",
     "targetBranch": "master",
-    "module": "bre_b",
-    "description": "Presentation-only demo change: add a DemoAnalyticsEvent model, a DemoAnalyticsRepository class with a logEvent method, and export both from bre_b_core.dart. No business logic changes and no unit tests are required for this demo-only feature.",
+    "module": "core",
+    "description": "Presentation-only demo change: add a DemoAnalyticsEvent model, a DemoAnalyticsRepository class with a logEvent method, and export both from core.dart. No business logic changes and no unit tests are required for this demo-only feature.",
     "acceptanceCriteria": [
       "WHEN DemoAnalyticsEvent is constructed THEN it has name, timestamp and payload fields",
       "WHEN DemoAnalyticsRepository.logEvent is called THEN it stores the event in an internal list",
-      "WHEN DemoAnalyticsEvent and DemoAnalyticsRepository are exported from bre_b_core.dart THEN they are reachable from the core library"
+      "WHEN DemoAnalyticsEvent and DemoAnalyticsRepository are exported from core.dart THEN they are reachable from the core library"
     ],
     "maxFilesToTouch": 4,
     "requireTests": false,

@@ -18,11 +18,11 @@ slides=()
 slides+=("${BLUE}${BOLD}
   ╔════════════════════════════════════════════╗
   ║     GAIA CODE HARNESS                       ║
-  ║     Demo: Carrusel de Promociones (Flutter) ║
+  ║     Demo: Promotion Banner (Flutter)        ║
   ╚════════════════════════════════════════════╝
 ${NC}
-Feature: Agregar banner de promociones
-Repo:    mi-org/mi-repo
+Feature: Add promotion banner
+Repo:    my-org/my-repo
 Ticket:  PROJ-123
 Figma:   https://figma.com/file/abc123/promo-banner
 
@@ -65,12 +65,12 @@ slides+=("${YELLOW}[SLIDE 3] The Job JSON${NC}
 
 {
   \"platform\": \"flutter\",
-  \"title\": \"Agregar banner de promociones\",
+  \"title\": \"Add promotion banner\",
   \"jiraTicketId\": \"PROJ-123\",
-  \"repo\": \"mi-org/mi-repo\",
+  \"repo\": \"my-org/my-repo\",
   \"module\": \"home_screen\",
   \"targetBranch\": \"develop\",
-  \"description\": \"Mostrar carrusel de promociones destacadas\",
+  \"description\": \"Display highlighted promotion banner carousel\",
   \"figmaUrl\": \"https://figma.com/file/abc123/promo-banner\",
   \"tddMode\": false,
   \"buildStrategy\": \"resolve\",
@@ -111,7 +111,7 @@ ${CYAN}Option A: one-shot via slash command${NC}
   /gaia_code_generator --job /tmp/demo-promo-job.json --approve
 
 ${CYAN}Option B: human-in-the-loop (canonical run_gaia.md example)${NC}
-  Implementa la siguiente feature pendiente
+  Implement the next pending feature
 
 What to say:
   \"Claude acts as craftsman_lead. It reads AGENTS.md, feature_list.json,

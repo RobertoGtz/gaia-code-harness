@@ -47,17 +47,17 @@ fi
 # ── Platform config ───────────────────────────────────────────────────────────
 case "$PLATFORM" in
   flutter)
-    REPO="mi-org/demo-repo"
+    REPO="my-org/demo-repo"
     TICKET="DEMO-FLUTTER-001"
     PLATFORM_LABEL="Flutter/Dart"
     ;;
   ios)
-    REPO="rappi-inc/ios-rappi-main"
+    REPO="my-org/ios-demo-app"
     TICKET="DEMO-IOS-001"
     PLATFORM_LABEL="iOS/Swift"
     ;;
   android)
-    REPO="mi-org/demo-repo-android"
+    REPO="my-org/demo-repo-android"
     TICKET="DEMO-ANDROID-001"
     PLATFORM_LABEL="Android/Kotlin"
     ;;
@@ -102,7 +102,7 @@ EOAC
   fi
 
   if [ "$PLATFORM" = "ios" ]; then
-    MODULE_FIELD='"module": "features/PayAccountBasics/PayABDebitMovementsWallFeature",'
+    MODULE_FIELD='"module": "features/TransactionHistory",'
     TARGET_BRANCH='"targetBranch": "develop",'
   else
     MODULE_FIELD=''

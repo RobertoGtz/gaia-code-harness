@@ -1,27 +1,27 @@
 # Gherkin — GAIA Code Harness
 
-> Una vez acordado el `project-spec.md`, el `gherkin_author` lo destila en escenarios ejecutables.
-> Los `.feature` son el contrato que el humano aprueba en la puerta y el mapa que el `tdd_craftsman` recorre.
+> Once `project-spec.md` is agreed upon, the `gherkin_author` distills it into executable scenarios.
+> The `.feature` files are the contract the human approves at the gate and the map the `tdd_craftsman` follows.
 
-Los archivos viven en `features/<name>.feature`, donde `<name>` coincide
-con el campo `name` de `feature_list.json`.
+Files live in `features/<name>.feature`, where `<name>` matches
+the `name` field in `feature_list.json`.
 
 ---
 
-## Estructura
+## Structure
 
 ```gherkin
-Feature: <propósito en una frase>
-  Como <rol> quiero <capacidad> para <beneficio>.   # contexto opcional
+Feature: <purpose in one sentence>
+  As a <role> I want <capability> so that <benefit>.   # optional context
 
   @s1
-  Scenario: <comportamiento observable>
-    Given <estado de partida>
-    When <acción concreta del usuario>
-    Then <resultado medible: stdout / stderr / exit code / pantalla>
+  Scenario: <observable behavior>
+    Given <starting state>
+    When <concrete user action>
+    Then <measurable result: stdout / stderr / exit code / screen>
 
   @s2
-  Scenario: <caso límite o error>
+  Scenario: <edge case or error>
     Given ...
     When ...
     Then ...
@@ -29,66 +29,66 @@ Feature: <propósito en una frase>
 
 ---
 
-## Reglas duras
+## Hard rules
 
-- **Un `Scenario` por comportamiento observable**, incluidos los caminos de
-  error (id inexistente, flag inválido, red caída, lista vacía). Si el
-  `project-spec.md` menciona un caso límite, tiene su escenario.
-- **Tags estables** `@s1`, `@s2`, … Son el identificador que el
-  `tdd_craftsman` (mapa `@s → test`) y el `judge` (cobertura) citan.
-- **Cada `Then` afirma algo medible.** Prohibido "el sistema funciona" o
-  "el comportamiento es correcto". Válido: "la pantalla muestra X", "el
-  código de salida es 0", "el PR fue creado en GitHub", "el log contiene Y".
-- **Un solo `When` por escenario** (la acción bajo prueba). Si necesitas
-  dos acciones, probablemente son dos escenarios.
-- **Sin detalles de implementación.** El `.feature` describe comportamiento,
-  no funciones ni clases. "Cuando se llama a `executeTDD()`" es incorrecto;
-  "Cuando el job se crea con tddMode: true" es correcto.
+- **One `Scenario` per observable behavior**, including error paths
+  (nonexistent id, invalid flag, network down, empty list). If
+  `project-spec.md` mentions an edge case, it gets its own scenario.
+- **Stable tags** `@s1`, `@s2`, … They are the identifier that
+  `tdd_craftsman` (`@s → test` map) and `judge` (coverage) reference.
+- **Every `Then` asserts something measurable.** Forbidden: "the system works" or
+  "the behavior is correct". Valid: "the screen shows X", "the exit code is 0",
+  "the PR was created on GitHub", "the log contains Y".
+- **Only one `When` per scenario** (the action under test). If you need
+  two actions, they are probably two scenarios.
+- **No implementation details.** The `.feature` describes behavior,
+  not functions or classes. "When `executeTDD()` is called" is wrong;
+  "When the job is created with tddMode: true" is correct.
 
 ---
 
-## Ejemplo (feature `pull_to_refresh` — plataforma iOS)
+## Example (feature `pull_to_refresh` — iOS platform)
 
 ```gherkin
-Feature: Pull-to-refresh en el feed
-  Como usuario quiero actualizar el feed arrastrando hacia abajo para ver
-  contenido reciente sin reiniciar la app.
+Feature: Pull-to-refresh on the feed
+  As a user I want to refresh the feed by dragging down to see
+  recent content without restarting the app.
 
   @s1
-  Scenario: El feed se actualiza al hacer pull-to-refresh
-    Given la pantalla de feed está visible con contenido cargado
-    When el usuario arrastra la lista hacia abajo y suelta
-    Then el indicador de carga es visible durante la actualización
-    And la lista muestra los nuevos items recibidos del servidor
+  Scenario: Feed updates on pull-to-refresh
+    Given the feed screen is visible with loaded content
+    When the user drags the list down and releases
+    Then the loading indicator is visible during the refresh
+    And the list shows the new items received from the server
 
   @s2
-  Scenario: Indicador de carga desaparece al completar la actualización
-    Given el usuario ha iniciado un pull-to-refresh
-    When la respuesta del servidor llega
-    Then el indicador de carga desaparece
-    And la lista queda en estado idle
+  Scenario: Loading indicator disappears after refresh completes
+    Given the user has started a pull-to-refresh
+    When the server response arrives
+    Then the loading indicator disappears
+    And the list is in idle state
 
   @s3
-  Scenario: El pull-to-refresh no duplica los items existentes
-    Given el feed tiene 3 items
-    When el usuario hace pull-to-refresh y el servidor devuelve los mismos 3 items
-    Then la lista sigue mostrando exactamente 3 items
+  Scenario: Pull-to-refresh does not duplicate existing items
+    Given the feed has 3 items
+    When the user pulls-to-refresh and the server returns the same 3 items
+    Then the list still shows exactly 3 items
 
   @s4
-  Scenario: Error de red durante pull-to-refresh
-    Given el servidor no está disponible
-    When el usuario hace pull-to-refresh
-    Then se muestra un mensaje de error
-    And los items previos siguen visibles en la lista
+  Scenario: Network error during pull-to-refresh
+    Given the server is unavailable
+    When the user pulls-to-refresh
+    Then an error message is shown
+    And the previous items remain visible in the list
 ```
 
 ---
 
-## De Gherkin a test (sin framework BDD)
+## From Gherkin to test (without a BDD framework)
 
-No usamos `behave`, `XCTest-Gherkin` ni similares para no añadir
-dependencias. Cada `Scenario` se traduce **a mano** a un test cuyo nombre
-cita el escenario:
+We do not use `behave`, `XCTest-Gherkin`, or similar to avoid adding
+dependencies. Each `Scenario` is translated **manually** into a test whose name
+references the scenario:
 
 ```
 @s1 → testFeedRefreshesOnPullToRefresh
@@ -97,18 +97,18 @@ cita el escenario:
 @s4 → testNetworkErrorShowsMessageDuringRefresh
 ```
 
-El `tdd_craftsman` escribe estos tests uno a uno (Rojo→Verde→Refactor) y
-deja el mapa en `progress/tdd_<name>.md`. Así el `.feature` sigue siendo la
-fuente de verdad legible por el humano, sin pagar el coste de un framework.
+The `tdd_craftsman` writes these tests one by one (Red→Green→Refactor) and
+leaves the map in `progress/tdd_<name>.md`. This way the `.feature` remains the
+human-readable source of truth without paying the cost of a framework.
 
 ---
 
-## Errores comunes a evitar
+## Common mistakes to avoid
 
-| ❌ Incorrecto                       | ✅ Correcto                                |
-| ----------------------------------- | ------------------------------------------ |
-| `Then el código funciona`           | `Then la salida contiene "3 items"`        |
-| `Given el sistema está configurado` | `Given el almacén tiene 3 notas guardadas` |
-| `When se ejecuta la feature`        | `When el usuario toca el botón "Refresh"`  |
-| Escenario sin tag `@s`              | Todo escenario tiene `@s1`, `@s2`, etc.    |
-| Múltiples `When` en un escenario    | Un `When` por escenario                    |
+| ❌ Incorrect                      | ✅ Correct                               |
+| ---------------------------------- | ---------------------------------------- |
+| `Then the code works`              | `Then the output contains "3 items"`     |
+| `Given the system is configured`   | `Given the store has 3 notes saved`      |
+| `When the feature runs`            | `When the user taps the "Refresh" button` |
+| Scenario without `@s` tag          | Every scenario has `@s1`, `@s2`, etc.  |
+| Multiple `When` in one scenario  | One `When` per scenario                  |

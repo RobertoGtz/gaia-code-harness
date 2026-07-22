@@ -1,72 +1,72 @@
 ---
 name: gaia-code-harness
-description: Knowledge base del proyecto GAIA Code Harness. Arquitectura, modos de operación, pipeline de agentes, artefactos y reglas.
+description: Knowledge base for the GAIA Code Harness project. Architecture, operation modes, agent pipeline, artifacts, and rules.
 scope: project
 createdAt: "2026-07-15T00:00:00.000Z"
 ---
 
 # GAIA Code Harness
 
-> Sistema de orquestación de agentes LLM para desarrollo de software con TDD, Gherkin, review y mutation testing.
+> LLM agent orchestration system for software development with TDD, Gherkin, review, and mutation testing.
 
 ---
 
 ## When to use this skill
 
-Usa esta skill cuando trabajes dentro del repositorio `gaia-code-harness` o coordines jobs de GAIA en cualquiera de sus tres modos.
+Use this skill when working inside the `gaia-code-harness` repository or coordinating GAIA jobs in any of its three modes.
 
 ## Overview
 
-GAIA soporta **tres modos de orquestación** simultáneamente:
+GAIA supports **three orchestration modes** simultaneously:
 
-| Modo | Cómo arranca | Backend | Aprobación |
+| Mode | How it starts | Backend | Approval |
 |---|---|---|---|
 | **HTTP API** | `npm run dev` → `POST /jobs` | PostgreSQL | `POST /jobs/:id/approve` |
 | **CLI** | `npx ts-node src/cli/run.ts --job job.json` | Disk JSON | `--approve` flag |
-| **Webhook** | `POST /webhook/trigger` | PostgreSQL | Automática |
-| **`.claude`** | Conversación con Claude Code | Markdown + `feature_list.json` | Puerta humana en Gherkin |
+| **Webhook** | `POST /webhook/trigger` | PostgreSQL | Automatic |
+| **`.claude`** | Conversation with Claude Code | Markdown + `feature_list.json` | Human gate on Gherkin |
 
-## Pipeline de 5 fases
+## 5-phase pipeline
 
 ```
 pending
   → [Spec] project-spec.md
   → [Gherkin] features/<name>.feature
-  → ⏸ HUMANO APRUEBA
+  → ⏸ HUMAN APPROVES
   → in_progress
-  → [Implementación] src/ + tests/ del workspace
+  → [Implementation] src/ + tests/ in the workspace
   → [Review] progress/judge_<name>.md
-  → [Mutación] progress/mutation_<name>.md
+  → [Mutation] progress/mutation_<name>.md
   → done
 ```
 
-La **única puerta de aprobación humana** está después de los escenarios Gherkin.
+The **only human approval gate** is after the Gherkin scenarios.
 
-## Agente mapping
+## Agent mapping
 
-| Fase | `.claude/agents/` | GAIA TypeScript | Artefacto |
+| Phase | `.claude/agents/` | GAIA TypeScript | Artifact |
 |---|---|---|---|
 | Spec | `spec_partner` | `SpecAuthorAgent` | `project-spec.md` |
-| Gherkin | `gherkin_author` | `SpecAuthorAgent` (2ª LLM call) | `features/<name>.feature` |
-| Aprobación | `craftsman_lead` | `--approve` / `POST /jobs/:id/approve` | — |
-| Implementación | `tdd_craftsman` | `ImplementerAgent.executeTDD()` | `src/` + `tests/` |
+| Gherkin | `gherkin_author` | `SpecAuthorAgent` (2nd LLM call) | `features/<name>.feature` |
+| Approval | `craftsman_lead` | `--approve` / `POST /jobs/:id/approve` | — |
+| Implementation | `tdd_craftsman` | `ImplementerAgent.executeTDD()` | `src/` + `tests/` |
 | Bulk | — | `ImplementerAgent.execute()` | `src/` + `tests/` |
 | Review | `judge` | `ReviewerAgent` | `progress/judge_<name>.md` |
-| Mutación | `mutation_tester` | `MutationTesterAgent` | `progress/mutation_<name>.md` |
+| Mutation | `mutation_tester` | `MutationTesterAgent` | `progress/mutation_<name>.md` |
 
-## Arquitectura clave
+## Key architecture
 
-- `src/harness/leader.ts` — máquina de estados que orquesta los 4 agentes TS.
-- `src/state/` — `StateBackend` con `PostgresBackend` y `DiskBackend`.
+- `src/harness/leader.ts` — state machine that orchestrates the 4 TS agents.
+- `src/state/` — `StateBackend` with `PostgresBackend` and `DiskBackend`.
 - `src/agents/` — `SpecAuthorAgent`, `ImplementerAgent`, `ReviewerAgent`, `MutationTesterAgent`.
-- `src/plugins/` — `flutter_web/`, `ios/`, `android/`; cada uno implementa `PlatformSkill`.
-- `src/tools/` — utilidades de Git, GitHub, Jira, Slack, archivos, tests, mutación.
-- `src/api/routes/` — endpoints REST (`jobs.ts`, `webhook.ts`).
-- `src/cli/run.ts` — entry point del Modo B (CLI).
+- `src/plugins/` — `flutter_web/`, `ios/`, `android/`; each implements `PlatformSkill`.
+- `src/tools/` — utilities for Git, GitHub, Jira, Slack, files, tests, mutation.
+- `src/api/routes/` — REST endpoints (`jobs.ts`, `webhook.ts`).
+- `src/cli/run.ts` — entry point for Mode B (CLI).
 
 ## Handoff artifacts
 
-Cada agente deja un resumen para el siguiente:
+Every agent leaves a summary for the next:
 
 - `project-spec.md`
 - `features/<name>.feature`
@@ -74,38 +74,38 @@ Cada agente deja un resumen para el siguiente:
 - `progress/judge_<name>.md`
 - `progress/mutation_<name>.md`
 - `handoff.md`
-- `review_report.md` (en modos TS)
+- `review_report.md` (in TS modes)
 
-## Reglas duras
+## Hard rules
 
-- Una sola feature a la vez.
-- No declares `done` sin `judge` aprobado y mutación ≥ 80%.
-- No saltes la aprobación humana sobre los `.feature`.
-- No edites `src/` ni `tests/` directamente; delega.
-- TDD estricto: un test a la vez.
-- Corre `./init.sh` al arrancar y `npx tsc --noEmit` tras cambios TS.
+- One feature at a time.
+- Do not declare `done` without judge approval and mutation ≥ 80%.
+- Do not skip the human approval gate over the `.feature` files.
+- Do not edit `src/` or `tests/` directly; delegate.
+- Strict TDD: one test at a time.
+- Run `./init.sh` at startup and `npx tsc --noEmit` after TS changes.
 
 ## Useful commands
 
 ```bash
-./init.sh                                                       # verificar entorno
-npx tsc --noEmit                                               # compilar TS
-npm test                                                        # correr tests Jest
+./init.sh                                                       # verify environment
+npx tsc --noEmit                                                # compile TS
+npm test                                                        # run Jest tests
 npx ts-node src/cli/run.ts --job job.json --approve             # CLI Mode
-npx ts-node src/cli/run.ts --list                              # listar jobs
-python3 tools/mutate.py <file> --cmd "<runner>" --threshold 80 # mutación manual
+npx ts-node src/cli/run.ts --list                               # list jobs
+python3 tools/mutate.py <file> --cmd "<runner>" --threshold 80 # manual mutation
 ```
 
 ## From Claude Code
 
-- `/gaia_code_generator` — lanza el CLI Mode con los mismos agentes TypeScript.
-- `@craftsman_lead` — inicia el pipeline manual paso a paso.
+- `/gaia_code_generator` — launches CLI Mode with the same TypeScript agents.
+- `@craftsman_lead` — starts the pipeline manually step by step.
 
 ## Related files
 
-- `AGENTS.md` — mapa completo para agentes IA.
-- `CLAUDE.md` — instrucciones de arranque para Claude Code.
-- `docs/engineering/workflow.md` — pipeline y mapeo entre modos.
-- `docs/engineering/tdd.md` — TDD estricto.
-- `docs/engineering/gherkin.md` — sintaxis y reglas Gherkin.
-- `docs/engineering/mutation-testing.md` — mutación y umbrales.
+- `AGENTS.md` — full map for AI agents.
+- `CLAUDE.md` — startup instructions for Claude Code.
+- `docs/engineering/workflow.md` — pipeline and mode mapping.
+- `docs/engineering/tdd.md` — strict TDD.
+- `docs/engineering/gherkin.md` — Gherkin syntax and rules.
+- `docs/engineering/mutation-testing.md` — mutation and thresholds.

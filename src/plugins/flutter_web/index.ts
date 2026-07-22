@@ -1,12 +1,11 @@
 /**
- * @fileoverview Flutter Web Platform Skill for RPP multiplatform monorepos
+ * @fileoverview Flutter Web Platform Skill for multiplatform monorepos
  *
- * Supports the structure found in rpp-co repositories such as
- * rpp-account-basics-multiplatform-pyme and rpp-cashflow-multiplatform-pyme:
+ * Supports a melos + FVM monorepo structure commonly used for Flutter Web apps:
  * - Melos monorepo with FVM 3.35.7 and Dart 3.9.2
- * - Apps under apps/app (rpp_pyme_app)
+ * - Apps under apps/app
  * - Feature packages under packages/features/<feature>
- * - Shared base packages under packages/base/pay_multiplatform_* (git overrides)
+ * - Shared base packages under packages/base/shared_* (git overrides)
  * - fluro-based routing (NOT go_router)
  * - Dependencies resolved via melos bootstrap + pubspec_overrides.yaml
  * - Private dependencies come from GitHub git URLs injected via setup.sh

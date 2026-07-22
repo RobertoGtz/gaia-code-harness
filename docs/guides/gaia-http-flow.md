@@ -1,70 +1,70 @@
-# GAIA HTTP Mode — Flujo Completo
+# GAIA HTTP Mode — Full Flow
 
-> Guía visual para desarrolladores y producto.  
-> Pega el bloque Mermaid en [mermaid.live](https://mermaid.live) o en FigJam (Insert → Diagram).
+> Visual guide for developers and product.  
+> Paste the Mermaid block in [mermaid.live](https://mermaid.live) or FigJam (Insert → Diagram).
 
 ---
 
-## Diagrama principal
+## Main diagram
 
 ```mermaid
 flowchart TD
-  subgraph "1️⃣  CREAR JOB"
-    A["👤 Dev / Producto\ndecide la feature"]
+  subgraph "1️⃣  CREATE JOB"
+    A["👤 Dev / Product\ndecides the feature"]
     A -->|"POST /jobs"| B["📥 GAIA API\nlocalhost:3000"]
-    B --> C["🟡 Job creado\nstatus: pending\nid: abc-123"]
+    B --> C["🟡 Job created\nstatus: pending\nid: abc-123"]
   end
 
   subgraph "2️⃣  SPEC"
-    C --> D["🤖 SpecAuthorAgent\ngenera spec técnica\ncon LLM"]
+    C --> D["🤖 SpecAuthorAgent\ngenerates technical spec\nwith LLM"]
     D --> E["📄 status: spec_ready\ntasks[], requirements[],\ndesign{}"]
-    E -->|"GET /jobs/abc-123\nRevisar spec"| F{"👤 ¿Aprueba?"}
-    F -->|"POST /jobs/abc-123/approve\n{ approved: false }"| Z["❌ status: failed\nJob terminado"]
+    E -->|"GET /jobs/abc-123\nReview spec"| F{"👤 Approve?"}
+    F -->|"POST /jobs/abc-123/approve\n{ approved: false }"| Z["❌ status: failed\nJob ended"]
     F -->|"POST /jobs/abc-123/approve\n{ approved: true }"| G
   end
 
-  subgraph "3️⃣  IMPLEMENTAR"
+  subgraph "3️⃣  IMPLEMENT"
     G["⚙️ ImplementerAgent\nstatus: implementing"]
     G --> H{"tddMode?"}
-    H -->|"true"| I["🔴 RED\nEscribe test primero"]
-    I --> J["🟢 GREEN\nImplementa código"]
+    H -->|"true"| I["🔴 RED\nWrite test first"]
+    I --> J["🟢 GREEN\nImplement code"]
     J --> K["♻️ REFACTOR"]
-    H -->|"false"| L["📝 Implementa\ntodos los archivos\na la vez"]
+    H -->|"false"| L["📝 Implement\nall files\nat once"]
     K --> M
-    L --> M["▶️ Ejecuta tests\nflutter test /\nxcodebuild test"]
-    M -->|"❌ falla\nhasta 5 intentos"| N["🔧 LLM Fix Loop"]
+    L --> M["▶️ Run tests\nflutter test /\nxcodebuild test"]
+    M -->|"❌ fails\nup to 5 attempts"| N["🔧 LLM Fix Loop"]
     N --> M
-    M -->|"✅ pasan"| O["📦 git commit + push\nfeature/abc-fix-title\n(sin pubspec_overrides)"]
+    M -->|"✅ pass"| O["📦 git commit + push\nfeature/abc-fix-title\n(no pubspec_overrides)"]
   end
 
   subgraph "4️⃣  REVIEW & PR"
     O --> P["🔍 ReviewerAgent\nlint + tests + LLM review\nstatus: reviewing"]
-    P --> Q["🎉 PR creado\nstatus: pr_created"]
+    P --> Q["🎉 PR created\nstatus: pr_created"]
   end
 
   subgraph "5️⃣  MUTATION TESTING"
     Q --> S["🧬 MutationTesterAgent\nscore ≥ 80%?"]
-    S -->|"Sí"| T["✅ done\nprUrl: github.com/…/pull/15"]
-    S -->|"No (≤ 2×)"| U["↩️ feedback a ImplementerAgent"]
+    S -->|"Yes"| T["✅ done\nprUrl: github.com/…/pull/15"]
+    S -->|"No (≤ 5×)"| U["↩️ feedback to ImplementerAgent"]
     U --> H
-    T -->|"Polling\nGET /jobs/abc-123"| R["👤 Dev recibe\nURL del PR"]
+    T -->|"Polling\nGET /jobs/abc-123"| R["👤 Dev receives\nPR URL"]
   end
 ```
 
 ---
 
-## Ejemplo real — feature `fix-pyme-wall-movements-empty-page-state`
+## Real example — feature `fix-empty-page-state-in-list-notifier`
 
-### Paso 1 — Crear job
+### Step 1 — Create job
 
 ```bash
 curl -X POST http://localhost:3000/jobs \
   -H "Content-Type: application/json" \
   -d '{
     "platform": "flutter_web",
-    "title": "Fix emptyPage state logic in PymeWallMovementsListNotifier",
-    "repo": "rpp-co/rpp-account-basics-multiplatform-pyme",
-    "targetBranch": "master",
+    "title": "Fix emptyPage state logic in ListNotifier",
+    "repo": "my-org/my-flutter-web-app",
+    "targetBranch": "main",
     "module": "account_summary",
     "tddMode": true,
     "acceptanceCriteria": [
@@ -76,24 +76,24 @@ curl -X POST http://localhost:3000/jobs \
   }'
 ```
 
-**Respuesta:**
+**Response:**
 
 ```json
 {
   "job": {
     "id": "a8523665-99db-41e1-9e39-bc9aaa75b5f7",
     "status": "pending",
-    "title": "Fix emptyPage state logic in PymeWallMovementsListNotifier"
+    "title": "Fix emptyPage state logic in ListNotifier"
   }
 }
 ```
 
 ---
 
-### Paso 2 — Esperar spec y revisarla
+### Step 2 — Wait for spec and review it
 
 ```bash
-# Polling hasta spec_ready
+# Poll until spec_ready
 curl http://localhost:3000/jobs/a8523665-99db-41e1-9e39-bc9aaa75b5f7
 ```
 
@@ -106,14 +106,14 @@ curl http://localhost:3000/jobs/a8523665-99db-41e1-9e39-bc9aaa75b5f7
         {
           "id": "TASK-001",
           "type": "modify",
-          "filePath": "packages/features/account_summary/lib/src/presentation/modules/pyme_wall_movements/pyme_wall_movements_providers.dart",
-          "description": "Fix _setNewPageLoaded: use newMovementsList.isEmpty instead of state.page == 0"
+          "filePath": "packages/features/account_summary/lib/src/presentation/modules/list/list_providers.dart",
+          "description": "Fix _setNewPageLoaded: use newList.isEmpty instead of state.page == 0"
         },
         {
           "id": "TASK-002",
           "type": "test",
-          "filePath": "packages/features/account_summary/test/presentation/modules/pyme_wall_movements/pyme_wall_movements_list_notifier_test.dart",
-          "description": "Unit tests for PymeWallMovementsListNotifier covering all ACs"
+          "filePath": "packages/features/account_summary/test/presentation/modules/list/list_notifier_test.dart",
+          "description": "Unit tests for ListNotifier covering all ACs"
         }
       ]
     }
@@ -123,7 +123,7 @@ curl http://localhost:3000/jobs/a8523665-99db-41e1-9e39-bc9aaa75b5f7
 
 ---
 
-### Paso 3 — Aprobar spec
+### Step 3 — Approve spec
 
 ```bash
 curl -X POST http://localhost:3000/jobs/a8523665-.../approve \
@@ -131,26 +131,26 @@ curl -X POST http://localhost:3000/jobs/a8523665-.../approve \
   -d '{"approved": true}'
 ```
 
-**Respuesta:** `{ "job": { "status": "implementing" } }`
+**Response:** `{ "job": { "status": "implementing" } }`
 
 ---
 
-### Paso 4 — Polling hasta done
+### Step 4 — Poll until done
 
 ```bash
-# Cada 10s hasta que status sea "done" o "test_error"
+# Every 10s until status is "done" or "test_error"
 curl http://localhost:3000/jobs/a8523665-...
 ```
 
-**Progresión de estados:**
+**State progression:**
 
 ```
 pending → spec_generating → spec_ready
-  → (aprobación humana)
+  → (human approval)
   → implementing → reviewing → done
 ```
 
-**Si falla tests** → `test_error` → hacer retry:
+**If tests fail** → `test_error` → retry:
 
 ```bash
 curl -X POST http://localhost:3000/jobs/a8523665-.../retry
@@ -158,43 +158,43 @@ curl -X POST http://localhost:3000/jobs/a8523665-.../retry
 
 ---
 
-### Paso 5 — PR listo
+### Step 5 — PR ready
 
 ```json
 {
   "job": {
     "status": "done",
-    "prUrl": "https://github.com/rpp-co/rpp-account-basics-multiplatform-pyme/pull/15",
-    "branchName": "feature/a8523665-fix-emptypage-state-logic-in-pymewallmov"
+    "prUrl": "https://github.com/my-org/my-flutter-web-app/pull/15",
+    "branchName": "feature/a8523665-fix-emptypage-state-logic-in-listnotif"
   }
 }
 ```
 
 ---
 
-## Estados del job
+## Job states
 
-| Estado            | Quién               | Qué pasa                                             |
+| State             | Who                 | What happens                                         |
 | ----------------- | ------------------- | ---------------------------------------------------- |
-| `pending`         | Sistema             | Job en cola                                          |
-| `spec_generating` | SpecAuthorAgent     | LLM generando spec                                   |
-| `spec_ready`      | —                   | **⏸ Espera aprobación humana**                       |
-| `implementing`    | ImplementerAgent    | Escribe código + tests                               |
+| `pending`         | System              | Job queued                                           |
+| `spec_generating` | SpecAuthorAgent     | LLM generating spec                                  |
+| `spec_ready`      | —                   | **⏸ Waits for human approval**                       |
+| `implementing`    | ImplementerAgent    | Writes code + tests                                  |
 | `reviewing`       | ReviewerAgent       | Lint + tests + LLM review + PR                       |
 | `pr_created`      | MutationTesterAgent | Mutation testing post-PR                             |
-| `done`            | —                   | PR creado en GitHub                                  |
-| `test_error`      | —                   | Tests/mutación fallaron tras reintentos → `/retry`   |
-| `review_error`    | —                   | Reviewer encontró problemas; feedback al Implementer |
-| `failed`          | —                   | Error irrecuperable o spec rechazada                 |
+| `done`            | —                   | PR created on GitHub                                 |
+| `test_error`      | —                   | Tests/mutation failed after retries → `/retry`     |
+| `review_error`    | —                   | Reviewer found issues; feedback to Implementer      |
+| `failed`          | —                   | Unrecoverable error or spec rejected                |
 
 ---
 
-## Resumen de endpoints
+## Endpoint summary
 
-| Método | Endpoint            | Para qué                     |
+| Method | Endpoint            | For what                     |
 | ------ | ------------------- | ---------------------------- |
-| `POST` | `/jobs`             | Crear nuevo job              |
-| `GET`  | `/jobs/:id`         | Ver estado y spec            |
-| `POST` | `/jobs/:id/approve` | Aprobar o rechazar spec      |
-| `POST` | `/jobs/:id/retry`   | Reintentar tras `test_error` |
-| `GET`  | `/jobs`             | Listar todos los jobs        |
+| `POST` | `/jobs`             | Create new job               |
+| `GET`  | `/jobs/:id`         | View status and spec         |
+| `POST` | `/jobs/:id/approve` | Approve or reject spec       |
+| `POST` | `/jobs/:id/retry`   | Retry after `test_error`     |
+| `GET`  | `/jobs`             | List all jobs                |

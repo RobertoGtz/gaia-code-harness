@@ -1,86 +1,86 @@
-# Checklist de producción — GAIA Code Harness
+# Production checklist — GAIA Code Harness
 
-> Lo que debes verificar y configurar antes de usar el harness en producción.  
-> El sistema ya genera código real, crea PRs reales e integra Jira. Solo requiere credenciales y entorno.
-
----
-
-## 1. Credenciales mínimas
-
-### LLM (al menos una)
-
-- [ ] `OPENAI_API_KEY` — obtener en https://platform.openai.com/api-keys
-- [ ] `ANTHROPIC_API_KEY` — obtener en https://console.anthropic.com/
-
-### GitHub (obligatorio para PRs)
-
-- [ ] `GITHUB_TOKEN` — PAT con scope `repo` → https://github.com/settings/tokens
-- [ ] `GITHUB_OWNER` — org o usuario dueño de los repos target
-- [ ] El repo target debe existir bajo `GITHUB_OWNER/repo-name`
-- [ ] El token debe tener acceso de escritura al repo
-
-### Jira (si se usan tickets)
-
-- [ ] `JIRA_BASE_URL` — subdominio **exacto** del tenant (ej. `https://tu-org.atlassian.net`)
-- [ ] `JIRA_EMAIL` — email de la cuenta Jira
-- [ ] `JIRA_API_TOKEN` — obtener en https://id.atlassian.com/manage-profile/security/api-tokens
-- [ ] `DEFAULT_PLATFORM` — plataforma por defecto si el ticket no tiene label (`flutter`)
-- [ ] `DEFAULT_REPO` — repo por defecto si el ticket no tiene label `repo:org/nombre`
-
-### Figma (opcional, para enriquecer specs con diseño)
-
-- [ ] `FIGMA_ACCESS_TOKEN` — obtener en https://help.figma.com/hc/en-us/articles/8085703771159-Manage-personal-access-tokens (scope `file_read`)
-- [ ] Incluir `figmaUrl` en el job o que Jira lo extraiga del ticket
+> What to verify and configure before using the harness in production.  
+> The system already generates real code, creates real PRs, and integrates Jira. It only requires credentials and environment.
 
 ---
 
-## 2. Base de datos
+## 1. Minimum credentials
 
-**Modos A y C** (requieren PostgreSQL):
+### LLM (at least one)
 
-- [ ] PostgreSQL 15+ disponible (local o remoto)
-- [ ] `DATABASE_URL` configurado en `.env`
-- [ ] Schema inicializado: `npm run db:init`
+- [ ] `OPENAI_API_KEY` — get at https://platform.openai.com/api-keys
+- [ ] `ANTHROPIC_API_KEY` — get at https://console.anthropic.com/
 
-**Modo B** (CLI — no requiere base de datos):
+### GitHub (required for PRs)
 
-- [ ] `progress/.state/` con permisos de escritura para el usuario que corre el CLI
-- [ ] `LOCAL_REPOS_PATH` configurado si usas repos locales en lugar de clonar desde GitHub
+- [ ] `GITHUB_TOKEN` — PAT with `repo` scope → https://github.com/settings/tokens
+- [ ] `GITHUB_OWNER` — org or user owning the target repos
+- [ ] The target repo must exist under `GITHUB_OWNER/repo-name`
+- [ ] The token must have write access to the repo
+
+### Jira (if using tickets)
+
+- [ ] `JIRA_BASE_URL` — **exact** tenant subdomain (e.g. `https://your-org.atlassian.net`)
+- [ ] `JIRA_EMAIL` — Jira account email
+- [ ] `JIRA_API_TOKEN` — get at https://id.atlassian.com/manage-profile/security/api-tokens
+- [ ] `DEFAULT_PLATFORM` — default platform if ticket has no label (`flutter`)
+- [ ] `DEFAULT_REPO` — default repo if ticket has no `repo:org/name` label
+
+### Figma (optional, to enrich specs with design)
+
+- [ ] `FIGMA_ACCESS_TOKEN` — get at https://help.figma.com/hc/en-us/articles/8085703771159-Manage-personal-access-tokens (scope `file_read`)
+- [ ] Include `figmaUrl` in the job or let Jira extract it from the ticket
 
 ---
 
-## 3. Toolchains por plataforma
+## 2. Database
 
-Solo instala el SDK de la plataforma que vayas a usar.
+**Modes A and C** (require PostgreSQL):
+
+- [ ] PostgreSQL 15+ available (local or remote)
+- [ ] `DATABASE_URL` configured in `.env`
+- [ ] Schema initialized: `npm run db:init`
+
+**Mode B** (CLI — no database required):
+
+- [ ] `progress/.state/` writable by the user running the CLI
+- [ ] `LOCAL_REPOS_PATH` configured if using local repos instead of cloning from GitHub
+
+---
+
+## 3. Toolchains by platform
+
+Only install the SDK for the platform you will use.
 
 **Flutter:**
 
-- [ ] Flutter SDK ≥ 3.x instalado (`flutter --version`)
-- [ ] `flutter pub get` funciona en el repo target
+- [ ] Flutter SDK ≥ 3.x installed (`flutter --version`)
+- [ ] `flutter pub get` works in the target repo
 
-**iOS (solo macOS):**
+**iOS (macOS only):**
 
-- [ ] Xcode con Swift 5.9+ instalado
-- [ ] `swift test` funciona en el repo target
-- [ ] SwiftLint instalado (`brew install swiftlint`) — opcional
+- [ ] Xcode with Swift 5.9+ installed
+- [ ] `swift test` works in the target repo
+- [ ] SwiftLint installed (`brew install swiftlint`) — optional
 
 **Android:**
 
-- [ ] JDK 17+ instalado (`java -version`)
-- [ ] Gradle disponible vía wrapper `./gradlew` en el repo target
-- [ ] `./gradlew test` funciona en el repo target
+- [ ] JDK 17+ installed (`java -version`)
+- [ ] Gradle available via wrapper `./gradlew` in the target repo
+- [ ] `./gradlew test` works in the target repo
 
-**Todos:**
+**All:**
 
-- [ ] Git configurado con acceso de escritura al repo (SSH key o token)
+- [ ] Git configured with write access to the repo (SSH key or token)
 
 ---
 
-## 4. Deploy remoto
+## 4. Remote deploy
 
-Para correr el harness en un servidor en lugar de localhost:
+To run the harness on a server instead of localhost:
 
-### Infraestructura mínima
+### Minimum infrastructure
 
 ```dockerfile
 FROM node:20-alpine
@@ -93,16 +93,16 @@ EXPOSE 3000
 CMD ["npm", "start"]
 ```
 
-| Opción                         | Complejidad | Costo aprox. | Cuándo usarla       |
-| ------------------------------ | ----------- | ------------ | ------------------- |
-| VM simple (EC2/GCE)            | Baja        | ~$30/mes     | Proof of concept    |
-| Docker en VM                   | Media       | ~$30/mes     | Staging             |
-| ECS / Cloud Run                | Media       | ~$50/mes     | Producción          |
-| **CLI en GitHub Actions / CI** | Baja        | $0 (Actions) | Modo B sin servidor |
+| Option                         | Complexity | Approx. cost | When to use              |
+| ------------------------------ | ----------- | ------------ | ------------------------ |
+| Simple VM (EC2/GCE)            | Low         | ~$30/month   | Proof of concept         |
+| Docker on VM                   | Medium      | ~$30/month   | Staging                  |
+| ECS / Cloud Run                | Medium      | ~$50/month   | Production               |
+| **CLI in GitHub Actions / CI** | Low         | $0 (Actions) | Mode B without a server    |
 
-### Seguridad
+### Security
 
-- [ ] HTTPS habilitado (Let's Encrypt o similar)
-- [ ] Variables de entorno en secrets manager (no en archivos)
-- [ ] Firewall: solo la fuente de triggers tiene acceso a `POST /jobs` y `POST /webhook/trigger`
-- [ ] `WEBHOOK_SECRET` configurado si usas el webhook de Jira/Slack
+- [ ] HTTPS enabled (Let's Encrypt or similar)
+- [ ] Environment variables in secrets manager (not in files)
+- [ ] Firewall: only the trigger source has access to `POST /jobs` and `POST /webhook/trigger`
+- [ ] `WEBHOOK_SECRET` configured if using the Jira/Slack webhook

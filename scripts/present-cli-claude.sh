@@ -18,12 +18,12 @@ slides=()
 slides+=("${BLUE}${BOLD}
   ╔══════════════════════════════════════════════════════════╗
   ║     GAIA CODE HARNESS                                    ║
-  ║     Demo: DemoAnalyticsRepository (bre_b core)           ║
+  ║     Demo: DemoAnalyticsRepository (core)               ║
   ║     CLI + .claude modes                                  ║
   ╚══════════════════════════════════════════════════════════╝
 ${NC}
-Repo:   rpp-co/rpp-cashflow-multiplatform-pyme
-Module: bre_b
+Repo:   sample-org/sample-flutter-web-app
+Module: core
 Goal:   same job, two ways to run it
 
 Tip: Press ${YELLOW}q${NC} at any slide to skip to the live demo launcher.
@@ -54,14 +54,14 @@ Input file: ${CYAN}/tmp/demo-cashflow-job.json${NC}
   \"initiativeId\": \"demo\",
   \"title\": \"Demo: add DemoAnalytics feature\",
   \"platform\": \"flutter_web\",
-  \"repo\": \"rpp-co/rpp-cashflow-multiplatform-pyme\",
+  \"repo\": \"sample-org/sample-flutter-web-app\",
   \"targetBranch\": \"master\",
-  \"module\": \"bre_b\",
+  \"module\": \"core\",
   \"description\": \"Add DemoAnalyticsEvent model and DemoAnalyticsRepository\",
   \"acceptanceCriteria\": [
     \"WHEN DemoAnalyticsEvent is constructed THEN it has name, timestamp and payload fields\",
     \"WHEN DemoAnalyticsRepository.logEvent is called THEN it stores the event in an internal list\",
-    \"WHEN both are exported from bre_b_core.dart THEN they are reachable from the core library\"
+    \"WHEN both are exported from core.dart THEN they are reachable from the core library\"
   ],
   \"maxFilesToTouch\": 4,
   \"requireTests\": false,
@@ -70,7 +70,7 @@ Input file: ${CYAN}/tmp/demo-cashflow-job.json${NC}
 
 What each field does:
   ${CYAN}platform${NC}        -> load flutter_web skill
-  ${CYAN}module${NC}          -> restrict context to bre_b
+  ${CYAN}module${NC}          -> restrict context to core
   ${CYAN}maxFilesToTouch${NC}  -> safety guard on scope
   ${CYAN}requireTests${NC}     -> false only to keep the demo fast
 
@@ -189,7 +189,7 @@ ${MAGENTA}Option 1 - one shot${NC}
   /gaia_code_generator --job /tmp/demo-cashflow-job.json --approve
 
 ${MAGENTA}Option 2 - human-in-the-loop${NC}
-  Implementa la siguiente feature pendiente
+  Implement the next pending feature
 
 What happens in Option 2:
   1. craftsman_lead reads AGENTS.md + feature_list.json + progress/current.md
@@ -236,7 +236,7 @@ ${CYAN}In the workspace:${NC}
 ${CYAN}Files you should see:${NC}
   ${GREEN}*${NC} demo_analytics_event.dart      (model with typed fields)
   ${GREEN}*${NC} demo_analytics_repository.dart (repository with logEvent)
-  ${GREEN}*${NC} bre_b_core.dart               (exports both)
+  ${GREEN}*${NC} core.dart               (exports both)
 
 ${CYAN}Files you should NOT see:${NC}
   ${GREEN}*${NC} pubspec_overrides.yaml
@@ -246,7 +246,7 @@ ${CYAN}Files you should NOT see:${NC}
 ${CYAN}In the browser:${NC}
   open <PR_URL>
   - title and description
-  - files changed inside packages/features/bre_b/
+  - files changed inside packages/features/core/
   - link to progress/<JOB_ID>.md
 
 Press Enter to continue...")
@@ -287,16 +287,16 @@ if [ ! -f /tmp/demo-cashflow-job.json ]; then
   cat > /tmp/demo-cashflow-job.json <<'JSON'
 {
   "initiativeId": "demo",
-  "title": "Demo: add DemoAnalytics feature with event model and repository to bre_b core",
+  "title": "Demo: add DemoAnalytics feature with event model and repository to core",
   "platform": "flutter_web",
-  "repo": "rpp-co/rpp-cashflow-multiplatform-pyme",
+  "repo": "sample-org/sample-flutter-web-app",
   "targetBranch": "master",
-  "module": "bre_b",
-  "description": "Presentation-only demo change: add a DemoAnalyticsEvent model, a DemoAnalyticsRepository class with a logEvent method, and export both from bre_b_core.dart. No business logic changes and no unit tests are required for this demo-only feature.",
+  "module": "core",
+  "description": "Presentation-only demo change: add a DemoAnalyticsEvent model, a DemoAnalyticsRepository class with a logEvent method, and export both from core.dart. No business logic changes and no unit tests are required for this demo-only feature.",
   "acceptanceCriteria": [
     "WHEN DemoAnalyticsEvent is constructed THEN it has name, timestamp and payload fields",
     "WHEN DemoAnalyticsRepository.logEvent is called THEN it stores the event in an internal list",
-    "WHEN DemoAnalyticsEvent and DemoAnalyticsRepository are exported from bre_b_core.dart THEN they are reachable from the core library"
+    "WHEN DemoAnalyticsEvent and DemoAnalyticsRepository are exported from core.dart THEN they are reachable from the core library"
   ],
   "maxFilesToTouch": 4,
   "requireTests": false,
@@ -352,7 +352,7 @@ case "$CHOICE" in
     echo -e "${MAGENTA}.claude mode instructions:${NC}"
     echo -e "  /gaia_code_generator --job /tmp/demo-cashflow-job.json --approve"
     echo -e "  or (human-in-the-loop):"
-    echo -e "  Implementa la siguiente feature pendiente"
+    echo -e "  Implement the next pending feature"
     ;;
   4|*)
     echo -e "${YELLOW}Skipped.${NC}"

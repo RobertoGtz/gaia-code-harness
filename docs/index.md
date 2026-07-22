@@ -1,147 +1,147 @@
-# Mapa de documentación — GAIA Code Harness
+# Documentation Map — GAIA Code Harness
 
-> Lee esto si no sabes por dónde empezar.
-
----
-
-## Quiero usarlo ahora mismo
-
-| Objetivo                                  | Documento                                                                |
-| ----------------------------------------- | ------------------------------------------------------------------------ |
-| Entender qué hace el sistema en 2 minutos | [`README.md`](../README.md)                                              |
-| Setup + primer job paso a paso            | [`docs/guides/quick-start.md`](../guides/quick-start.md)                 |
-| Demo con comandos listos para copiar      | [`docs/guides/demo.md`](../guides/demo.md)                               |
-| Guión de presentador para demo en vivo    | [`docs/guides/demo-speaker-script.md`](../guides/demo-speaker-script.md) |
-| Demo automático en 1 comando              | `./scripts/demo.sh flutter`                                              |
+> Read this if you don't know where to start.
 
 ---
 
-## Documentación por tema
+## I want to use it right now
 
-### Uso y referencia
-
-| Documento                                                                    | Descripción                                    | Audiencia              |
-| ---------------------------------------------------------------------------- | ---------------------------------------------- | ---------------------- |
-| [`docs/guides/quick-start.md`](../guides/quick-start.md)                     | Guía completa de los 3 modos con ejemplos      | Cualquier persona      |
-| [`docs/guides/demo.md`](../guides/demo.md)                                   | Demo paso a paso, comandos listos para copiar  | PM / Tech Lead         |
-| [`API.md`](../API.md)                                                        | Referencia completa REST + Webhook             | Dev / CI               |
-| [`docs/guides/setup.md`](../guides/setup.md)                                 | Instalación detallada por plataforma           | Dev                    |
-| [`docs/guides/testing.md`](../guides/testing.md)                             | Cómo correr tests localmente                   | Dev                    |
-| [`docs/guides/cli-mode-product.md`](../guides/cli-mode-product.md)           | Cómo funciona el CLI Mode (para producto)      | PM / Cualquier persona |
-| [`docs/guides/claude-mode.md`](../guides/claude-mode.md)                     | Cómo usar GAIA en modo `.claude` (Claude Code) | Cualquier persona      |
-| [`docs/guides/claude-vs-gaia-agents.md`](../guides/claude-vs-gaia-agents.md) | ¿Cuándo usar GAIA agents vs `.claude/agents`?  | Dev / Tech Lead        |
-| [`docs/guides/production.md`](../guides/production.md)                       | Checklist antes de ir a producción             | DevOps / Tech Lead     |
-
-### Arquitectura e ingeniería
-
-| Documento                                                                    | Descripción                                                |
-| ---------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| [`docs/engineering/architecture.md`](../engineering/architecture.md)         | Arquitectura interna, máquina de estados, agentes, plugins |
-| [`docs/engineering/workflow.md`](../engineering/workflow.md)                 | Pipeline completo: las 5 fases del ciclo de vida           |
-| [`docs/engineering/tdd.md`](../engineering/tdd.md)                           | Las Tres Leyes del TDD + ciclo Rojo-Verde-Refactor         |
-| [`docs/engineering/gherkin.md`](../engineering/gherkin.md)                   | Formato Gherkin, reglas, ejemplos de ACs                   |
-| [`docs/engineering/mutation-testing.md`](../engineering/mutation-testing.md) | Cómo funciona mutate.py, umbrales, plataformas             |
-
-### Para agentes IA (Claude Code mode)
-
-| Documento                                                                                     | Descripción                                                 |
-| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| [`AGENTS.md`](../AGENTS.md)                                                                   | Mapa de navegación — leer primero                           |
-| [`CLAUDE.md`](../CLAUDE.md)                                                                   | Entry point para craftsman_lead                             |
-| [`CHECKPOINTS.md`](../CHECKPOINTS.md)                                                         | Criterios objetivos de "done" (C1–C7)                       |
-| [`feature_list.json`](../feature_list.json)                                                   | Backlog de features con estados                             |
-| [`.claude/identity.json`](../.claude/identity.json)                                           | Preferencias de estilo y dominios técnicos para Claude Code |
-| [`.claude/package-manager.json`](../.claude/package-manager.json)                             | Gestor de paquetes del proyecto (`npm`)                     |
-| [`.claude/agents/`](../.claude/agents/)                                                       | Definiciones de los 6 subagentes Claude                     |
-| [`.claude/commands/gaia_code_generator.md`](../.claude/commands/gaia_code_generator.md)       | Slash command `/gaia_code_generator` para lanzar CLI Mode   |
-| [`.claude/rules/security-and-conventions.md`](../.claude/rules/security-and-conventions.md)   | Guardrails de seguridad y convenciones                      |
-| [`.claude/skills/gaia/SKILL.md`](../.claude/skills/gaia/SKILL.md)                             | Knowledge base del proyecto GAIA para Claude Code           |
-| [`.claude/team/gaia-team-config.json`](../.claude/team/gaia-team-config.json)                 | Config compartida de skills, commands, rules y agentes      |
-| [`.claude/workflows/`](../.claude/workflows/)                                                 | Procedimientos multi-paso (security, release, add platform) |
-| [`.claude/research/gaia-research-playbook.md`](../.claude/research/gaia-research-playbook.md) | Guía de investigación antes de escribir specs               |
+| Goal                                       | Document                                                                  |
+| ------------------------------------------ | ------------------------------------------------------------------------- |
+| Understand what the system does in 2 minutes | [`README.md`](../README.md)                                              |
+| Setup + first job step by step             | [`docs/guides/quick-start.md`](../guides/quick-start.md)                 |
+| Demo with ready-to-copy commands           | [`docs/guides/demo.md`](../guides/demo.md)                               |
+| Speaker script for live demo               | [`docs/guides/demo-speaker-script.md`](../guides/demo-speaker-script.md) |
+| Automatic demo in 1 command                | `./scripts/demo.sh flutter`                                              |
 
 ---
 
-## Estructura del repositorio
+## Documentation by topic
+
+### Usage and reference
+
+| Document                                                                    | Description                                    | Audience               |
+| --------------------------------------------------------------------------- | ---------------------------------------------- | ---------------------- |
+| [`docs/guides/quick-start.md`](../guides/quick-start.md)                     | Complete guide for the 3 modes with examples   | Anyone                 |
+| [`docs/guides/demo.md`](../guides/demo.md)                                   | Step-by-step demo, ready-to-copy commands      | PM / Tech Lead         |
+| [`API.md`](../API.md)                                                        | Complete REST + Webhook reference              | Dev / CI               |
+| [`docs/guides/setup.md`](../guides/setup.md)                                 | Detailed installation per platform           | Dev                    |
+| [`docs/guides/testing.md`](../guides/testing.md)                             | How to run tests locally                       | Dev                    |
+| [`docs/guides/cli-mode-product.md`](../guides/cli-mode-product.md)           | How CLI Mode works (for product people)        | PM / Anyone            |
+| [`docs/guides/claude-mode.md`](../guides/claude-mode.md)                     | How to use GAIA in `.claude` mode (Claude Code) | Anyone                 |
+| [`docs/guides/claude-vs-gaia-agents.md`](../guides/claude-vs-gaia-agents.md) | When to use GAIA agents vs `.claude/agents`    | Dev / Tech Lead        |
+| [`docs/guides/production.md`](../guides/production.md)                       | Checklist before going to production           | DevOps / Tech Lead     |
+
+### Architecture and engineering
+
+| Document                                                                    | Description                                                |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| [`docs/engineering/architecture.md`](../engineering/architecture.md)         | Internal architecture, state machine, agents, plugins      |
+| [`docs/engineering/workflow.md`](../engineering/workflow.md)                 | Full pipeline: the 5 lifecycle phases                      |
+| [`docs/engineering/tdd.md`](../engineering/tdd.md)                           | The Three Laws of TDD + Red-Green-Refactor cycle           |
+| [`docs/engineering/gherkin.md`](../engineering/gherkin.md)                   | Gherkin format, rules, AC examples                         |
+| [`docs/engineering/mutation-testing.md`](../engineering/mutation-testing.md) | How mutate.py works, thresholds, platforms                |
+
+### For AI agents (Claude Code mode)
+
+| Document                                                                                     | Description                                                 |
+| -------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| [`AGENTS.md`](../AGENTS.md)                                                                   | Navigation map — read first                                   |
+| [`CLAUDE.md`](../CLAUDE.md)                                                                   | Entry point for `craftsman_lead`                            |
+| [`CHECKPOINTS.md`](../CHECKPOINTS.md)                                                         | Objective "done" criteria (C1–C7)                            |
+| [`feature_list.json`](../feature_list.json)                                                   | Feature backlog with statuses                               |
+| [`.claude/identity.json`](../.claude/identity.json)                                           | Style preferences and technical domains for Claude Code     |
+| [`.claude/package-manager.json`](../.claude/package-manager.json)                             | Project package manager (`npm`)                             |
+| [`.claude/agents/`](../.claude/agents/)                                                       | Definitions of the 6 Claude subagents                       |
+| [`.claude/commands/gaia_code_generator.md`](../.claude/commands/gaia_code_generator.md)       | `/gaia_code_generator` slash command to launch CLI Mode     |
+| [`.claude/rules/security-and-conventions.md`](../.claude/rules/security-and-conventions.md)   | Security guardrails and conventions                       |
+| [`.claude/skills/gaia/SKILL.md`](../.claude/skills/gaia/SKILL.md)                             | GAIA project knowledge base for Claude Code                 |
+| [`.claude/team/gaia-team-config.json`](../.claude/team/gaia-team-config.json)                 | Shared config for skills, commands, rules, and agents      |
+| [`.claude/workflows/`](../.claude/workflows/)                                                 | Multi-step procedures (security, release, add platform)   |
+| [`.claude/research/gaia-research-playbook.md`](../.claude/research/gaia-research-playbook.md) | Research guide before writing specs                         |
+
+---
+
+## Repository structure
 
 ```
 gaia-code-harness/
-├── README.md          ← Punto de entrada (conciso)
-├── API.md             ← Referencia REST completa
-├── AGENTS.md          ← Mapa para agentes IA
-├── CLAUDE.md          ← Entry point Claude Code
-├── CHECKPOINTS.md     ← Criterios de done
-├── .env.example       ← Variables de entorno documentadas
+├── README.md          ← Entry point (concise)
+├── API.md             ← Complete REST reference
+├── AGENTS.md          ← AI agents map
+├── CLAUDE.md          ← Claude Code entry point
+├── CHECKPOINTS.md     ← Done criteria
+├── .env.example       ← Documented environment variables
 │
 ├── docs/
-│   ├── INDEX.md       ← Este archivo
-│   ├── guides/        ← Documentación para USAR el sistema
-│   │   ├── quick-start.md   ← Los 3 modos paso a paso
-│   │   ├── demo.md                    ← Demo con comandos listos
-│   │   ├── demo-speaker-script.md     ← Guión de presentador para demo en vivo
-│   │   ├── setup.md              ← Instalación detallada
-│   │   ├── testing.md            ← Testing local
-│   │   ├── cli-mode-product.md        ← Cómo funciona el CLI Mode (para producto)
-│   │   ├── claude-mode.md             ← Cómo usar GAIA en modo `.claude` (Claude Code)
-│   │   ├── claude-vs-gaia-agents.md ← ¿Cuándo usar GAIA agents vs `.claude/agents`?
-│   │   └── production.md            ← Checklist pre-producción
-│   ├── engineering/   ← Disciplina de ingeniería (devs + agentes IA)
-│   │   ├── architecture.md  ← Arquitectura interna
-│   │   ├── workflow.md      ← Pipeline + mapeo 3 modos
-│   │   ├── tdd.md           ← Las Tres Leyes + ciclo R-V-R
-│   │   ├── gherkin.md       ← Formato Gherkin, reglas
-│   │   └── mutation-testing.md ← mutate.py, umbrales
+│   ├── INDEX.md       ← This file
+│   ├── guides/        ← Documentation for USING the system
+│   │   ├── quick-start.md   ← The 3 modes step by step
+│   │   ├── demo.md                    ← Demo with ready commands
+│   │   ├── demo-speaker-script.md     ← Speaker script for live demo
+│   │   ├── setup.md              ← Detailed installation
+│   │   ├── testing.md            ← Local testing
+│   │   ├── cli-mode-product.md        ← How CLI Mode works (for product)
+│   │   ├── claude-mode.md             ← How to use GAIA in `.claude` mode (Claude Code)
+│   │   ├── claude-vs-gaia-agents.md ← When to use GAIA agents vs `.claude/agents`
+│   │   └── production.md            ← Pre-production checklist
+│   ├── engineering/   ← Engineering discipline (devs + AI agents)
+│   │   ├── architecture.md  ← Internal architecture
+│   │   ├── workflow.md      ← Pipeline + 3-mode mapping
+│   │   ├── tdd.md           ← The Three Laws + R-G-R cycle
+│   │   ├── gherkin.md       ← Gherkin format, rules
+│   │   └── mutation-testing.md ← mutate.py, thresholds
 │
 ├── scripts/
-│   ├── demo.sh        ← Demo automático multi-modo
-│   └── present.sh     ← Script de presentación
+│   ├── demo.sh        ← Automatic multi-mode demo
+│   └── present.sh     ← Presentation script
 │
 ├── src/
 │   ├── agents/        ← SpecAuthor, Implementer, Reviewer, MutationTester
-│   ├── plugins/       ← flutter/, ios/, android/, flutter_web/ (con repo-local override)
-│   ├── harness/       ← leader.ts (máquina de estados)
+│   ├── plugins/       ← flutter/, ios/, android/, flutter_web/ (with repo-local override)
+│   ├── harness/       ← leader.ts (state machine)
 │   ├── api/routes/    ← jobs.ts + webhook.ts
 │   ├── notifiers/     ← Slack, GitHub Checks, Generic, Jira
 │   ├── state/         ← PostgresBackend + DiskBackend
 │   ├── tools/         ← git.ts, jira.ts, figma.ts, llm.ts, test runners
-│   └── cli/run.ts     ← CLI entry point (Modo B)
+│   └── cli/run.ts     ← CLI entry point (Mode B)
 │
 ├── tests/             ← Unit tests
-├── tools/mutate.py    ← Mutation tester Python
-└── .claude/           ← Configuración de Claude Code
-    ├── identity.json              ← Estilo y dominios técnicos
+├── tools/mutate.py    ← Python mutation tester
+└── .claude/           ← Claude Code configuration
+    ├── identity.json              ← Style and technical domains
     ├── package-manager.json       ← npm
-    ├── agents/                    ← Subagentes (craftsman_lead, spec_partner, ...)
+    ├── agents/                    ← Subagents (craftsman_lead, spec_partner, ...)
     ├── commands/                  ← Slash commands (/gaia_code_generator)
-    ├── rules/                     ← Guardrails de seguridad y convenciones
-    ├── skills/gaia/SKILL.md       ← Knowledge base del proyecto
-    ├── team/gaia-team-config.json ← Config compartida de recursos
-    ├── workflows/                 ← Procedimientos multi-paso
-    └── research/                  ← Playbook de investigación
+    ├── rules/                     ← Security guardrails and conventions
+    ├── skills/gaia/SKILL.md       ← Project knowledge base
+    ├── team/gaia-team-config.json ← Shared resource config
+    ├── workflows/                 ← Multi-step procedures
+    └── research/                  ← Research playbook
 ```
 
 ---
 
-## Variables de entorno clave
+## Key environment variables
 
-| Variable                               | Requerida      | Para qué                                                    |
+| Variable                               | Required       | For what                                                    |
 | -------------------------------------- | -------------- | ----------------------------------------------------------- |
-| `OPENAI_API_KEY` o `ANTHROPIC_API_KEY` | ✅             | Generación de código                                        |
-| `GITHUB_TOKEN`                         | ✅             | Crear PRs reales                                            |
-| `GITHUB_OWNER`                         | ✅             | Org o usuario de GitHub                                     |
-| `DATABASE_URL`                         | ✅ Modos A y C | Conexión PostgreSQL                                         |
-| `JIRA_BASE_URL`                        | Si usas Jira   | Subdominio exacto del tenant (ej. `tu-org.atlassian.net`)   |
-| `JIRA_EMAIL`                           | Si usas Jira   | Email de la cuenta Jira                                     |
-| `JIRA_API_TOKEN`                       | Si usas Jira   | Token API de Jira                                           |
-| `DEFAULT_PLATFORM`                     | Opcional       | Plataforma si el ticket no tiene label (default: `flutter`) |
-| `DEFAULT_REPO`                         | Opcional       | Repo si el ticket no tiene label `repo:...`                 |
-| `SLACK_WEBHOOK_URL`                    | Opcional       | Notificaciones Slack                                        |
+| `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` | ✅             | Code generation                                             |
+| `GITHUB_TOKEN`                         | ✅             | Create real PRs                                             |
+| `GITHUB_OWNER`                         | ✅             | GitHub org or user                                          |
+| `DATABASE_URL`                         | ✅ Modes A & C | PostgreSQL connection                                       |
+| `JIRA_BASE_URL`                        | If using Jira  | Exact tenant subdomain (e.g. `your-org.atlassian.net`)      |
+| `JIRA_EMAIL`                           | If using Jira  | Jira account email                                          |
+| `JIRA_API_TOKEN`                       | If using Jira  | Jira API token                                              |
+| `DEFAULT_PLATFORM`                     | Optional       | Platform if ticket has no label (default: `flutter`)      |
+| `DEFAULT_REPO`                         | Optional       | Repo if ticket has no `repo:...` label                    |
+| `SLACK_WEBHOOK_URL`                    | Optional       | Slack notifications                                         |
 
-Ver todos los valores en [`.env.example`](../.env.example).
+See all values in [`.env.example`](../.env.example).
 
 ---
 
-## Links útiles
+## Useful links
 
 - **GitHub Token:** https://github.com/settings/tokens (scope: `repo`)
 - **Jira API Token:** https://id.atlassian.com/manage-profile/security/api-tokens

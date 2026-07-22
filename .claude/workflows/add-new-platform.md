@@ -1,42 +1,42 @@
 # Add New Platform Workflow
 
-> Agrega soporte para una nueva plataforma de destino en GAIA (e.g., `react`, `python`, `go`).
+> Add support for a new target platform in GAIA (e.g., `react`, `python`, `go`).
 
 ## When to use
 
-- Se quiere que GAIA pueda generar código para una tecnología nueva.
-- La plataforma sigue el contrato de `PlatformSkill`.
+- You want GAIA to generate code for a new technology.
+- The platform follows the `PlatformSkill` contract.
 
 ## Steps
 
-1. **Definir el skill**
-   - Crea `src/plugins/<platform>/index.ts` implementando la interfaz `PlatformSkill`.
+1. **Define the skill**
+   - Create `src/plugins/<platform>/index.ts` implementing the `PlatformSkill` interface.
    - Define `displayName`, `srcDirs`, `sourceExtension`, `testCommand`, `buildCommand`.
 2. **Prompt context**
-   - Implementa `getPromptContext(job)` con las convenciones y comandos de la plataforma.
-3. **Verificación de entorno**
-   - Implementa `verifyEnvironment(repoPath)` que valide toolchain instalado.
-4. **Build y test**
-   - Implementa `build(repoPath, module, strategy)`.
-   - Implementa `test(repoPath, module)`.
-5. **Análisis opcional**
-   - Implementa `analyze(repoPath, module)` para lint/style checks.
-6. **Registrar el plugin**
-   - Actualiza `src/plugins/index.ts` para exportar y registrar la nueva plataforma.
-7. **Tests del harness**
-   - Agrega tests unitarios en `tests/plugins/<platform>.test.ts` o extiende los existentes.
-   - Corre `npm test` y `npx tsc --noEmit`.
-8. **Documentación**
-   - Agrega guía en `docs/guides/<platform>.md` si aplica.
-   - Actualiza `README.md` y `docs/index.md` listando la plataforma soportada.
+   - Implement `getPromptContext(job)` with the platform's conventions and commands.
+3. **Environment verification**
+   - Implement `verifyEnvironment(repoPath)` that validates the toolchain is installed.
+4. **Build and test**
+   - Implement `build(repoPath, module, strategy)`.
+   - Implement `test(repoPath, module)`.
+5. **Optional analysis**
+   - Implement `analyze(repoPath, module)` for lint/style checks.
+6. **Register the plugin**
+   - Update `src/plugins/index.ts` to export and register the new platform.
+7. **Harness tests**
+   - Add unit tests in `tests/plugins/<platform>.test.ts` or extend existing ones.
+   - Run `npm test` and `npx tsc --noEmit`.
+8. **Documentation**
+   - Add a guide in `docs/guides/<platform>.md` if applicable.
+   - Update `README.md` and `docs/index.md` listing the supported platform.
 
 ## Verification
 
-- `./init.sh` pasa.
-- `npx tsc --noEmit` pasa.
-- `npm test` pasa.
-- Se puede crear un `job.json` con `"platform": "<platform>"` y `npx ts-node src/cli/run.ts --job job.json --approve` llega a implementación sin errores de skill no encontrado.
+- `./init.sh` passes.
+- `npx tsc --noEmit` passes.
+- `npm test` passes.
+- A `job.json` with `"platform": "<platform>"` and `npx ts-node src/cli/run.ts --job job.json --approve` reaches implementation without "skill not found" errors.
 
 ## Output
 
-- `progress/add-platform-<platform>.md` con decisiones, comandos y validaciones.
+- `progress/add-platform-<platform>.md` with decisions, commands, and validations.

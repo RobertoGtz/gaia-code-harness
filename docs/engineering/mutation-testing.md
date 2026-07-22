@@ -1,57 +1,55 @@
 # Mutation Testing — GAIA Code Harness
 
-> Valida que tu suite de tests realmente detectaría bugs. Score mínimo aceptable: 80%.
+> Validates that your test suite would actually detect bugs. Minimum acceptable score: 80%.
 
 ---
 
-## El problema que resuelve
+## The problem it solves
 
-Una suite verde dice "el código no explota con estas entradas". **No** dice
-"los tests fallarían si el código estuviera mal". Un test sin asserts
-fuertes pasa siempre y no protege nada.
+A green suite says "the code doesn't blow up with these inputs". It does **not** say
+"the tests would fail if the code were wrong". A test without strong assertions
+always passes and protects nothing.
 
-La prueba de mutación lo mide al revés: introduce un defecto pequeño
-(un _mutante_) y observa la suite.
+Mutation testing measures it the other way around: it introduces a small defect
+(a _mutant_) and watches the suite.
 
-- Si **algún test falla** → el mutante está **muerto** (killed). La red
-  atrapó el defecto.
-- Si **todos los tests pasan** → el mutante **sobrevive** (survived). Hay
-  un agujero: falta un assert o un caso.
+- If **some test fails** → the mutant is **killed**. The net caught the defect.
+- If **all tests pass** → the mutant **survived**. There is a hole: missing assert or case.
 
-**Puntuación = `killed / total`**. Cuanto más alta, más muerden los tests.
+**Score = `killed / total`**. The higher, the more the tests bite.
 
 ---
 
-## La herramienta: `tools/mutate.py`
+## The tool: `tools/mutate.py`
 
-Sin dependencias externas (solo stdlib Python 3.9+). Soporta:
+No external dependencies (stdlib Python 3.9+ only). Supports:
 
-- **Python** — tokenizer nativo (sin falsos positivos en strings/comments)
-- **TypeScript / JavaScript** — regex consciente de strings y template literals
-- **Swift** — regex para operadores y keywords Swift
-- **Kotlin** — mismo motor que TS/Swift
+- **Python** — native tokenizer (no false positives in strings/comments)
+- **TypeScript / JavaScript** — string and template-literal aware regex
+- **Swift** — regex for Swift operators and keywords
+- **Kotlin** — same engine as TS/Swift
 
-### Catálogo de mutaciones
+### Mutation catalog
 
-| Categoría   | Ejemplos                                 |
+| Category    | Examples                                 |
 | ----------- | ---------------------------------------- |
-| Comparación | `<=` → `<`, `==` → `!=`, `===` → `!==`   |
-| Aritmética  | `+` → `-`, `-` → `+`                     |
-| Lógica      | `&&` → `\|\|`, `true` → `false`          |
-| Retorno     | `return <expr>` → `return null/nil/None` |
-| Constantes  | `0` → `1`, `1` → `0` (solo Python)       |
+| Comparison  | `<=` → `<`, `==` → `!=`, `===` → `!==`   |
+| Arithmetic  | `+` → `-`, `-` → `+`                     |
+| Logic       | `&&` → `\|\|`, `true` → `false`          |
+| Return      | `return <expr>` → `return null/nil/None` |
+| Constants   | `0` → `1`, `1` → `0` (Python only)       |
 
-El script **restaura siempre** el archivo original (`finally`), incluso ante Ctrl-C.
+The script **always restores** the original file (`finally`), even on Ctrl-C.
 
-### Uso rápido
+### Quick usage
 
 ```bash
-# TypeScript (harness interno)
+# TypeScript (internal harness)
 python3 tools/mutate.py src/agents/implementer.ts \
   --cmd "npx jest --passWithNoTests" \
   --threshold 80
 
-# Swift / iOS (workspace del job)
+# Swift / iOS (job workspace)
 python3 tools/mutate.py /tmp/gaia-workspace/<jobId>/Sources/App.swift \
   --cmd "swift test" \
   --cwd /tmp/gaia-workspace/<jobId> \
@@ -67,44 +65,44 @@ python3 tools/mutate.py lib/features/feed/data/repository.dart \
   --cmd "flutter test" \
   --cwd /tmp/gaia-workspace/<jobId>
 
-# Acotar el número de mutantes (runs largos)
+# Limit number of mutants (long runs)
 python3 tools/mutate.py src/agents/implementer.ts \
   --cmd "npx jest --passWithNoTests" --max 60
 
-# Salida JSON (para MutationTesterAgent.ts)
+# JSON output (for MutationTesterAgent.ts)
 python3 tools/mutate.py src/agents/implementer.ts \
   --cmd "npx jest" --json
 ```
 
 ### Exit codes
 
-| Código | Significado                                           |
-| ------ | ----------------------------------------------------- |
-| `0`    | Score ≥ threshold — **PASS**                          |
-| `1`    | Score < threshold — **FAIL**                          |
-| `2`    | Suite roja antes de mutar — arregla los tests primero |
+| Code | Meaning                                                   |
+| ---- | --------------------------------------------------------- |
+| `0`  | Score ≥ threshold — **PASS**                              |
+| `1`  | Score < threshold — **FAIL**                              |
+| `2`  | Red suite before mutation — fix the tests first           |
 
 ---
 
-## El umbral
+## The threshold
 
-- **100% sobre las líneas nuevas o tocadas** por la feature es el ideal.
-- Mínimo aceptable: **80%** — alineado con `MutationTesterAgent.ts`.
-- Para código heredado no tocado por la feature, se mide pero no se bloquea.
-- Un mutante **equivalente** (no cambia comportamiento observable) puede
-  excluirse, pero **solo** con justificación explícita en
-  `progress/mutation_<name>.md`. Abusar de esto es hacer trampa al juez.
+- **100% on new or touched lines** by the feature is the ideal.
+- Minimum acceptable: **80%** — aligned with `MutationTesterAgent.ts`.
+- For legacy code not touched by the feature, it is measured but not blocking.
+- An **equivalent mutant** (does not change observable behavior) may be
+  excluded, but **only** with explicit justification in
+  `progress/mutation_<name>.md`. Abusing this is cheating the judge.
 
 ---
 
-## Quién hace qué
+## Who does what
 
 | Mode             | Runner                                       | Effect when score < 80%                                       |
 | ---------------- | -------------------------------------------- | ------------------------------------------------------------- |
 | **Claude Code**  | `mutation_tester` agent (human in the loop) | Blocks; returns to `tdd_craftsman`                            |
 | **A — HTTP API** | `MutationTesterAgent.ts` (automatic)         | Closed-loop: feedback to `ImplementerAgent` (≤ 5×)            |
-| **B — CLI**      | `MutationTesterAgent.ts` (automatic)           | Closed-loop: feedback to `ImplementerAgent` (≤ 5×)            |
-| **C — Webhook**  | `MutationTesterAgent.ts` (automatic)           | Closed-loop: feedback to `ImplementerAgent` (≤ 5×)            |
+| **B — CLI**      | `MutationTesterAgent.ts` (automatic)       | Closed-loop: feedback to `ImplementerAgent` (≤ 5×)            |
+| **C — Webhook**  | `MutationTesterAgent.ts` (automatic)         | Closed-loop: feedback to `ImplementerAgent` (≤ 5×)            |
 
 `mutation_tester` **measures and reports**. It does not edit code directly.
 If a mutant survives, `MutationTesterAgent.ts` returns `TEST_ERROR` with the
@@ -117,9 +115,9 @@ and run it through the `judge`/reviewer again.
 
 ---
 
-## Por qué vale el coste
+## Why the cost is worth it
 
-Reejecutar toda la suite por cada mutante es caro. Pero ese es el
-desplazamiento que describe Uncle Bob: el límite ya no es lo rápido que
-teclea un humano, sino cuánta validación puede pagar tu CPU. La corrección
-del código es el retorno, y compensa cada ciclo.
+Re-running the whole suite for each mutant is expensive. But that is the
+shift described by Uncle Bob: the limit is no longer how fast a human types,
+but how much validation your CPU can pay for. Code correctness is the return,
+and it pays for every cycle.

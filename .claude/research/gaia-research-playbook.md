@@ -1,39 +1,39 @@
 # GAIA Research Playbook
 
-> Guía de investigación estructurada antes de escribir specs o implementar features en GAIA.
+> Structured research guide before writing specs or implementing features in GAIA.
 
 ## When to use
 
-- La feature es ambigua o toca múltiples componentes.
-- No se conoce bien el estado actual del código objetivo.
-- Hay que decidir entre varias alternativas de diseño.
+- The feature is ambiguous or touches multiple components.
+- The current state of the target code is unknown.
+- You must decide among several design alternatives.
 
 ## Steps
 
-1. **Preguntas de cierre**
-   - ¿Qué problema resolvemos exactamente?
-   - ¿Quién es el usuario final?
-   - ¿Cuál es el comportamiento observable correcto?
-   - ¿Qué restricciones tenemos (tiempo, complejidad, legacy)?
-2. **Exploración del repo**
-   - `find` / `grep` para ubicar archivos relevantes.
-   - Lee `README.md`, `docs/engineering/architecture.md` y `docs/engineering/workflow.md`.
-   - Identifica plugins, agents o tools relacionados.
-3. **Mapa de impacto**
-   - Lista archivos que probablemente cambien.
-   - Identifica tests existentes que deban actualizarse.
-   - Detecta dependencias externas (APIs, tokens, DB).
-4. **Alternativas y trade-offs**
-   - Escribe 2-3 opciones de diseño.
-   - Evalúa cada una en costo, riesgo, mantenibilidad y alineación con arquitectura.
-5. **Contrato Gherkin preliminar**
-   - Escribe 3-5 escenarios `Given/When/Then` sin implementación.
-   - Usa esos escenarios para validar con el humano antes de avanzar.
-6. **Documentar**
-   - Guarda el research en `progress/research-<feature>.md`.
-   - Referencia ese archivo desde `project-spec.md`.
+1. **Closing questions**
+   - What problem are we solving exactly?
+   - Who is the end user?
+   - What is the correct observable behavior?
+   - What constraints do we have (time, complexity, legacy)?
+2. **Repository exploration**
+   - Use `find` / `grep` to locate relevant files.
+   - Read `README.md`, `docs/engineering/architecture.md`, and `docs/engineering/workflow.md`.
+   - Identify related plugins, agents, or tools.
+3. **Impact map**
+   - List files that will likely change.
+   - Identify existing tests that must be updated.
+   - Detect external dependencies (APIs, tokens, DB).
+4. **Alternatives and trade-offs**
+   - Write 2-3 design options.
+   - Evaluate each on cost, risk, maintainability, and alignment with architecture.
+5. **Preliminary Gherkin contract**
+   - Write 3-5 `Given/When/Then` scenarios without implementation.
+   - Use those scenarios to validate with the human before moving forward.
+6. **Document**
+   - Save the research in `progress/research-<feature>.md`.
+   - Reference that file from `project-spec.md`.
 
 ## Output
 
-- `progress/research-<feature>.md` con preguntas, hallazgos, alternativas y escenarios preliminares.
-- El humano valida antes de pasar a `spec_partner` formal.
+- `progress/research-<feature>.md` with questions, findings, alternatives, and preliminary scenarios.
+- The human validates before moving to formal `spec_partner`.
