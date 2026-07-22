@@ -1,7 +1,7 @@
 # API Reference — GAIA Code Harness
 
-> Referencia completa de la API REST y el webhook de entrada.  
-> Ver [`docs/guides/quick-start.md`](docs/guides/quick-start.md) para guías de uso con ejemplos.
+> Complete reference for the REST API and inbound webhook.  
+> See [`docs/guides/quick-start.md`](docs/guides/quick-start.md) for usage guides with examples.
 
 ---
 
@@ -9,7 +9,7 @@
 
 ```
 Local:      http://localhost:3000
-Production: https://<tu-dominio>
+Production: https://<your-domain>
 ```
 
 ---
@@ -33,24 +33,24 @@ GET /health
 
 ---
 
-### Crear Job
+### Create Job
 
 ```http
 POST /jobs
 Content-Type: application/json
 ```
 
-**Request Body (Opción A - Flat body, recomendado):**
+**Request Body (Option A - Flat body, recommended):**
 
 ```json
 {
   "platform": "flutter",
-  "title": "Agregar banner de promociones",
+  "title": "Add promotional banner",
   "jiraTicketId": "PROJ-123",
-  "repo": "mi-org/mi-repo",
+  "repo": "my-org/my-repo",
   "module": "home_screen",
   "targetBranch": "develop",
-  "description": "Mostrar carrusel de promociones destacadas",
+  "description": "Show featured promotional carousel",
   "figmaUrl": "https://figma.com/file/abc123/promo-banner",
   "tddMode": false,
   "buildStrategy": "resolve",
@@ -63,12 +63,12 @@ Content-Type: application/json
 }
 ```
 
-> Pasa `"tddMode": true` para activar el ciclo Red-Green-Refactor (un test a la vez).  
-> Pasa `"buildStrategy": "resolve"` para iOS en grandes monorepos Tuist; usa `"tuist"` o `"xcodebuild"` para validación completa de compilación local.  
-> Pasa `"requireTests": false` para deshabilitar la ejecución de tests en Implementer y Reviewer (útil para demos o ambientes sin toolchain).  
-> `maxFilesToTouch` limita cuántos archivos puede modificar el agente (default: 5).
+> Pass `"tddMode": true` to activate the Red-Green-Refactor cycle (one test at a time).  
+> Pass `"buildStrategy": "resolve"` for iOS in large Tuist monorepos; use `"tuist"` or `"xcodebuild"` for full local build validation.  
+> Pass `"requireTests": false` to disable test execution in Implementer and Reviewer (useful for demos or environments without the toolchain).  
+> `maxFilesToTouch` limits how many files the agent can modify (default: 5).
 
-**Request Body (Opción B - fullContext wrapper, legacy):**
+**Request Body (Option B - fullContext wrapper, legacy):**
 
 ```json
 {
@@ -76,9 +76,9 @@ Content-Type: application/json
   "tddMode": true,
   "buildStrategy": "resolve",
   "fullContext": {
-    "title": "Agregar banner de promociones",
+    "title": "Add promotional banner",
     "platform": "flutter",
-    "repo": "mi-org/mi-repo",
+    "repo": "my-org/my-repo",
     "acceptanceCriteria": [
       "WHEN user opens home screen THEN display promotional banner carousel"
     ]
@@ -86,7 +86,7 @@ Content-Type: application/json
 }
 ```
 
-**Request Body (Opción C - Solo Jira ticket):**
+**Request Body (Option C - Jira ticket only):**
 
 ```json
 {
@@ -96,21 +96,21 @@ Content-Type: application/json
 }
 ```
 
-El sistema fetchea el ticket de Jira (`JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`) y extrae:
+The system fetches the Jira ticket (`JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`) and extracts:
 
-- título, descripción, prioridad, labels
-- criterios de aceptación (descripción o campo personalizado)
-- URL de Figma (si aparece en la descripción como link de texto)
-- repo (label `repo:org/nombre`, campo custom, o `DEFAULT_REPO`)
-- plataforma — inferida en este orden:
-  1. **Labels del ticket** — `flutter`, `ios`, `android`, `flutter_web`
-  2. **Prefijo del título** — `[MOBILE]` → `DEFAULT_PLATFORM` (default: `flutter`), `[WEB]` → `flutter_web`, `[iOS]` → `ios`, `[ANDROID]` → `android`
-  3. **Palabras clave** en el título — `swift`, `kotlin`, etc.
-  4. Variable `DEFAULT_PLATFORM` en `.env`
+- title, description, priority, labels
+- acceptance criteria (description or custom field)
+- Figma URL (if it appears in the description as a text link)
+- repo (label `repo:org/name`, custom field, or `DEFAULT_REPO`)
+- platform — inferred in this order:
+  1. **Ticket labels** — `flutter`, `ios`, `android`, `flutter_web`
+  2. **Title prefix** — `[MOBILE]` → `DEFAULT_PLATFORM` (default: `flutter`), `[WEB]` → `flutter_web`, `[iOS]` → `ios`, `[ANDROID]` → `android`
+  3. **Keywords** in the title — `swift`, `kotlin`, etc.
+  4. `DEFAULT_PLATFORM` in `.env`
 
-> **Nota:** `JIRA_BASE_URL` debe apuntar al subdominio exacto del tenant (ej. `https://tu-org.atlassian.net`). Un subdominio incorrecto dará error 404.
+> **Note:** `JIRA_BASE_URL` must point to the exact tenant subdomain (e.g. `https://your-org.atlassian.net`). An incorrect subdomain returns 404.
 
-Si el sistema no puede inferir la plataforma, devuelve **400** con instrucciones. Si `repo` no está en el ticket, pásalo en el body junto con `jiraTicketId`.
+If the system cannot infer the platform, it returns **400** with instructions. If `repo` is not in the ticket, pass it in the body along with `jiraTicketId`.
 
 **Response (201 Created):**
 
@@ -119,9 +119,9 @@ Si el sistema no puede inferir la plataforma, devuelve **400** con instrucciones
   "job": {
     "id": "550e8400-e29b-41d4-a716-446655440000",
     "status": "pending",
-    "title": "Agregar banner de promociones",
+    "title": "Add promotional banner",
     "platform": "flutter",
-    "repo": "mi-org/mi-repo",
+    "repo": "my-org/my-repo",
     "createdAt": "2024-01-15T10:30:00.000Z"
   }
 }
@@ -129,7 +129,7 @@ Si el sistema no puede inferir la plataforma, devuelve **400** con instrucciones
 
 ---
 
-### Obtener Job
+### Get Job
 
 ```http
 GET /jobs/:id
@@ -143,7 +143,7 @@ GET /jobs/:id
     "id": "550e8400-e29b-41d4-a716-446655440000",
     "status": "spec_ready",
     "currentAgent": "SpecAuthor",
-    "title": "Agregar banner de promociones",
+    "title": "Add promotional banner",
     "progressLogs": [
       "[2024-01-15T10:30:01Z] [SpecAuthor] Generating spec...",
       "[2024-01-15T10:30:05Z] [SpecAuthor] Specification generated"
@@ -186,7 +186,7 @@ GET /jobs/:id
 
 ---
 
-### Listar Jobs
+### List Jobs
 
 ```http
 GET /jobs
@@ -194,7 +194,7 @@ GET /jobs
 
 **Query Parameters:**
 
-- `initiativeId` (optional) - Filtrar por iniciativa
+- `initiativeId` (optional) - Filter by initiative
 
 **Response:**
 
@@ -204,7 +204,7 @@ GET /jobs
     {
       "id": "550e8400-e29b-41d4-a716-446655440000",
       "status": "spec_ready",
-      "title": "Agregar banner de promociones",
+      "title": "Add promotional banner",
       "platform": "flutter",
       "createdAt": "2024-01-15T10:30:00.000Z"
     }
@@ -284,26 +284,26 @@ POST /jobs/:id/retry
 
 ---
 
-## Estados de Job
+## Job States
 
-| Estado            | Descripción                    | UI Sugerida            |
+| State             | Description                    | Suggested UI           |
 | ----------------- | ------------------------------ | ---------------------- |
-| `pending`         | Iniciando                      | 🟡 Iniciando...        |
-| `fetching_jira`   | Obteniendo info de Jira        | 🟡 Leyendo ticket...   |
-| `spec_generating` | IA generando spec              | 🟡 Generando spec...   |
-| `spec_ready`      | **Listo para revisión**        | 🔵 Revisión requerida  |
-| `spec_approved`   | Aprobado, implementando        | 🟡 Implementando...    |
-| `implementing`    | Escribiendo código             | 🟡 Generando código... |
-| `reviewing`       | Lint + tests + LLM review + PR | 🟡 Creando PR...       |
-| `pr_created`      | Mutation testing post-PR       | 🟣 PR creado           |
-| `done`            | **Completado**                 | ✅ Completado          |
-| `failed`          | Error inesperado (retry)       | ❌ Error               |
-| `env_error`       | SDK no encontrado              | ❌ Env error           |
-| `repo_error`      | Git clone/push falló           | ❌ Repo error          |
-| `build_error`     | Deps no resueltas              | ❌ Build error         |
-| `test_error`      | Tests fallaron                 | ❌ Test error          |
-| `review_error`    | Reviewer falló                 | ❌ Review error        |
-| `spec_error`      | LLM no pudo generar spec       | ❌ Spec error          |
+| `pending`         | Starting                       | 🟡 Starting...         |
+| `fetching_jira`   | Fetching Jira info             | 🟡 Reading ticket...   |
+| `spec_generating` | AI generating spec               | 🟡 Generating spec...  |
+| `spec_ready`      | **Ready for review**           | 🔵 Review required     |
+| `spec_approved`   | Approved, implementing         | 🟡 Implementing...     |
+| `implementing`    | Writing code                   | 🟡 Generating code...  |
+| `reviewing`       | Lint + tests + LLM review + PR | 🟡 Creating PR...      |
+| `pr_created`      | Mutation testing post-PR       | 🟣 PR created          |
+| `done`            | **Completed**                  | ✅ Completed           |
+| `failed`          | Unexpected error (retry)       | ❌ Error               |
+| `env_error`       | SDK not found                  | ❌ Env error           |
+| `repo_error`      | Git clone/push failed          | ❌ Repo error          |
+| `build_error`     | Dependencies not resolved      | ❌ Build error         |
+| `test_error`      | Tests failed                   | ❌ Test error          |
+| `review_error`    | Reviewer failed                | ❌ Review error        |
+| `spec_error`      | LLM could not generate spec    | ❌ Spec error          |
 
 ---
 
@@ -335,15 +335,15 @@ POST /jobs/:id/retry
 
 ---
 
-## Flujo típico
+## Typical Flow
 
 ```bash
-# 1. Crear job
+# 1. Create job
 curl -X POST http://localhost:3000/jobs \
   -H "Content-Type: application/json" \
   -d '{"fullContext": {...}}'
 
-# 2. Poll hasta spec_ready
+# 2. Poll until spec_ready
 while true; do
   STATUS=$(curl -s http://localhost:3000/jobs/$JOB_ID | jq -r '.job.status')
   echo "Status: $STATUS"
@@ -351,12 +351,12 @@ while true; do
   sleep 2
 done
 
-# 3. Aprobar spec
+# 3. Approve spec
 curl -X POST http://localhost:3000/jobs/$JOB_ID/approve \
   -H "Content-Type: application/json" \
   -d '{"approved": true}'
 
-# 4. Poll hasta done
+# 4. Poll until done
 while true; do
   STATUS=$(curl -s http://localhost:3000/jobs/$JOB_ID | jq -r '.job.status')
   echo "Status: $STATUS"
@@ -364,7 +364,7 @@ while true; do
   sleep 5
 done
 
-# 5. Obtener PR URL
+# 5. Get PR URL
 curl -s http://localhost:3000/jobs/$JOB_ID | jq -r '.job.prUrl'
 ```
 
@@ -379,21 +379,21 @@ POST /webhook/trigger
 Content-Type: application/json
 ```
 
-Acepta tres formatos de payload:
+Accepts three payload formats:
 
-**Formato A — Generic GAIA JSON (recomendado para integraciones propias):**
+**Format A — Generic GAIA JSON (recommended for custom integrations):**
 
 ```json
 {
   "title": "Add loyalty points banner",
   "platform": "flutter",
-  "repo": "mi-org/mi-repo",
+  "repo": "my-org/my-repo",
   "targetBranch": "develop",
   "tddMode": true,
   "buildStrategy": "resolve",
   "requireTests": false,
   "maxFilesToTouch": 6,
-  "description": "Descripción opcional de la feature",
+  "description": "Optional feature description",
   "module": "home",
   "figmaUrl": "https://figma.com/file/abc/design",
   "jiraEpicId": "EPIC-42",
@@ -403,11 +403,11 @@ Acepta tres formatos de payload:
 }
 ```
 
-> Los campos `description`, `module`, `figmaUrl` y `jiraEpicId` son opcionales y se propagan al job igual que en `POST /jobs`.
+> Fields `description`, `module`, `figmaUrl` and `jiraEpicId` are optional and propagate to the job just like in `POST /jobs`.
 
-**Formato B — Jira issue webhook** (configura en Jira → Project settings → Webhooks):
+**Format B — Jira issue webhook** (configure in Jira → Project settings → Webhooks):
 
-> Si el ticket tiene la etiqueta `skip-tests`, el job se creará con `requireTests: false`. Pasa `requireTests`/`maxFilesToTouch` directamente en el payload genérico (Formato A).
+> If the ticket has the `skip-tests` label, the job is created with `requireTests: false`. Pass `requireTests`/`maxFilesToTouch` directly in the generic payload (Format A).
 
 ```json
 {
@@ -422,16 +422,16 @@ Acepta tres formatos de payload:
 }
 ```
 
-> La plataforma se detecta de los labels (`flutter`, `ios`, `android`, `flutter_web`). El label `tdd` activa `tddMode: true`. Requiere `DEFAULT_REPO` en `.env`.
-> Si el ticket tiene `JIRA_*` configurado, el harness enriquece el job automáticamente con los ACs, `epicKey`, `figmaUrl` y plataforma del ticket completo.
+> Platform is detected from labels (`flutter`, `ios`, `android`, `flutter_web`). The `tdd` label activates `tddMode: true`. Requires `DEFAULT_REPO` in `.env`.
+> If the ticket has `JIRA_*` configured, the harness automatically enriches the job with ACs, `epicKey`, `figmaUrl` and the full ticket platform.
 
-**Formato C — Slack slash command** (`/gaia flutter mi-org/demo-repo Feature title here`):
+**Format C — Slack slash command** (`/gaia flutter my-org/demo-repo Feature title here`):
 
 ```
 POST /webhook/trigger
 Content-Type: application/x-www-form-urlencoded
 
-command=/gaia&text=flutter mi-org/demo-repo Feature title here
+command=/gaia&text=flutter my-org/demo-repo Feature title here
 ```
 
 **Response (202 Accepted):**
@@ -447,46 +447,46 @@ command=/gaia&text=flutter mi-org/demo-repo Feature title here
 }
 ```
 
-**Seguridad — firma HMAC-SHA256:**
+**Security — HMAC-SHA256 signature:**
 
 ```bash
-# Configura WEBHOOK_SECRET en .env
-# El sistema verifica X-GAIA-Signature: sha256=<hmac>
+# Configure WEBHOOK_SECRET in .env
+# The system verifies X-GAIA-Signature: sha256=<hmac>
 curl -X POST http://localhost:3000/webhook/trigger \
   -H "Content-Type: application/json" \
   -H "X-GAIA-Signature: sha256=$(echo -n '{"title":"..."}' | openssl dgst -sha256 -hmac $WEBHOOK_SECRET | cut -d' ' -f2)" \
-  -d '{"title":"Add loyalty points banner","platform":"flutter","repo":"mi-org/demo-repo"}'
+  -d '{"title":"Add loyalty points banner","platform":"flutter","repo":"my-org/demo-repo"}'
 ```
 
 ---
 
-### Notificaciones — Outbound events
+### Notifications — Outbound events
 
-Configura una o más variables en `.env` para activar notificaciones de salida:
+Configure one or more variables in `.env` to activate outbound notifications:
 
-| Variable                                               | Notifier activado | Qué envía                                                                            |
+| Variable                                               | Notifier enabled  | What it sends                                                                        |
 | ------------------------------------------------------ | ----------------- | ------------------------------------------------------------------------------------ |
-| `SLACK_WEBHOOK_URL`                                    | Slack             | Block Kit message por estado                                                         |
-| `GITHUB_CHECKS_TOKEN` + `GITHUB_OWNER` + `GITHUB_REPO` | GitHub Checks API | Check Run por job                                                                    |
-| `NOTIFY_WEBHOOK_URL`                                   | Generic HTTP      | JSON completo del evento                                                             |
-| `NOTIFY_WEBHOOK_SECRET`                                | (firma outbound)  | `X-GAIA-Signature` header                                                            |
-| `JIRA_BASE_URL` + `JIRA_EMAIL` + `JIRA_API_TOKEN`      | Jira              | Comentarios + transiciones de estado en el ticket                                    |
-| `JIRA_TRANSITION_MAP`                                  | (configura Jira)  | JSON para renombrar transiciones: `{"done":"Resolved","failed":"Blocked"}`           |
-| `FIGMA_ACCESS_TOKEN`                                   | SpecAuthorAgent   | Lectura de diseño Figma vía REST API (requerido cuando `job.figmaUrl` esté presente) |
+| `SLACK_WEBHOOK_URL`                                    | Slack             | Block Kit message per state                                                          |
+| `GITHUB_CHECKS_TOKEN` + `GITHUB_OWNER` + `GITHUB_REPO` | GitHub Checks API | Check Run per job                                                                    |
+| `NOTIFY_WEBHOOK_URL`                                   | Generic HTTP      | Full event JSON                                                                      |
+| `NOTIFY_WEBHOOK_SECRET`                                | (outbound signature) | `X-GAIA-Signature` header                                                            |
+| `JIRA_BASE_URL` + `JIRA_EMAIL` + `JIRA_API_TOKEN`      | Jira              | Comments + status transitions on the ticket                                          |
+| `JIRA_TRANSITION_MAP`                                  | (Jira config)     | JSON to rename transitions: `{"done":"Resolved","failed":"Blocked"}`           |
+| `FIGMA_ACCESS_TOKEN`                                   | SpecAuthorAgent   | Figma design read via REST API (required when `job.figmaUrl` is present) |
 
-**Eventos emitidos:**
+**Emitted events:**
 
-| Evento             | Cuándo                           |
-| ------------------ | -------------------------------- |
-| `job.created`      | Job creado (`pending`)           |
-| `job.spec_ready`   | Spec lista, esperando aprobación |
-| `job.implementing` | Implementación iniciada          |
-| `job.reviewing`    | Revisión en curso                |
-| `job.pr_created`   | PR creado, mutation testing      |
-| `job.done`         | Job completado con PR            |
-| `job.failed`       | Error en el pipeline             |
+| Event              | When                              |
+| ------------------ | --------------------------------- |
+| `job.created`      | Job created (`pending`)           |
+| `job.spec_ready`   | Spec ready, waiting for approval  |
+| `job.implementing` | Implementation started            |
+| `job.reviewing`    | Review in progress                |
+| `job.pr_created`   | PR created, mutation testing      |
+| `job.done`         | Job completed with PR             |
+| `job.failed`       | Pipeline error                      |
 
-**Ejemplo payload outbound (Slack / Generic):**
+**Example outbound payload (Slack / Generic):**
 
 ```json
 {
@@ -504,9 +504,9 @@ Configura una o más variables en `.env` para activar notificaciones de salida:
 
 ---
 
-## CLI (Modo B)
+## CLI (Mode B)
 
-Alternativa sin servidor HTTP. Usa un `DiskBackend` (JSON en `progress/`) en lugar de Postgres.
+Serverless alternative. Uses a `DiskBackend` (JSON in `progress/`) instead of Postgres.
 
 ```bash
 # List jobs
@@ -539,4 +539,4 @@ npx ts-node src/cli/run.ts --id <uuid> --reject "Needs more detail on the error 
 
 ---
 
-**Ver también:** [`docs/guides/quick-start.md`](docs/guides/quick-start.md) · [`docs/engineering/architecture.md`](docs/engineering/architecture.md) · [`README.md`](README.md)
+**See also:** [`docs/guides/quick-start.md`](docs/guides/quick-start.md) · [`docs/engineering/architecture.md`](docs/engineering/architecture.md) · [`README.md`](README.md)

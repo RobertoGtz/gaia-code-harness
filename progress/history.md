@@ -1,18 +1,18 @@
-# Historial de sesiones
+# Session history
 
-> Bitácora append-only. Cada entrada se añade al final al cerrar una sesión.
-> No se edita ni se elimina nada del historial.
+> Append-only log. Each entry is added at the end when a session closes.
+> Nothing in the history is edited or deleted.
 
 ---
 
-<!-- Formato de entrada:
-## YYYY-MM-DD — <nombre de la feature o tarea>
+<!-- Entry format:
+## YYYY-MM-DD — <feature or task name>
 
 - **Feature**: #<id> <name>
-- **Status final**: done | blocked | in_progress
-- **Resumen**: qué se hizo, qué decisiones se tomaron, qué quedó pendiente.
-- **Mutation score**: XX% (archivo mutado)
-- **Notas**: bloqueos, decisiones de diseño, deuda técnica.
+- **Final status**: done | blocked | in_progress
+- **Summary**: what was done, what decisions were made, what remains pending.
+- **Mutation score**: XX% (mutated file)
+- **Notes**: blockers, design decisions, technical debt.
 -->
 
 ## 2026-06-28 — iOS Build Strategy validation

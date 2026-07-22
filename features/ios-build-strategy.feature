@@ -1,7 +1,7 @@
 Feature: iOS build strategy for large Tuist monorepos
-  Como operador de GAIA quiero elegir cómo validar el código generado en
-  monorepos iOS grandes para que el pipeline sea rápido y confiable sin
-  depender de una única herramienta.
+  As a GAIA operator I want to choose how to validate generated code in
+  large Tuist monorepos so that the pipeline is fast and reliable without
+  depending on a single tool.
 
   @s1
   Scenario: resolve strategy validates dependencies without full compilation

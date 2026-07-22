@@ -1,8 +1,8 @@
-Feature: Update Flutter Web skill for RPP multiplatform monorepos
-  Como operador de GAIA quiero que el skill de Flutter Web entienda la
-  estructura real de los monorepos de RPP (melos + FVM + paquetes de
-  Bitbucket) para que el pipeline pueda generar, validar y entregar código
-  compatible sin inventar convenciones de otra organización.
+Feature: Update Flutter Web skill for multiplatform monorepos
+  As a GAIA operator I want the Flutter Web skill to understand the real
+  structure of multiplatform monorepos (melos + FVM + private git overrides)
+  so that the pipeline can generate, validate, and deliver compatible code
+  without inventing conventions from another organization.
 
   @s1
   Scenario: skill recognizes melos + FVM monorepo structure
@@ -40,10 +40,10 @@ Feature: Update Flutter Web skill for RPP multiplatform monorepos
     And presentation under lib/src/presentation/
 
   @s6
-  Scenario: skill knows dependencies come from Bitbucket git overrides
-    Given pubspec_overrides.yaml contains bitbucket.org git URLs
+  Scenario: skill knows dependencies come from private git overrides
+    Given pubspec_overrides.yaml contains private git host URLs
     When the skill lists external dependencies
-    Then it distinguishes local path overrides from Bitbucket git overrides
+    Then it distinguishes local path overrides from private git overrides
     And it warns that credentials must be injected before CI build
 
   @s7
@@ -69,7 +69,7 @@ Feature: Update Flutter Web skill for RPP multiplatform monorepos
 
   @s10
   Scenario: skill respects different repo owner and credential set
-    Given the repo origin is rpp-co/rpp-account-basics-multiplatform-pyme
+    Given the repo origin is a private multiplatform org's repo
     When the reviewer creates a pull request
-    Then it uses the RPP GitHub owner and token
-    And it does not reuse iOS rappi-inc credentials
+    Then it uses that org's GitHub owner and token
+    And it does not reuse the iOS monorepo org's credentials
